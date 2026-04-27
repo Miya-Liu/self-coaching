@@ -1,0 +1,28 @@
+{
+  "project": "",
+  "goal": "",
+  "entrypoint": "bash scripts/run-once.sh",
+  "metric_name": "val_bpb",
+  "direction": "lower",
+  "time_budget": "5m",
+  "max_iterations": 8,
+  "baseline": {
+    "run_id": "baseline-001",
+    "metric_value": null
+  },
+  "best": {
+    "run_id": "baseline-001",
+    "metric_value": null
+  },
+  "runs": [
+    {
+      "run_id": "exp-001",
+      "iteration": 1,
+      "hypothesis": "",
+      "files_changed": [],
+      "metric_value": null,
+      "decision": "reverted",
+      "notes": ""
+    }
+  ]
+}

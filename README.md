@@ -2,7 +2,7 @@
 
 An **agent skill** (any LLM or coding **agent** that can follow `SKILL.md` and run Bash): it **coaches** that agent to improve a **model** inside a **git** repository‚Äîisolated **worktree** experiments, file-based training logs, **Experience** (persistent experiment/error/learnings), and **user-authorized merge** to upstream. This is **not** tied to a single product; the contract is the repo layout + `SKILL.md`.
 
-**Install** the folder wherever your environment expects skills: project-local `skills/self-coaching`, a shared `tools/` tree, or a path your stack documents (see [Installation paths](#installation-paths)). Wire your **agent** to load `SKILL.md` the way you load other long-running instructions (e.g. rules file, `AGENTS.md` pointer, or a vendor ‚Äúskill‚Äù import).
+**Install** the folder wherever your environment expects skills: project-local `skills/self-coaching`, a shared `tools/` tree, or a path your stack documents (see [Installation paths](#installation-paths)). Wire your **agent** to load `SKILL.md` the way you load other long-running instructions (e.g. rules file, `AGENTS.md` pointer, or a vendor ‚Äúskill‚Ä?import).
 
 The default **target git tree** in this pack is the vendored trainer: `upstream/autoresearch/` (from [karpathy/autoresearch](https://github.com/karpathy/autoresearch)). The same workflow applies to other ML repos you attach.
 
@@ -19,7 +19,6 @@ sequenceDiagram
     participant M as Local Model
     participant D as Deploy Gate
     participant T as Trainer
-    participant L as LOGs
     participant X as Results
 
     U->>A: Enable/Trigger self-coaching
@@ -31,21 +30,21 @@ sequenceDiagram
     G->>M: Load training model
     M->>G: Model checkpoint
     G->>A: Experiment Ready
-
+    
     A->>D: Create experiment/<id> + worktree
     loop Experiment iterations
         A->>T: Edit code in worktree only
         T->>T: Run training pipeline in sandbox
-        T->>L: Log pipeline status
-        A->>L: Extract metric and failure signals
-        A->>X: Resolve Error / Improvement
+        T->>A: Experimental results, failures, errors
         alt No meaningful improvement
-            A->>D: Continue next hypothesis
+            A->>D: Resolve Error / Next Improvements
+            D->>T: Update
         else Improvement found
             A->>D: Keep best branch state
         end
+        D->>A: Improved version of local model
     end
-    D->>A: Improved version of local model
+    
     A->>U: Request authorization
     U->>A: Decision
     alt Approve
@@ -62,11 +61,11 @@ sequenceDiagram
 |---------|-------------------------|
 | **Loading Gate** | Dependencies, `prepare.py`, cache readiness, configured checkpoint paths (see `SKILL.md`). |
 | **Performance** | Primary metric from `logs/<id>.log` (e.g. `val_bpb`) vs best; guardrails. |
-| **Data Pool** | Training/val data (e.g. under `~/.cache/autoresearch/`) plus anything you curate‚Äî**including** dialogue the agent collected with users or **self-play** artifacts you point the pipeline at. |
+| **Data Pool** | Training/val data (e.g. under `~/.cache/autoresearch/`) plus anything you curate‚Ä?*including** dialogue the agent collected with users or **self-play** artifacts you point the pipeline at. |
 | **Local Model** | Admin-chosen baseline: which checkpoint / which size variant (full vs smaller) before the run; see `SKILL.md` **Local Model configuration**. |
 | **Deploy Gate** | Isolation (`experiment/<id>` + `worktrees/‚Ä¶`) and **human approval** before replacing the integrated line or promoted weights. |
-| **LOGs** | `logs/<id>.log` (full train output; never flood the chat). |
-| **Results** | Recorded outcomes in `experience/` (experiment log, errors, learnings). |
+| **Trainer feedback** | Trainer returns experimental outcomes, failures, and errors to the agent; full raw run output still lands in `logs/<id>.log`. |
+| **Results** | Agent-resolved outcomes written to `experience/` (experiment log, errors, learnings). |
 
 The experiment loop runs autonomously inside the **Deploy Gate** boundary; **Replace local model** / **Update data** after approval are the only steps that change the canonical line the way your org defines it (merge, checkpoint swap, dataset refresh).
 
@@ -82,14 +81,14 @@ The experiment loop runs autonomously inside the **Deploy Gate** boundary; **Rep
 
 ## Layout
 
-- `SKILL.md` ‚Äî full procedure (git, worktree, training redirect, merge gate, **Experience**)
-- `docs/RUNBOOK.md` ‚Äî quick setup
-- `docs/ARCHITECTURE.md` ‚Äî structure
-- `upstream/autoresearch/` ‚Äî vendored repo to train
-- `experience/` ‚Äî **Experience** templates and optional `RUN_SUMMARY.json`
-- `scripts/` ‚Äî `preflight.sh`, `run-once.sh`, `init-experience.sh`, hook helpers, `activator.sh`
-- `logs/` / `worktrees/` ‚Äî created at runtime (see `.gitignore`)
-- `references/hooks-setup.md` ‚Äî hook wiring (optional; map events to your host)
+- `SKILL.md` ‚Ä?full procedure (git, worktree, training redirect, merge gate, **Experience**)
+- `docs/RUNBOOK.md` ‚Ä?quick setup
+- `docs/ARCHITECTURE.md` ‚Ä?structure
+- `upstream/autoresearch/` ‚Ä?vendored repo to train
+- `experience/` ‚Ä?**Experience** templates and optional `RUN_SUMMARY.json`
+- `scripts/` ‚Ä?`preflight.sh`, `run-once.sh`, `init-experience.sh`, hook helpers, `activator.sh`
+- `logs/` / `worktrees/` ‚Ä?created at runtime (see `.gitignore`)
+- `references/hooks-setup.md` ‚Ä?hook wiring (optional; map events to your host)
 
 ## Installation paths
 
@@ -100,7 +99,7 @@ Use **one** of these (or your own); only the path in hook commands and docs need
 | Project-local | `my-repo/skills/self-coaching/` |
 | User global | `~/skills/self-coaching/` or `~/.config/self-coaching/skill/` |
 | Cursor (if you use it) | `~/.cursor/skills/self-coaching/` or `.cursor/skills/self-coaching/` |
-| Other IDEs / agents | Follow that product‚Äôs ‚Äúskills‚Äù or ‚Äúrules‚Äù directory; set hook `command` to **absolute** paths if relative paths are unreliable. |
+| Other IDEs / agents | Follow that product‚Äôs ‚Äúskills‚Ä?or ‚Äúrules‚Ä?directory; set hook `command` to **absolute** paths if relative paths are unreliable. |
 
 Hooks in `references/hooks-setup.md` are **illustrative** (JSON + shell); adapt event names to your product.
 

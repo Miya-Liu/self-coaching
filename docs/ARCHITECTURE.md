@@ -15,12 +15,12 @@ The canonical end-to-end sequence is the same as the Mermaid block in `README.md
 
 ## Components
 
-1. **Policy** â€” `SKILL.md` (worktree workflow, when to train/stop, merge gate, **Experience** paths).
-2. **Target repo** â€” default: `upstream/autoresearch/` (vendored [karpathy/autoresearch](https://github.com/karpathy/autoresearch)); `main` is the integration line.
-3. **Experiment line** â€” `worktrees/<id>/` (git worktree + branch). All experiment edits go here during the loop.
-4. **Execution logs** â€” `logs/<id>.log` (full `train` stdout/stderr; parse with `Read` in small chunks).
-5. **Experience** (persistent) â€” `experience/EXPERIMENT_LOG.md` (outcomes), `experience/ERROR.md` (failures), `experience/LEARNINGS.md` (model/training insight). Optional: `experience/RUN_SUMMARY.json`.
-6. **Hooks** â€” `scripts/hook-*.sh` + `references/hooks-setup.md`.
+1. **Policy** éˆ?`SKILL.md` (worktree workflow, when to train/stop, merge gate, **Experience** paths).
+2. **Target repo** éˆ?default: `upstream/autoresearch/` (vendored [karpathy/autoresearch](https://github.com/karpathy/autoresearch)); `main` is the integration line.
+3. **Experiment line** éˆ?`worktrees/<id>/` (git worktree + branch). All experiment edits go here during the loop.
+4. **Execution logs** éˆ?`logs/<id>.log` (full `train` stdout/stderr; parse with `Read` in small chunks).
+5. **Experience** (persistent) éˆ?`experience/EXPERIMENT_LOG.md` (outcomes), `experience/ERROR.md` (failures), `experience/LEARNINGS.md` (model/training insight). Optional: `experience/RUN_SUMMARY.json`.
+6. **Hooks** éˆ?`scripts/hook-*.sh` + `references/hooks-setup.md`.
 
 ## Data flow
 
@@ -39,7 +39,6 @@ sequenceDiagram
     participant M as Local Model
     participant D as Deploy Gate
     participant T as Trainer
-    participant L as LOGs
     participant X as Results
 
     U->>A: Enable/Trigger self-coaching
@@ -51,21 +50,21 @@ sequenceDiagram
     G->>M: Load training model
     M->>G: Model checkpoint
     G->>A: Experiment Ready
-
+    
     A->>D: Create experiment/<id> + worktree
     loop Experiment iterations
         A->>T: Edit code in worktree only
         T->>T: Run training pipeline in sandbox
-        T->>L: Log pipeline status
-        A->>L: Extract metric and failure signals
-        A->>X: Resolve Error / Improvement
+        T->>A: Experimental results, failures, errors
         alt No meaningful improvement
-            A->>D: Continue next hypothesis
+            A->>D: Resolve Error / Next Improvements
+            D->>T: Update
         else Improvement found
             A->>D: Keep best branch state
         end
+        D->>A: Improved version of local model
     end
-    D->>A: Improved version of local model
+    
     A->>U: Request authorization
     U->>A: Decision
     alt Approve
@@ -76,7 +75,7 @@ sequenceDiagram
     end
 ```
 
-## Conceptual â†” concrete mapping
+## Conceptual to concrete mapping
 
 | Concept | Meaning | Default pack |
 |---------|---------|----------------|
@@ -85,8 +84,8 @@ sequenceDiagram
 | Data Pool | All training/val sources you allow: shipped data, caches, **user-dialogue-derived** corpora, **self-play** outputs. | Typically `~/.cache/autoresearch/` + any paths your `prepare`/loader uses. |
 | Local Model | Admin-selected starting point (full vs smaller, which checkpoint). | Env / config / checkpoint path before `uv run train.py`; not mutated on `main` until merge approval. |
 | Deploy Gate | Experiment isolation + promotion policy. | Branch `experiment/<id>`, path `worktrees/<id>/`; merge or checkpoint swap only after human decision. |
-| LOGs | Raw train process output. | `logs/<id>.log` |
-| Results | Structured outcomes + errors + learnings. | `experience/EXPERIMENT_LOG.md`, `experience/ERROR.md`, `experience/LEARNINGS.md` |
+| Trainer feedback | Trainer returns experimental outcomes/failures/errors to the agent. | Agent reads trainer feedback; raw output remains in `logs/<id>.log`. |
+| Results | Agent-resolved outcomes, errors, and learnings. | `experience/EXPERIMENT_LOG.md`, `experience/ERROR.md`, `experience/LEARNINGS.md` |
 
 ## Merge gate
 
@@ -96,4 +95,4 @@ sequenceDiagram
 
 ## Optional reference
 
-- `references/superpowers-skills/` â€” not required at runtime.
+- `references/superpowers-skills/` éˆ?not required at runtime.

@@ -1,7 +1,5 @@
 # self-coaching
 
-**Author:** [Miya-Liu](https://github.com/Miya-Liu) · **Repository (SSH):** `git@github.com:Miya-Liu/self-coaching.git`
-
 A **Cursor skill** that **coaches an agent** to improve a **model** inside a **git** repository: isolated **worktree** experiments, file-based training logs, **Experience** (persistent experiment/error/learnings), and **user-authorized merge** to upstream.
 
 After you clone from GitHub, copy this repository into `.cursor/skills/self-coaching/` (project) or `~/.cursor/skills/self-coaching/` (personal).

@@ -1,6 +1,6 @@
 # self-coaching
 
-**Author:** [Miya-Liu](https://github.com/Miya-Liu)
+**Author:** [Miya-Liu](https://github.com/Miya-Liu) · **Repository (SSH):** `git@github.com:Miya-Liu/self-coaching.git`
 
 A **Cursor skill** that **coaches an agent** to improve a **model** inside a **git** repository: isolated **worktree** experiments, file-based training logs, **Experience** (persistent experiment/error/learnings), and **user-authorized merge** to upstream.
 
@@ -95,10 +95,55 @@ The experiment loop runs autonomously inside the **Deploy Gate** boundary; **Rep
 
 ## Quick start
 
-1. Copy this folder to e.g. `~/.cursor/skills/self-coaching/` or `.cursor/skills/self-coaching/`.
-2. Run `bash scripts/init-experience.sh`.
-3. Read `docs/RUNBOOK.md` then `SKILL.md`.
-4. Add hooks from `references/hooks-setup.md` if you want.
+1. Get the skill tree: copy this folder, **or** clone from GitHub (see [GitHub: clone, push, and SSH](#github-clone-push-and-ssh)).
+2. Place it in e.g. `~/.cursor/skills/self-coaching/` (personal) or `.cursor/skills/self-coaching/` (project).
+3. Run `bash scripts/init-experience.sh`.
+4. Read `docs/RUNBOOK.md` then `SKILL.md`.
+5. Add hooks from `references/hooks-setup.md` if you want.
+
+## GitHub: clone, push, and SSH
+
+Use an **SSH remote** so Git authenticates with your **SSH key and `~/.ssh/config`**, not HTTPS username/password or a token in the URL.
+
+**Clone** (replace the repo name if yours differs):
+
+```bash
+git clone git@github.com:Miya-Liu/self-coaching.git
+```
+
+**Add or switch `origin` to SSH** (if you already have a local copy or used HTTPS before):
+
+```bash
+git remote add origin git@github.com:Miya-Liu/self-coaching.git
+# or, to switch an existing origin from HTTPS to SSH:
+# git remote set-url origin git@github.com:Miya-Liu/self-coaching.git
+git push -u origin main
+```
+
+**Auth** is determined by your OpenSSH client, typically:
+
+- **Linux / macOS / Git Bash:** `~/.ssh/config`
+- **Windows:** `C:\Users\<YourUser>\.ssh\config` (same file name; OpenSSH on Windows uses it the same way)
+
+Point your `Host github.com` entry at the right key, for example:
+
+```ssh-config
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+```
+
+Adjust `IdentityFile` to match the private key you [added to GitHub](https://github.com/settings/keys). If you use a **custom Host alias** (e.g. `Host github.com-work` with its own key), clone and set `origin` using that alias host in the SSH URL shape Git expects (often you still use `git@github.com:...` if `HostName github.com`; for multi-account setups follow your existing `ssh` config patterns).
+
+Verify:
+
+```bash
+ssh -T git@github.com
+```
+
+You should see a GitHub greeting for your account before pushing.
 
 ## Scope
 

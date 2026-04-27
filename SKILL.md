@@ -1,11 +1,13 @@
 ---
 name: self-coaching
-description: Coaches an agent through Loading Gate, Performance, Data Pool, Local Model, Deploy Gate, Trainer, LOGs, and Results (experience logs); git worktrees; user-authorized merge and model/data updates.
+description: Agent-agnostic skill. Coaches any capable agent through Loading Gate, Performance, Data Pool, Local Model, Deploy Gate, Trainer, LOGs, and Results (experience logs); git worktrees; user-authorized merge and model/data updates.
 ---
 
 # Self Coaching
 
 ## Intent
+
+**Portability:** This package is a **portable agent skill**. Any system that can supply this folder to an **LLM agent** (API, IDE, or CLI) and allow **Bash** + file tools may use it. It is not specific to a single editor or “skills” store—only `SKILL.md` and the file layout below need to be visible to the model.
 
 This skill **coaches the agent** to train and improve a **git-backed codebase**—especially the **model** (weights, architecture, and training loop in the repo the agent is working in). The default target here is the vendored trainer under `upstream/autoresearch/`; the same pattern applies if you point the skill at another repository.
 
@@ -219,12 +221,12 @@ commit	val_bpb	memory_gb	status	description
 
 ---
 
-## Hooks
+## Hooks (optional)
 
-See `references/hooks-setup.md` for three command hooks:
+If your **host** supports “run command before prompt” (or similar), see `references/hooks-setup.md` for three optional **command** injectors. They are **illustrative**; wire event names to your product.
 
 1. **Experiment** — injects the standard **bash** training pattern (log file redirection).  
 2. **Learnings** — injects a **tail** of `experience/LEARNINGS.md` when improving on stagnation.  
 3. **Errors** — injects a **tail** of `experience/ERROR.md` when handling similar failures.  
 
-Use short tails (e.g. last 80–120 lines) so context window stays safe.
+Use short tails (e.g. last 80–120 lines) so context window stays safe. The skill is fully usable **without** hooks; `SKILL.md` alone is enough.

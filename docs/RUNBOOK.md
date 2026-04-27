@@ -1,6 +1,6 @@
 # Runbook
 
-From the skill repository root (directory containing `SKILL.md`).
+From the skill repository root (directory containing `SKILL.md`). The runbook is **agent-agnostic**: any environment with `uv`, `git`, and Bash can follow it; you do not need a specific IDE.
 
 ## One-time: dependencies and data
 

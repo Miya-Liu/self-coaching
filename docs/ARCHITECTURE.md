@@ -2,7 +2,7 @@
 
 ## Role
 
-**Self-coaching** is a **skill** that **coaches an agent** to evolve a **model** in a **git** repo: the agent passes a **Loading Gate** (readiness), uses a **Data Pool** and **Local Model** as configured, runs an experiment loop behind a **Deploy Gate** (worktree + approval), and writes **Results** to `experience/` while full train output goes to `logs/`.
+**Self-coaching** is a **portable, agent-agnostic skill package** (not tied to one IDE): the **policy** in `SKILL.md` and **Experience** on disk are the contract. A **coached agent** evolves a **model** in a **git** repo by passing a **Loading Gate** (readiness), using a **Data Pool** and **Local Model** as configured, running an experiment loop behind a **Deploy Gate** (worktree + approval), and writing **Results** to `experience/` while full train output goes to `logs/`.
 
 The canonical end-to-end sequence is the same as the Mermaid block in `README.md` (Loading Gate, Performance, Data Pool, Local Model, Deploy Gate, Trainer, LOGs, Results).
 

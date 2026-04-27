@@ -1,8 +1,17 @@
 # Hook setup (self-coaching)
 
+Hooks are **optional** reminders and context injectors. They are **not** part of the core `SKILL.md` contract; your host (IDE, extension, or custom runner) may use different event names or no hooks at all.
+
 Use **command** hooks that print short, bounded text. Training output must always go to `logs/*.log` files, never into the hook’s stdout at full volume.
 
-Paths below assume the skill is installed at `.cursor/skills/self-coaching/`. If your path differs, adjust the `command` string.
+## `SKILL_ROOT`
+
+Replace `SKILL_ROOT` in the examples below with the **absolute path** to this skill folder on your machine, e.g.:
+
+- `C:\Users\you\work\self-coaching`
+- `/home/you/skills/self-coaching`
+
+JSON examples use `bash "$SKILL_ROOT/scripts/..."` style when your runner expands env vars; if not, use a full literal path in `command`.
 
 ## Environment variables (optional)
 
@@ -19,7 +28,7 @@ Paths below assume the skill is installed at `.cursor/skills/self-coaching/`. If
 
 Injects the **bash** pattern to run `uv run train.py` inside the worktree with full redirect to a log file.
 
-**Suggested event:** e.g. start of a coding/agent step where experiments are allowed, or a dedicated `UserPromptSubmit` matcher (e.g. `self-coach` / `experiment`).
+**Note:** The JSON field name `UserPromptSubmit` and `hooks` shape are **examples** (similar to some IDEs). Map to your product’s “before prompt” or “session start” hook if the names differ.
 
 ```json
 {
@@ -28,7 +37,7 @@ Injects the **bash** pattern to run `uv run train.py` inside the worktree with f
       "matcher": "(?i)self-?coach|experiment|train",
       "hooks": [{
         "type": "command",
-        "command": "bash .cursor/skills/self-coaching/scripts/hook-experiment.sh"
+        "command": "bash $SKILL_ROOT/scripts/hook-experiment.sh"
       }]
     }]
   }
@@ -39,8 +48,6 @@ Injects the **bash** pattern to run `uv run train.py` inside the worktree with f
 
 When the loop shows no clear metric improvement, run this to inject the **tail** of `experience/LEARNINGS.md` (optimization insights).
 
-**Suggested event:** a second `UserPromptSubmit` matcher (e.g. `stuck`, `stagnat`, `flat`, `no improve`) or a manual “review learnings” pattern.
-
 ```json
 {
   "hooks": {
@@ -48,7 +55,7 @@ When the loop shows no clear metric improvement, run this to inject the **tail**
       "matcher": "(?i)stuck|stagnat|no improve|review learnings",
       "hooks": [{
         "type": "command",
-        "command": "bash .cursor/skills/self-coaching/scripts/hook-inject-learnings.sh"
+        "command": "bash $SKILL_ROOT/scripts/hook-inject-learnings.sh"
       }]
     }]
   }
@@ -59,8 +66,6 @@ When the loop shows no clear metric improvement, run this to inject the **tail**
 
 Injects the **tail** of `experience/ERROR.md` so repeated failures are visible without rereading full logs.
 
-**Suggested event:** matcher for `error`, `oom`, `crash`, `failed`, or after tool failures.
-
 ```json
 {
   "hooks": {
@@ -68,7 +73,7 @@ Injects the **tail** of `experience/ERROR.md` so repeated failures are visible w
       "matcher": "(?i)error|oom|crash|failed run",
       "hooks": [{
         "type": "command",
-        "command": "bash .cursor/skills/self-coaching/scripts/hook-inject-errors.sh"
+        "command": "bash $SKILL_ROOT/scripts/hook-inject-errors.sh"
       }]
     }]
   }
@@ -86,7 +91,7 @@ Reminder only; no large output.
       "matcher": "",
       "hooks": [{
         "type": "command",
-        "command": "bash .cursor/skills/self-coaching/scripts/activator.sh"
+        "command": "bash $SKILL_ROOT/scripts/activator.sh"
       }]
     }]
   }
@@ -95,6 +100,8 @@ Reminder only; no large output.
 
 ## Combining
 
-Merge all desired `UserPromptSubmit` array entries in your project’s hook file. Matchers are evaluated in order; avoid duplicate blank matchers unless intentional.
+Merge all desired `UserPromptSubmit` array entries in your project’s hook file if your product supports that structure. Matchers are evaluated in order; avoid duplicate blank matchers unless intentional.
 
 **Note:** `hook-inject-*.sh` use `tail` to limit lines. Do not point hooks at `logs/*.log` in full; always cap size.
+
+**Cursor and similar hosts:** if your config requires a path like `.cursor/skills/self-coaching/`, set `SKILL_ROOT` to the resolved absolute path, or use that path directly in `command` instead of `$SKILL_ROOT`.

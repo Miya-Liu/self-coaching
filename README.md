@@ -1,8 +1,8 @@
 # self-coaching
 
-A **Cursor skill** that **coaches an agent** to improve a **model** inside a **git** repository: isolated **worktree** experiments, file-based training logs, **Experience** (persistent experiment/error/learnings), and **user-authorized merge** to upstream.
+An **agent skill** (any LLM or coding **agent** that can follow `SKILL.md` and run Bash): it **coaches** that agent to improve a **model** inside a **git** repository—isolated **worktree** experiments, file-based training logs, **Experience** (persistent experiment/error/learnings), and **user-authorized merge** to upstream. This is **not** tied to a single product; the contract is the repo layout + `SKILL.md`.
 
-After you clone from GitHub, copy this repository into `.cursor/skills/self-coaching/` (project) or `~/.cursor/skills/self-coaching/` (personal).
+**Install** the folder wherever your environment expects skills: project-local `skills/self-coaching`, a shared `tools/` tree, or a path your stack documents (see [Installation paths](#installation-paths)). Wire your **agent** to load `SKILL.md` the way you load other long-running instructions (e.g. rules file, `AGENTS.md` pointer, or a vendor “skill” import).
 
 The default **target git tree** in this pack is the vendored trainer: `upstream/autoresearch/` (from [karpathy/autoresearch](https://github.com/karpathy/autoresearch)). The same workflow applies to other ML repos you attach.
 
@@ -89,12 +89,25 @@ The experiment loop runs autonomously inside the **Deploy Gate** boundary; **Rep
 - `experience/` — **Experience** templates and optional `RUN_SUMMARY.json`
 - `scripts/` — `preflight.sh`, `run-once.sh`, `init-experience.sh`, hook helpers, `activator.sh`
 - `logs/` / `worktrees/` — created at runtime (see `.gitignore`)
-- `references/hooks-setup.md` — hook wiring
+- `references/hooks-setup.md` — hook wiring (optional; map events to your host)
+
+## Installation paths
+
+Use **one** of these (or your own); only the path in hook commands and docs needs to be consistent.
+
+| Where | Example |
+|--------|---------|
+| Project-local | `my-repo/skills/self-coaching/` |
+| User global | `~/skills/self-coaching/` or `~/.config/self-coaching/skill/` |
+| Cursor (if you use it) | `~/.cursor/skills/self-coaching/` or `.cursor/skills/self-coaching/` |
+| Other IDEs / agents | Follow that product’s “skills” or “rules” directory; set hook `command` to **absolute** paths if relative paths are unreliable. |
+
+Hooks in `references/hooks-setup.md` are **illustrative** (JSON + shell); adapt event names to your product.
 
 ## Quick start
 
 1. Get the skill tree: copy this folder, **or** clone from GitHub (see [GitHub: clone, push, and SSH](#github-clone-push-and-ssh)).
-2. Place it in e.g. `~/.cursor/skills/self-coaching/` (personal) or `.cursor/skills/self-coaching/` (project).
+2. Place it on disk where your **agent** is configured to read it (project-local `skills/self-coaching`, a global skills dir, or your vendor’s default—see [Installation paths](#installation-paths)).
 3. Run `bash scripts/init-experience.sh`.
 4. Read `docs/RUNBOOK.md` then `SKILL.md`.
 5. Add hooks from `references/hooks-setup.md` if you want.

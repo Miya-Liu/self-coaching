@@ -18,7 +18,7 @@ sequenceDiagram
     participant C as Data Pool
     participant M as Local Model
     participant D as Deploy Gate
-    participant T as Trainer
+    participant T as Trainer<br/>(worktree + optional AERL)
     participant X as Results
 
     U->>A: Enable/Trigger self-coaching
@@ -34,7 +34,7 @@ sequenceDiagram
     A->>D: Create experiment/<id> + worktree
     loop Experiment iterations
         A->>T: Edit code in worktree only
-        T->>T: Run training pipeline in sandbox
+        T->>T: Run training (worktree train.py or AERL pipelines -> logs)
         T->>A: Experimental results, failures, errors
         alt No meaningful improvement
             A->>D: Resolve Error / Next Improvements
@@ -64,7 +64,8 @@ sequenceDiagram
 | **Data Pool** | Training/val data (e.g. under `~/.cache/autoresearch/`) plus anything you curate - **including** dialogue the agent collected with users or **self-play** artifacts you point the pipeline at. |
 | **Local Model** | Admin-chosen baseline: which checkpoint / which size variant (full vs smaller) before the run; see `SKILL.md` **Local Model configuration**. |
 | **Deploy Gate** | Isolation (`experiment/<id>` + `worktrees/...`) and **human approval** before replacing the integrated line or promoted weights. |
-| **Trainer feedback** | Trainer returns experimental outcomes, failures, and errors to the agent; full raw run output still lands in `logs/<id>.log`. |
+| **Trainer** | Default: `uv run train.py` in the worktree (`scripts/run-once.sh`). Optional: **AERL** SFT/GRPO via `scripts/run-pipeline.sh` and `training/pipelines/` (HTTP or `PIPELINE_MODE=local` + `AERL_ROOT`; see `SKILL.md`). |
+| **Trainer feedback** | Trainer returns experimental outcomes, failures, and errors to the agent; full raw run output still lands in `logs/<id>.log` (autoresearch or **AERL** run). |
 | **Results** | Agent-resolved outcomes written to `experience/` (experiment log, errors, learnings). |
 
 The experiment loop runs autonomously inside the **Deploy Gate** boundary; **Replace local model** / **Update data** after approval are the only steps that change the canonical line the way your org defines it (merge, checkpoint swap, dataset refresh).

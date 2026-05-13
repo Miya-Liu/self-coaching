@@ -86,7 +86,9 @@ The experiment loop runs autonomously inside the **Deploy Gate** boundary; **Rep
 - `docs/ARCHITECTURE.md` - structure
 - `upstream/autoresearch/` - vendored repo to train
 - `experience/` - **Experience** templates and optional `RUN_SUMMARY.json`
-- `scripts/` - `preflight.sh`, `run-once.sh`, `init-experience.sh`, hook helpers, `activator.sh`
+- `training/pipelines/` - declarative SFT, GRPO, … for **AERL** (`registry.yaml` with `service.url`, `_lib.sh`, per-pipeline `pipeline.yaml` + `run.sh`; HTTP trainer by default, optional `PIPELINE_MODE=local` + `AERL_ROOT`)
+- `training/services/` - `example.env` for **AERL** trainer + OpenAI-compatible rollout (`TRAINER_*`, `OPENAI_*`; copy to `training/services/.env`, gitignored)
+- `scripts/` - `preflight.sh`, `run-once.sh`, `run-pipeline.sh`, `init-experience.sh`, hook helpers, `activator.sh`
 - `logs/` / `worktrees/` - created at runtime (see `.gitignore`)
 - `references/hooks-setup.md` - hook wiring (optional; map events to your host)
 

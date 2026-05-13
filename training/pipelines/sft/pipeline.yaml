@@ -1,0 +1,17 @@
+id: sft
+trainer: SFT
+title: Supervised fine-tuning (SFT)
+description: >
+  Curate supervision in the Data Pool, then run an SFT stage.
+service_model:
+  summary: >
+    AERL default: POST to TRAINER_BASE_URL (see registry service.url). Optional local AERL trainer source tree:
+    PIPELINE_MODE=local and AERL_ROOT; rollout can still use OPENAI_* from training/services/.env.
+http:
+  method: POST
+  path_template: /v1/pipelines/sft/run
+  body: '{"argv": ["<cli overrides>", "..."]}'
+local_aerl:
+  cwd_env: AERL_ROOT
+  entrypoint: python3 examples/math/gsm8k_sft.py
+default_invocation: python3 examples/math/gsm8k_sft.py

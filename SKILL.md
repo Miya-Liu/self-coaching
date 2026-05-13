@@ -54,7 +54,7 @@ Collect once per session (or per experiment branch):
 ## Non-negotiable constraints
 
 1. **Worktree boundary**: apply experiment edits and commits **only** inside `experiment_worktree` until the user approves merge. Do not change tracked files in `upstream/autoresearch` on `main` during the loop except via the merge step after approval.
-2. **Training command**: use the **exact pattern** in **Run one training experiment (log to file)**. Redirect **all** stdout and stderr to `logs/…`; parse metrics from that file.
+2. **Training command**: use the **exact pattern** in **Run one training experiment (log to file)**. Redirect **all** stdout and stderr to `logs/…`; parse metrics from that file. For `training/pipelines` (SFT/GRPO), use `scripts/run-pipeline.sh` or the per-pipeline `run.sh` so output still goes to the given log path (`LOG_FILE`)—same discipline, different entrypoint.
 3. Experiments may run autonomously within guardrails until stop conditions.
 4. One clear hypothesis per iteration; small, attributable commits in the **experiment** branch.
 5. **Merge**: `git merge` of the experiment branch into `main` in `upstream/autoresearch` **only after explicit user authorization**.
@@ -120,6 +120,26 @@ uv --directory upstream/autoresearch run prepare.py
 ```
 
 (Use the same venv/lock as upstream; the worktree shares the same working tree’s git metadata but the experiment files live in `WT_PATH`.)
+
+## Training pipelines (SFT, GRPO, **AERL** trainer API)
+
+For **LLM / agent** stages beyond the default vendored `train.py` loop, this pack includes `training/pipelines/` (same file bundle as **Layout** in `README.md`: **AERL** `registry.yaml` with `service.url`, `_lib.sh`, per-pipeline `pipeline.yaml` + `run.sh`):
+
+- **Registry:** `training/pipelines/registry.yaml` lists pipeline ids (`sft`, `grpo`, …) and **AERL** `service.url` (default trainer base, typically `http://localhost:8004`).
+- **Per pipeline:** `training/pipelines/<id>/pipeline.yaml` (HTTP + optional local entrypoints) and `training/pipelines/<id>/run.sh` (redirects **all** stdout/stderr to `LOG_FILE`).
+- **Shared helpers:** `training/pipelines/_lib.sh` (sourced by runners; not invoked directly).
+- **Service contract (env):** copy `training/services/example.env` to `training/services/.env` (ignored by git). Set `TRAINER_BASE_URL` / `TRAINER_API_KEY` for the trainer HTTP API; set `OPENAI_BASE_URL` / `OPENAI_API_KEY` for OpenAI-compatible **rollout** endpoints used by your agent loop (same “replace `base_url`” pattern as **AERL** and other OpenAI-compatible stacks).
+
+**Default (HTTP trainer):** `run.sh` issues `POST {TRAINER_BASE_URL}/v1/pipelines/<id>/run` with JSON `{"argv":[…]}` (see each `pipeline.yaml`). Ensure your trainer implements that contract or adapt `_lib.sh`.
+
+**Local AERL trainer tree (optional):** `export PIPELINE_MODE=local` (or `aerl`) and `export AERL_ROOT=/path/to/AERL` after your **AERL** trainer layout is installed; then the same `run.sh` paths execute the `examples/math/…` entrypoints inside `AERL_ROOT`.
+
+```bash
+bash scripts/run-pipeline.sh grpo logs/<experiment_id>-grpo.log scheduler.type=local
+bash scripts/run-pipeline.sh sft logs/<experiment_id>-sft.log
+```
+
+Use the **same log redirection discipline** as **Run one training experiment**: parse metrics from `logs/…` with `Read` in small ranges; do not paste full training transcripts into chat. If an experiment branch needs **forked YAML or launchers**, keep those files under the active **`experiment_worktree`** (or a path your policy allows) and pass their paths through `argv` / trainer config consistently.
 
 ## Stage-gated workflow (strict)
 

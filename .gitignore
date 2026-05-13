@@ -8,3 +8,6 @@ run.log
 
 # Optional local vendor clone (large); see docs if you pull superpowers-skills separately
 references/superpowers-skills/
+
+# Local secrets for AERL / OpenAI-compatible service endpoints
+training/services/.env

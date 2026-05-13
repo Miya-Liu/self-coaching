@@ -12,15 +12,17 @@ The canonical end-to-end sequence is the same as the Mermaid block in `README.md
 - **Experiment line:** `worktrees/<experiment_id>` with branch `experiment/<id>`
 - **Execution logs:** `logs/<id>.log` (full stdout/stderr redirected)
 - **Experience logs:** `experience/*.md` (+ optional `experience/RUN_SUMMARY.json`)
+- **AERL pipelines:** `training/pipelines/` + `training/services/.env` (trainer HTTP + optional rollout endpoints; see `README.md` Layout)
 
 ## Components
 
-1. **Policy** éˆ?`SKILL.md` (worktree workflow, when to train/stop, merge gate, **Experience** paths).
-2. **Target repo** éˆ?default: `upstream/autoresearch/` (vendored [karpathy/autoresearch](https://github.com/karpathy/autoresearch)); `main` is the integration line.
-3. **Experiment line** éˆ?`worktrees/<id>/` (git worktree + branch). All experiment edits go here during the loop.
-4. **Execution logs** éˆ?`logs/<id>.log` (full `train` stdout/stderr; parse with `Read` in small chunks).
-5. **Experience** (persistent) éˆ?`experience/EXPERIMENT_LOG.md` (outcomes), `experience/ERROR.md` (failures), `experience/LEARNINGS.md` (model/training insight). Optional: `experience/RUN_SUMMARY.json`.
-6. **Hooks** éˆ?`scripts/hook-*.sh` + `references/hooks-setup.md`.
+1. **Policy** `SKILL.md` (worktree workflow, when to train/stop, merge gate, **Experience** paths).
+2. **Target repo** default: `upstream/autoresearch/` (vendored [karpathy/autoresearch](https://github.com/karpathy/autoresearch)); `main` is the integration line.
+3. **Experiment line** `worktrees/<id>/` (git worktree + branch). All experiment edits go here during the loop.
+4. **Execution logs** `logs/<id>.log` (full `train` stdout/stderr; parse with `Read` in small chunks).
+5. **Training service pipelines (AERL)** `training/pipelines/` (`registry.yaml`, `_lib.sh`, per-pipeline `pipeline.yaml` + `run.sh`; HTTP trainer by default via `TRAINER_BASE_URL`, optional `PIPELINE_MODE=local` + `AERL_ROOT`).
+6. **Experience** (persistent) `experience/EXPERIMENT_LOG.md` (outcomes), `experience/ERROR.md` (failures), `experience/LEARNINGS.md` (model/training insight). Optional: `experience/RUN_SUMMARY.json`.
+7. **Hooks** `scripts/hook-*.sh` + `references/hooks-setup.md`.
 
 ## Data flow
 
@@ -95,4 +97,4 @@ sequenceDiagram
 
 ## Optional reference
 
-- `references/superpowers-skills/` éˆ?not required at runtime.
+- `references/superpowers-skills/` not required at runtime.

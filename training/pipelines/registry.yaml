@@ -1,0 +1,17 @@
+# Index of training pipelines (AERL). Same file list as README.md Layout: registry.yaml, _lib.sh, */pipeline.yaml, */run.sh
+# HTTP contract (default): POST {TRAINER_BASE_URL}/v1/pipelines/{id}/run
+#   JSON body: {"argv": ["scheduler.type=local", ...]} — trainer streams/logs in response body.
+# Local fallback: PIPELINE_MODE=local, AERL_ROOT → see training/pipelines/_lib.sh and */run.sh
+version: 1
+service:
+  name: AERL
+  url: http://localhost:8004
+pipelines:
+  - id: sft
+    path: training/pipelines/sft
+    trainer: SFT
+    description: Supervised fine-tuning (offline supervision / instruction data).
+  - id: grpo
+    path: training/pipelines/grpo
+    trainer: GRPO
+    description: Group relative policy optimization (RL) via AERL async trainer.

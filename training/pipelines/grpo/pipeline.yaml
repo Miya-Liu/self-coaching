@@ -1,0 +1,16 @@
+id: grpo
+trainer: GRPO
+title: GRPO (group relative policy optimization)
+description: >
+  Policy-gradient style RL suitable for reasoning and agentic rollouts.
+service_model:
+  summary: >
+    AERL: trainer jobs use TRAINER_BASE_URL; agent rollouts use OPENAI_* in training/services/example.env.
+http:
+  method: POST
+  path_template: /v1/pipelines/grpo/run
+  body: '{"argv": ["scheduler.type=local", "..."]}'
+local_aerl:
+  cwd_env: AERL_ROOT
+  entrypoint: python3 examples/math/gsm8k_rl.py --config examples/math/gsm8k_grpo.yaml
+default_invocation: python3 examples/math/gsm8k_rl.py --config examples/math/gsm8k_grpo.yaml

@@ -4,31 +4,134 @@ description: Agent-agnostic skill. Coaches any capable agent through Loading Gat
 ---
 
 # Self Coaching
+## Overview
 
-## Intent
+Self-coaching is a disciplined improvement loop for autonomous agents. It turns experience into durable capability by deciding what should be remembered, what should become a skill, what should become an evaluation, what should become curated training data, and what should become a code/tool/model change.
 
-**Portability:** This package is a **portable agent skill**. Any system that can supply this folder to an **LLM agent** (API, IDE, or CLI) and allow **Bash** + file tools may use it. It is not specific to a single editor or “skills” store—only `SKILL.md` and the file layout below need to be visible to the model.
+This skill supports three related modes:
 
-This skill **coaches the agent** to train and improve a **git-backed codebase**—especially the **model** (weights, architecture, and training loop in the repo the agent is working in). The default target here is the vendored trainer under `upstream/autoresearch/`; the same pattern applies if you point the skill at another repository.
+1. **Self-learning** — learn from previous experience: bugs resolved, user preferences, tool quirks, environment conventions, workflows, and skill extensions.
+2. **Self-playing** — generate, replay, mutate, and critique challenging requests to create evaluation cases and training trajectories.
+3. **Self-training** — use curated data to fine-tune or reinforce models via SFT/RL pipelines, with evaluation gates before deployment.
 
-The agent runs training experiments **automatically** while isolating edits in a **git worktree** branched from that repo. It uses **git-related Bash** (`git`, `git worktree`, `git merge`, etc.) as below. **Do not merge back into upstream `main` until the user explicitly authorizes it.**
+Self-coaching is not uncontrolled self-modification. It is a gated pipeline: observe → diagnose → encode → evaluate → curate → train → deploy only if metrics improve.
 
-- Mode: `git worktree` + `stage-gated merge`
-- Safety profile: `strict` (edits only inside the active experiment worktree during the loop)
-- **Experience** (persistent logs): `experience/EXPERIMENT_LOG.md`, `experience/ERROR.md`, `experience/LEARNINGS.md` (see **Experience**)
-- All training stdout/stderr: redirect to **log files** under `logs/` (never paste full training output into chat)
+## When to Use
 
-## Pipeline concepts (see `README.md` diagram)
+Use this skill when:
 
-These names match the **sequence diagram** in `README.md` and `docs/ARCHITECTURE.md`.
+- An agent repeatedly fails, hesitates, or needs user steering on similar tasks.
+- The user corrects the agent and the correction should persist.
+- A bug was hard to resolve and the root cause/procedure should be reusable.
+- A skill was extended, created, patched, or found stale.
+- An evaluation identifies low-performance categories or regressions.
+- The agent needs to generate harder synthetic tasks or adversarial self-play cases.
+- You are building an autoresearch-style loop: propose tasks, solve them, critique them, curate trajectories, train, evaluate, repeat.
+- You need a safe process for turning agent experience into memory, skills, tests, eval datasets, SFT data, or RL preference data.
 
-- **Loading Gate** — Preconditions before the first experiment: `uv` env, data/tokenizer cache (e.g. `uv run prepare.py`), and any **admin-configured** checkpoint or model entry point. The agent does not start the training loop until this gate is satisfied.
-- **Performance** — Current model quality vs the goal, using the primary `metric_name` from `logs/<id>.log` and the keep/discard rules in **Strict guardrails**.
-- **Data Pool** — All data the training pipeline is allowed to use: default prepared cache, **plus** any additional sources you wire in (e.g. exports from **user–agent dialogue**, or **self-play**–generated data). Keep paths and provenance explicit in `experience/LEARNINGS.md` when you add new sources.
-- **Local Model** — **Admin-configured** starting point: which weights/checkpoint, and often which size variant (e.g. full model vs a smaller one for fast iteration). The agent reads this from your project’s config or environment; the skill does not override admin policy.
-- **Deploy Gate** — Isolation and promotion: work on `experiment/<id>` only in `worktrees/<id>/`; **no** replace of the integrated `main` line, and no **Replace local model** / **Update data** on the canonical path, until the **Human** approves.
-- **LOGs** — `logs/<id>.log` (full `train` output).
-- **Results** — Durable record in `experience/` (outcomes, errors, optimization learnings), not raw log paste.
+Do **not** use this skill for:
+
+- One-off task notes that will be stale within days.
+- Saving raw transcripts without filtering or consent.
+- Training on secrets, private data, credentials, or copyrighted/proprietary content without permission.
+- Blindly creating memories or skills after every task.
+- Deploying a newly trained model without evaluation and rollback.
+
+## Self-Coaching Loop
+
+### 1. Observe
+
+Capture improvement signals from:
+
+- User corrections: "remember this", "don't do that", "we prefer X".
+- Repeated clarification questions.
+- Tool failures, command errors, or environment-specific quirks.
+- Bugs resolved after several failed attempts.
+- Long tasks that required non-obvious workflows.
+- Evaluation failures or low-scoring benchmark examples.
+- Subagent critiques, code reviews, or postmortems.
+- Skill load failures, stale instructions, or missing pitfalls.
+
+Ask:
+
+- What exactly went wrong or slowed the agent down?
+- Was the issue knowledge, procedure, tool access, reasoning, prompt design, memory, or model capability?
+- Is the lesson stable enough to persist?
+- Can this lesson be verified later?
+
+### 2. Diagnose and Classify
+
+Classify the signal into one or more durable artifacts:
+
+| Signal | Best artifact | Example |
+|---|---|---|
+| Stable user preference | Memory | "User prefers concise terminal-friendly answers." |
+| Stable environment fact | Memory | "This Windows host runs terminal commands through git-bash, not PowerShell." |
+| Reusable workflow | Skill | "How to debug Hermes TUI slash commands." |
+| Missing steps in an existing workflow | Skill patch | Add pitfall or verification step. |
+| Code defect | Bug fix + regression test | Tool fails on Windows path handling. |
+| Weak agent behavior | Eval case | Agent forgets to verify file writes. |
+| Repeated manual operation | Tool/plugin/MCP | Add command to query a service instead of manual curl. |
+| Model weakness | Training example | Failed trajectory plus corrected solution. |
+| Ambiguous task pattern | Self-play task family | Generate variations to stress the behavior. |
+
+If the artifact would be stale in a week, do not save it as memory. Use session search or task notes instead.
+
+### 3. Encode the Smallest Durable Improvement
+
+Choose the smallest sufficient change:
+
+1. **Memory** for stable facts and preferences.
+2. **Skill patch** before creating a new skill if an existing skill mostly fits.
+3. **New skill** for a reusable, named procedure with triggers, steps, pitfalls, and verification.
+4. **Test/eval** for behavior that should not regress.
+5. **Tool/plugin** when repeated manual actions should become executable capability.
+6. **Training data** only after examples are curated, de-duplicated, and privacy-checked.
+7. **Model training** only when prompt/skill/tool/test changes are insufficient or the goal is model capability improvement.
+
+### 4. Verify
+
+Before considering the improvement successful:
+
+- Re-run the failed task or a minimal reproduction.
+- Add or update a regression test if code changed.
+- Add an eval case if behavior changed.
+- Validate the skill loads and has actionable instructions.
+- Check that the new memory is compact and durable.
+- Compare before/after metrics if an evaluation pipeline exists.
+
+### 5. Curate
+
+Good self-coaching depends on high-quality data. Curate aggressively:
+
+- Keep examples with clear task, context, tools used, failure mode, correction, and ideal response.
+- Remove secrets, credentials, PII, and irrelevant logs.
+- Normalize paths, hostnames, and user-specific details unless they are the point of the example.
+- Deduplicate near-identical examples.
+- Label examples by capability: planning, tool use, coding, debugging, eval repair, instruction following, safety, memory use, etc.
+- Include negative examples only when paired with an explanation and preferred behavior.
+- Prefer small high-signal examples over huge transcripts.
+
+### 6. Train or Improve Policy
+
+Training is optional. Many improvements should remain as memory, skills, tools, tests, or prompts.
+
+If training is appropriate, route curated data into:
+
+- **SFT**: demonstrations of ideal behavior, corrected trajectories, tool-use traces, debugging workflows.
+- **Preference/RL data**: chosen/rejected responses, reward labels, rubric scores, evaluator critiques.
+- **Process supervision**: intermediate reasoning or action-step labels when available and safe.
+- **Tool-use tuning**: examples of when to call tools, how to verify, and when to ask clarification.
+
+Use evaluation gates before promotion:
+
+1. Baseline model on fixed eval set.
+2. Train candidate model.
+3. Evaluate candidate on held-out tasks and regression suite.
+4. Compare against baseline and previous production model.
+5. Deploy only if improvements exceed thresholds without safety regressions.
+6. Keep rollback path.
+
 
 ## Tooling: Git and Bash (required)
 

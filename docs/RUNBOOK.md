@@ -27,8 +27,8 @@ bash scripts/run-once.sh "worktrees/<id>" "logs/<id>.log"
 
 ## Training pipelines (SFT / GRPO, **AERL** trainer HTTP API)
 
-1. Copy `training/services/example.env` to `training/services/.env` and set `TRAINER_BASE_URL` (default **AERL** `http://localhost:8004` in `training/pipelines/registry.yaml` `service.url`) and keys as needed.
-2. On your **AERL** trainer, implement `POST /v1/pipelines/{sft|grpo}/run`, or set `PIPELINE_MODE=local` (or `aerl`) and `AERL_ROOT` to a local **AERL** trainer source tree that provides the `examples/math/…` scripts (see `training/pipelines/_lib.sh`).
+1. Copy `self-coaching-training/services/example.env` to `self-coaching-training/services/.env` and set `TRAINER_BASE_URL` (default **AERL** `http://localhost:8004` in `self-coaching-training/pipelines/registry.yaml` `service.url`) and keys as needed.
+2. On your **AERL** trainer, implement `POST /v1/pipelines/{sft|grpo}/run`, or set `PIPELINE_MODE=local` (or `aerl`) and `AERL_ROOT` to a local **AERL** trainer source tree that provides the `examples/math/…` scripts (see `self-coaching-training/pipelines/_lib.sh`).
 3. From skill root:
 
 ```bash

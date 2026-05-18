@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # AERL
-# Usage: LOG_FILE=/path/to.log bash training/pipelines/grpo/run.sh [override argv]
+# Usage: LOG_FILE=/path/to.log bash self-coaching-training/pipelines/grpo/run.sh [override argv]
 set -euo pipefail
 
 # shellcheck source=../_lib.sh

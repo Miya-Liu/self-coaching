@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Shared helpers for training/pipelines/*/run.sh (sourced, not executed directly).
-# Default: POST to TRAINER_BASE_URL (AERL; see training/pipelines/registry.yaml service.url).
+# Shared helpers for self-coaching-training/pipelines/*/run.sh (sourced, not executed directly).
+# Default: POST to TRAINER_BASE_URL (AERL; see self-coaching-training/pipelines/registry.yaml service.url).
 # Override: PIPELINE_MODE=local and AERL_ROOT for in-repo AERL reference python entrypoints.
 
 set -euo pipefail
@@ -10,17 +10,17 @@ _training_caller_script() {
 }
 
 training_skill_root() {
-  # Caller is training/pipelines/<id>/run.sh → three levels up to skill root.
+  # Caller is self-coaching-training/pipelines/<id>/run.sh → three levels up to repo root.
   cd "$(dirname "$(_training_caller_script)")/../../.." && pwd
 }
 
 training_load_env() {
   local root
   root="$(training_skill_root)"
-  if [[ -f "${root}/training/services/.env" ]]; then
+  if [[ -f "${root}/self-coaching-training/services/.env" ]]; then
     set -a
     # shellcheck disable=SC1090
-    source "${root}/training/services/.env"
+    source "${root}/self-coaching-training/services/.env"
     set +a
   fi
   : "${TRAINER_BASE_URL:=http://localhost:8004}"

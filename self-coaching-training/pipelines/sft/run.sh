@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # AERL
-# Usage: LOG_FILE=/path/to.log bash training/pipelines/sft/run.sh [extra argv for trainer or gsm8k_sft.py]
+# Usage: LOG_FILE=/path/to.log bash self-coaching-training/pipelines/sft/run.sh [extra argv for trainer or gsm8k_sft.py]
 set -euo pipefail
 
 # shellcheck source=../_lib.sh

@@ -5,7 +5,7 @@ description: >
   Policy-gradient style RL suitable for reasoning and agentic rollouts.
 service_model:
   summary: >
-    AERL: trainer jobs use TRAINER_BASE_URL; agent rollouts use OPENAI_* in training/services/example.env.
+    AERL: trainer jobs use TRAINER_BASE_URL; agent rollouts use OPENAI_* in self-coaching-training/services/example.env.
 http:
   method: POST
   path_template: /v1/pipelines/grpo/run

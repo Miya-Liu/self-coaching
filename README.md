@@ -2,7 +2,7 @@
 
 A **portable, agent-agnostic skill set** for coaching any LLM or coding **agent** that can follow markdown skills and run Bash. Root `SKILL.md` is the full **orchestration** policy: a gated loop from observation through memory/skills/evals, self-play data, **Experience** logs, optional **AERL** SFT/GRPO-style training, and **user-authorized** merge or promotion. The same contract is the repo layout + `SKILL.md`; it is not tied to a single product.
 
-This repository **decomposes** that policy into **atomic step skills** (separate folders with their own `SKILL.md`) so a host can load the umbrella policy or only the phase you are executing. See **`DESCRIPTION.md`** for the index: `self-coaching-self-learning`, `self-coaching-self-play`, `self-coaching-evaluation`, `self-coaching-training`.
+This repository **decomposes** that policy into **atomic step skills** (separate folders with their own `SKILL.md`) so a host can load the umbrella policy or only the phase you are executing. See **`DESCRIPTION.md`** for the index of atomic skills, a concise list of **`scripts/`** helpers (including `mock-run-all.sh`), and how to run **`mock-services/`** (CLI, HTTP, and contract JSON) for deterministic dry runs without a real trainer.
 
 **Install** the tree wherever your environment expects skills (project-local `skills/self-coaching`, a shared `tools/` tree, or a path your stack documents — see [Installation paths](#installation-paths)). Wire your **agent** to load root `SKILL.md` for the full loop, or load a subfolder skill when working in one phase only.
 
@@ -99,8 +99,9 @@ The experiment loop runs autonomously inside the **Deploy Gate** boundary; **Rep
 | `self-coaching-self-play/` | Phase skill: generate and curate challenging tasks and trajectories |
 | `self-coaching-evaluation/` | Phase skill: evaluation services and promotion gates |
 | `self-coaching-training/` | Phase skill: SFT/RL training discipline; **`pipelines/`** (SFT/GRPO for **AERL**: `registry.yaml`, `_lib.sh`, per-pipeline `pipeline.yaml` + `run.sh`) and **`services/`** (`example.env`; copy to `.env`, gitignored) |
-| `scripts/` | `preflight.sh`, `run-once.sh`, `run-pipeline.sh`, `init-experience.sh`, hook helpers, `activator.sh` |
-| `logs/` / `worktrees/` | Created at runtime (see `.gitignore`) |
+| `scripts/` | `preflight.sh`, `init-experience.sh` (bootstraps `experience/`, `logs/`, `worktrees/` under a chosen root), `run-once.sh`, `run-pipeline.sh`, `mock-run-all.sh` (deterministic mock end-to-end loop), hook helpers, `activator.sh` |
+| `mock-services/` | Local mocks: `mock_self_coaching.py` (CLI `run-all`, HTTP `serve`), `plugin_mock.py`, and `contracts/mock_service_contract.json` — see **`DESCRIPTION.md`** |
+| `logs/` / `worktrees/` | Created at runtime (often via `init-experience.sh`; see `.gitignore`) |
 | `references/hooks-setup.md` | Hook wiring (optional; map events to your host) |
 
 ## Installation paths
@@ -123,6 +124,7 @@ Hooks in `references/hooks-setup.md` are **illustrative** (JSON + shell); adapt 
 3. Run `bash scripts/init-experience.sh`.
 4. Read `DESCRIPTION.md`, then `docs/RUNBOOK.md`, then root `SKILL.md`. Load a `self-coaching-*/SKILL.md` when executing only one phase.
 5. Add hooks from `references/hooks-setup.md` if you want.
+6. Optional — **dry run without a real trainer:** from repo root run `bash scripts/mock-run-all.sh` (defaults to `mock-services/demo-run/` and pipeline `sft`). For HTTP mocks, Python import surface, and contract details, see **`DESCRIPTION.md`**.
 
 For **AERL** pipelines, configure env from `self-coaching-training/services/example.env`, then from repo root either use `scripts/run-pipeline.sh` or invoke `self-coaching-training/pipelines/<id>/run.sh` with `LOG_FILE` set (see `docs/RUNBOOK.md` and `SKILL.md`).
 

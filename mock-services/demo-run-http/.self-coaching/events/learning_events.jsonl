@@ -1,0 +1,1 @@
+{"capability": ["tool_use"], "classification": "eval_case_candidate", "durable_artifact": "self_play_seed", "event": "HTTP mock learning event", "id": "learn-4d0d6c33b5", "notes": "Mock learning event. No secrets or raw transcript stored.", "privacy_checked": true, "source": "http-test", "timestamp": "2026-05-18T10:38:50Z"}

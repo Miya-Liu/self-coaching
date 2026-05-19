@@ -1,0 +1,21 @@
+{
+  "base_model": "mock-baseline-v0",
+  "candidate": "mock-sft-candidate-4d599e",
+  "dataset_refs": [
+    "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\production-readiness-runs\\agent-skill-simulation\\.self-coaching\\curated\\train.jsonl"
+  ],
+  "eval_run_id": null,
+  "hyperparameters": {
+    "epochs": 1,
+    "learning_rate": 1e-05
+  },
+  "log_file": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\production-readiness-runs\\agent-skill-simulation\\.self-coaching\\logs\\train-69e84d599e.log",
+  "method": "sft",
+  "metrics": {
+    "val_loss": 0.9
+  },
+  "pipeline_id": "sft",
+  "rollback_target": "mock-baseline-v0",
+  "run_id": "train-69e84d599e",
+  "timestamp": "2026-05-19T01:43:15Z"
+}

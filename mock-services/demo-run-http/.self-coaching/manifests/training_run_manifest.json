@@ -1,0 +1,21 @@
+{
+  "base_model": "mock-base",
+  "candidate": "mock-sft-candidate-6de76a",
+  "dataset_refs": [
+    "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\demo-run-http\\.self-coaching\\curated\\train.jsonl"
+  ],
+  "eval_run_id": null,
+  "hyperparameters": {
+    "epochs": 1,
+    "learning_rate": 1e-05
+  },
+  "log_file": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\demo-run-http\\.self-coaching\\logs\\train-dcfe6de76a.log",
+  "method": "sft",
+  "metrics": {
+    "val_loss": 0.95
+  },
+  "pipeline_id": "sft",
+  "rollback_target": "mock-base",
+  "run_id": "train-dcfe6de76a",
+  "timestamp": "2026-05-18T10:38:50Z"
+}

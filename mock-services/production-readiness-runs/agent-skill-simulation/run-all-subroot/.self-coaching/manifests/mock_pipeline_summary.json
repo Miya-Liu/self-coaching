@@ -1,0 +1,40 @@
+{
+  "baseline_eval": {
+    "recommendation": "promote",
+    "report": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\production-readiness-runs\\agent-skill-simulation\\run-all-subroot\\.self-coaching\\reports\\eval_runs\\eval-6615679253\\report.json",
+    "run_id": "eval-6615679253",
+    "status": "passed"
+  },
+  "candidate_eval": {
+    "recommendation": "promote",
+    "report": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\production-readiness-runs\\agent-skill-simulation\\run-all-subroot\\.self-coaching\\reports\\eval_runs\\eval-86016e46dc\\report.json",
+    "run_id": "eval-86016e46dc",
+    "status": "passed"
+  },
+  "init": {
+    "manifest": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\production-readiness-runs\\agent-skill-simulation\\run-all-subroot\\.self-coaching\\manifests\\mock_service_manifest.json",
+    "root": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\production-readiness-runs\\agent-skill-simulation\\run-all-subroot",
+    "status": "initialized"
+  },
+  "learning_event_id": "learn-967dca1dd0",
+  "promotion_allowed": true,
+  "root": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\production-readiness-runs\\agent-skill-simulation\\run-all-subroot",
+  "self_play": {
+    "case_ids": [
+      "case-13ed4b3171",
+      "case-90ff442a79",
+      "case-00ff901806",
+      "case-195599be58"
+    ],
+    "count": 4,
+    "status": "generated"
+  },
+  "status": "ok",
+  "training": {
+    "candidate": "mock-grpo-candidate-3db1cf",
+    "log_file": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\production-readiness-runs\\agent-skill-simulation\\run-all-subroot\\.self-coaching\\logs\\train-844c3db1cf.log",
+    "manifest": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\production-readiness-runs\\agent-skill-simulation\\run-all-subroot\\.self-coaching\\manifests\\training_run_manifest.json",
+    "run_id": "train-844c3db1cf",
+    "status": "trained"
+  }
+}

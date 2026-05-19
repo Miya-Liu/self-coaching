@@ -1,0 +1,1 @@
+{"capability": ["tool_use"], "classification": "eval_case_candidate", "durable_artifact": "self_play_seed", "event": "HTTP agent rerun event", "id": "learn-0376ec55d6", "notes": "Mock learning event. No secrets or raw transcript stored.", "privacy_checked": true, "source": "prod-readiness", "timestamp": "2026-05-19T01:45:24Z"}

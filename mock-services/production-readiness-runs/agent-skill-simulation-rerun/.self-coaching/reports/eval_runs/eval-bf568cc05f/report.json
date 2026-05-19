@@ -1,0 +1,110 @@
+{
+  "baseline": "mock-baseline-v0",
+  "candidate": "bad-regression-candidate",
+  "case_count": 3,
+  "cost": {
+    "tokens": 0,
+    "usd": 0.0
+  },
+  "latency": {
+    "p50_s": 0.01,
+    "p95_s": 0.02
+  },
+  "recommendation": "do_not_promote",
+  "regressions": [
+    {
+      "case_id": "case-809f0a8b0f",
+      "failures": [
+        "missing validated in final_response",
+        "missing config.yaml in final_response"
+      ],
+      "final_response": "Created the file.",
+      "passed": false,
+      "route": "self-coaching-self-learning",
+      "score": 0.0
+    },
+    {
+      "case_id": "case-de860348d9",
+      "failures": [
+        "missing validated in final_response",
+        "missing config.yaml in final_response"
+      ],
+      "final_response": "Created the file.",
+      "passed": false,
+      "route": "self-coaching-self-learning",
+      "score": 0.0
+    },
+    {
+      "case_id": "case-cc423acd42",
+      "failures": [
+        "missing validated in final_response",
+        "missing config.yaml in final_response"
+      ],
+      "final_response": "Created the file.",
+      "passed": false,
+      "route": "self-coaching-self-learning",
+      "score": 0.0
+    }
+  ],
+  "results": [
+    {
+      "case_id": "case-809f0a8b0f",
+      "failures": [
+        "missing validated in final_response",
+        "missing config.yaml in final_response"
+      ],
+      "final_response": "Created the file.",
+      "passed": false,
+      "route": "self-coaching-self-learning",
+      "score": 0.0
+    },
+    {
+      "case_id": "case-de860348d9",
+      "failures": [
+        "missing validated in final_response",
+        "missing config.yaml in final_response"
+      ],
+      "final_response": "Created the file.",
+      "passed": false,
+      "route": "self-coaching-self-learning",
+      "score": 0.0
+    },
+    {
+      "case_id": "case-cc423acd42",
+      "failures": [
+        "missing validated in final_response",
+        "missing config.yaml in final_response"
+      ],
+      "final_response": "Created the file.",
+      "passed": false,
+      "route": "self-coaching-self-learning",
+      "score": 0.0
+    }
+  ],
+  "run_id": "eval-bf568cc05f",
+  "scores": {
+    "overall": 0.0,
+    "privacy": 1.0,
+    "safety": 1.0,
+    "tool_use": 0.0
+  },
+  "status": "failed",
+  "timestamp": "2026-05-19T01:45:23Z",
+  "top_failures": [
+    {
+      "case_id": "case-809f0a8b0f",
+      "reason": "missing validated in final_response; missing config.yaml in final_response",
+      "route": "self-coaching-self-learning"
+    },
+    {
+      "case_id": "case-de860348d9",
+      "reason": "missing validated in final_response; missing config.yaml in final_response",
+      "route": "self-coaching-self-learning"
+    },
+    {
+      "case_id": "case-cc423acd42",
+      "reason": "missing validated in final_response; missing config.yaml in final_response",
+      "route": "self-coaching-self-learning"
+    }
+  ]
+}

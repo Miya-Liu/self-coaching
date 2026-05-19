@@ -10,7 +10,7 @@ _training_caller_script() {
 }
 
 training_skill_root() {
-  # Caller is self-coaching-training/pipelines/<id>/run.sh → three levels up to repo root.
+  # Caller is self-coaching-training/pipelines/<id>/run.sh → three levels up to category root.
   cd "$(dirname "$(_training_caller_script)")/../../.." && pwd
 }
 

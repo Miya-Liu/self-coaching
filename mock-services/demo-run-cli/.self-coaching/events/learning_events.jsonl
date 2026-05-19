@@ -1,0 +1,1 @@
+{"capability": ["tool_use"], "classification": "eval_case_candidate", "durable_artifact": "self_play_seed", "event": "Mock seed: agent forgot to verify a file write", "id": "learn-967dca1dd0", "notes": "Mock learning event. No secrets or raw transcript stored.", "privacy_checked": true, "source": "run_all", "timestamp": "2026-05-18T10:38:49Z"}

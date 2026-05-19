@@ -1,0 +1,71 @@
+{
+  "artifacts": {
+    "eval_cases": ".self-coaching/cases/eval_cases.jsonl",
+    "eval_reports": ".self-coaching/reports/eval_runs/<run_id>/report.json",
+    "learning_events": ".self-coaching/events/learning_events.jsonl",
+    "self_play_candidates": ".self-coaching/cases/self_play_candidates.jsonl",
+    "summary": ".self-coaching/manifests/mock_pipeline_summary.json",
+    "train_split": ".self-coaching/curated/train.jsonl",
+    "training_manifest": ".self-coaching/manifests/training_run_manifest.json"
+  },
+  "interfaces": {
+    "cli": {
+      "commands": [
+        "init",
+        "learn",
+        "self-play",
+        "evaluate",
+        "train",
+        "run-all",
+        "serve"
+      ]
+    },
+    "http": {
+      "base_url": "http://127.0.0.1:8765",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/health"
+        },
+        {
+          "method": "POST",
+          "path": "/learning/events"
+        },
+        {
+          "method": "POST",
+          "path": "/self-play/generate"
+        },
+        {
+          "method": "POST",
+          "path": "/eval/runs"
+        },
+        {
+          "method": "GET",
+          "path": "/eval/runs/{run_id}/report"
+        },
+        {
+          "method": "POST",
+          "path": "/training/runs"
+        },
+        {
+          "method": "POST",
+          "path": "/pipeline/run-all"
+        }
+      ]
+    },
+    "python_module": {
+      "functions": [
+        "init",
+        "learn",
+        "self_play",
+        "evaluate",
+        "train",
+        "run_all"
+      ],
+      "module": "mock_self_coaching"
+    }
+  },
+  "purpose": "Local deterministic mock interfaces for testing the self-coaching learning -> self-play -> evaluation -> training pipeline without real external services.",
+  "service": "mock-self-coaching",
+  "version": 1
+}

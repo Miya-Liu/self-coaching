@@ -1,0 +1,40 @@
+{
+  "baseline_eval": {
+    "recommendation": "promote",
+    "report": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\demo-run-api\\.self-coaching\\reports\\eval_runs\\eval-60147d8467\\report.json",
+    "run_id": "eval-60147d8467",
+    "status": "passed"
+  },
+  "candidate_eval": {
+    "recommendation": "promote",
+    "report": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\demo-run-api\\.self-coaching\\reports\\eval_runs\\eval-c8d76e6439\\report.json",
+    "run_id": "eval-c8d76e6439",
+    "status": "passed"
+  },
+  "init": {
+    "manifest": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\demo-run-api\\.self-coaching\\manifests\\mock_service_manifest.json",
+    "root": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\demo-run-api",
+    "status": "initialized"
+  },
+  "learning_event_id": "learn-967dca1dd0",
+  "promotion_allowed": true,
+  "root": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\demo-run-api",
+  "self_play": {
+    "case_ids": [
+      "case-13ed4b3171",
+      "case-90ff442a79",
+      "case-00ff901806",
+      "case-195599be58"
+    ],
+    "count": 4,
+    "status": "generated"
+  },
+  "status": "ok",
+  "training": {
+    "candidate": "mock-grpo-candidate-faebb4",
+    "log_file": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\demo-run-api\\.self-coaching\\logs\\train-38fffaebb4.log",
+    "manifest": "C:\\Users\\liumy26\\.hermes\\skills\\self-coaching\\mock-services\\demo-run-api\\.self-coaching\\manifests\\training_run_manifest.json",
+    "run_id": "train-38fffaebb4",
+    "status": "trained"
+  }
+}

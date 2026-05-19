@@ -1,14 +1,14 @@
 ---
 name: self-coaching-training
-description: "Use when routing curated self-coaching data into SFT, LoRA, preference, or RL training runs, with manifests, split hygiene, evaluation gates, and rollback."
-version: 1.0.0
+description: "Use when routing curated self-coaching data into SFT, LoRA, preference, or RL training runs, with executable SFT/GRPO pipeline helpers, manifests, split hygiene, evaluation gates, and rollback."
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [self-coaching, sft, rl, preference-training, lora, dataset-curation, model-training]
-    related_skills: [self-coaching, self-coaching-self-play, self-coaching-evaluation, huggingface-hub, weights-and-biases]
+    tags: [self-coaching, sft, rl, grpo, preference-training, lora, dataset-curation, model-training, aerl]
+    related_skills: [self-coaching, self-coaching-self-play, self-coaching-evaluation, self-coaching-self-learning, huggingface-hub, weights-and-biases]
 ---
 
 # Self-Coaching: Training
@@ -17,16 +17,125 @@ metadata:
 
 Training is the most expensive self-coaching path. Use it only when skills, prompts, tools, and eval fixes are insufficient or when the explicit goal is model improvement.
 
+This skill now includes executable pipeline helpers for SFT and GRPO-style RL under `self-coaching-training/pipelines/`, plus category-level scripts under `../scripts/` for preflight, one-off experiments, and named pipeline runs.
+
 ## When to Use
 
 Use training when:
 
 - the weakness repeats across many tasks;
-- curated examples are high-quality and privacy-checked;
+- curated examples are high-quality, licensed, deduplicated, and privacy-checked;
 - an eval pipeline can compare candidate vs baseline;
-- deployment, canary, and rollback are defined.
+- deployment, canary, and rollback are defined;
+- cheaper improvements, such as skill patches or tools, are insufficient.
 
 Do not train when fewer examples, clearer instructions, a skill patch, or a tool would solve the problem.
+
+## Folder Map
+
+From the category root:
+
+```text
+C:/Users/liumy26/.hermes/skills/self-coaching/
+  scripts/
+    preflight.sh
+    run-once.sh
+    run-pipeline.sh
+    hook-experiment.sh
+    hook-inject-errors.sh
+    hook-inject-learnings.sh
+    init-experience.sh
+  experience/
+    EXPERIMENT_LOG.md
+    ERROR.md
+    LEARNINGS.md
+    RUN_SUMMARY.json
+  self-coaching-training/
+    services/example.env
+    pipelines/registry.yaml
+    pipelines/_lib.sh
+    pipelines/sft/pipeline.yaml
+    pipelines/sft/run.sh
+    pipelines/grpo/pipeline.yaml
+    pipelines/grpo/run.sh
+```
+
+Copy `self-coaching-training/services/example.env` to `self-coaching-training/services/.env` only when you need real service credentials. Never commit or paste credential values.
+
+## Preflight and Environment
+
+Run preflight before using a vendored upstream trainer:
+
+```bash
+bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/preflight.sh
+```
+
+Current preflight expects `uv` and a vendored upstream tree at:
+
+```text
+C:/Users/liumy26/.hermes/skills/self-coaching/upstream/autoresearch
+```
+
+If that tree does not exist, either vendor/clone the trainer there, or skip `preflight.sh` and use the HTTP AERL pipeline mode below.
+
+For HTTP pipeline mode, configure a local service compatible with this contract:
+
+```text
+POST {TRAINER_BASE_URL}/v1/pipelines/{sft|grpo}/run
+body: {"argv": ["scheduler.type=local", "..."]}
+response body: training log stream/text
+```
+
+Environment file shape:
+
+```bash
+cp C:/Users/liumy26/.hermes/skills/self-coaching/self-coaching-training/services/example.env \
+   C:/Users/liumy26/.hermes/skills/self-coaching/self-coaching-training/services/.env
+# edit .env locally; keep secrets out of chat and source control
+```
+
+## Running a Named Pipeline
+
+Use the category-level wrapper:
+
+```bash
+bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/run-pipeline.sh \
+  sft C:/Users/liumy26/.hermes/skills/self-coaching/logs/sft-001.log \
+  dataset.path=.self-coaching/curated/train.jsonl
+
+bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/run-pipeline.sh \
+  grpo C:/Users/liumy26/.hermes/skills/self-coaching/logs/grpo-001.log \
+  scheduler.type=local
+```
+
+Pipeline IDs are listed in:
+
+```text
+self-coaching-training/pipelines/registry.yaml
+```
+
+Default mode is HTTP via `TRAINER_BASE_URL` (default `http://localhost:8004`). For local AERL source mode:
+
+```bash
+PIPELINE_MODE=local AERL_ROOT=/path/to/AERL \
+  bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/run-pipeline.sh \
+  grpo C:/Users/liumy26/.hermes/skills/self-coaching/logs/grpo-local-001.log
+```
+
+All stdout/stderr must go to log files. Read only relevant line ranges back into context.
+
+## Running One Experiment Worktree
+
+For autoresearch-style experiments, keep edits isolated in `worktrees/<id>/` and log the full run:
+
+```bash
+bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/hook-experiment.sh
+bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/run-once.sh \
+  C:/Users/liumy26/.hermes/skills/self-coaching/worktrees/exp-001 \
+  C:/Users/liumy26/.hermes/skills/self-coaching/logs/exp-001.log
+```
+
+`run-once.sh` expects `uv run train.py` to work inside the experiment worktree.
 
 ## SFT Procedure
 
@@ -34,10 +143,10 @@ Do not train when fewer examples, clearer instructions, a skill patch, or a tool
 2. Redact secrets and verify license/consent.
 3. Convert to target chat/tool-call format.
 4. Split by task family, not random transcript chunks.
-5. Train conservatively: SFT or LoRA first.
+5. Run SFT or LoRA conservatively via the `sft` pipeline.
 6. Evaluate against fixed regression and held-out suites.
 7. Inspect top failures manually.
-8. Version dataset, config, model, and eval report together.
+8. Version dataset, config, model, logs, and eval report together.
 
 ## Preference / RL Procedure
 
@@ -45,7 +154,7 @@ Do not train when fewer examples, clearer instructions, a skill patch, or a tool
 2. Score with rubrics, human review, or multiple judges.
 3. Store chosen/rejected pairs or scalar rewards.
 4. Drop ambiguous and judge-unstable examples.
-5. Train with DPO/ORPO/GRPO/PPO-style scripts as infrastructure allows.
+5. Train with DPO/ORPO/GRPO/PPO-style scripts as infrastructure allows. The provided executable RL pipeline is `grpo`.
 6. Evaluate against held-out, safety, and adversarial suites.
 7. Monitor reward hacking, verbosity drift, and tool-use regressions.
 
@@ -66,8 +175,38 @@ Preference record:
 Training manifest:
 
 ```json
-{"run_id":"train_001","dataset_refs":[],"base_model":"...","method":"sft_lora","hyperparameters":{},"eval_run_id":"eval_...","rollback_target":"..."}
+{"run_id":"train_001","pipeline_id":"sft","dataset_refs":[],"base_model":"...","method":"sft_lora","hyperparameters":{},"log_file":"logs/train_001.log","eval_run_id":"eval_...","rollback_target":"..."}
 ```
+
+## Experience Logging
+
+After each run, update:
+
+- `experience/EXPERIMENT_LOG.md` with run id, worktree/branch, hypothesis, files changed, metric value, best-before, decision, and log path.
+- `experience/ERROR.md` for crashes, OOMs, parse errors, environment failures, or logic bugs.
+- `experience/LEARNINGS.md` for reusable optimization or process lessons.
+- `experience/RUN_SUMMARY.json` when a machine-readable run summary is useful.
+
+Use bounded hooks to inspect prior context:
+
+```bash
+bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/hook-inject-errors.sh
+bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/hook-inject-learnings.sh
+```
+
+## Evaluation Gate
+
+Every training run must hand off to `self-coaching-evaluation` before promotion:
+
+```bash
+python scripts/run_agent_evals.py \
+  --candidate <trained-model-or-endpoint> \
+  --baseline <previous-model-or-endpoint> \
+  --suite .self-coaching/cases/eval_cases.jsonl \
+  --out .self-coaching/reports/eval_runs/<run_id>/report.json
+```
+
+Record the eval report path in the training manifest. Promote only if target metrics improve and safety/tool-use regressions do not appear.
 
 ## Autoresearch-Style Loop
 
@@ -77,11 +216,22 @@ mine failures -> hypothesize -> generate self-play tasks -> solve -> critique ->
 
 Prefer cheap improvements first. Training should be gated by evidence, not by the mere availability of data.
 
+## Common Pitfalls
+
+1. **Training before eval exists.** Build or select the eval runner first.
+2. **Wrong service path.** Pipeline scripts live under `self-coaching-training/pipelines/`, not `training/pipelines/`.
+3. **Missing upstream trainer.** `preflight.sh` needs `upstream/autoresearch`; HTTP mode does not.
+4. **Pasting full logs.** Logs belong in `logs/*.log`; summarize key metrics and line ranges.
+5. **Leaking secrets.** Keep `.env` values out of chat, memory, skills, and source control.
+6. **No rollback.** Record the baseline model/config before training.
+
 ## Verification Checklist
 
 - [ ] Data is privacy-checked, licensed, and deduplicated.
 - [ ] Train/validation/test splits are separated by task family.
 - [ ] Held-out eval data is not in training.
-- [ ] Training manifest records lineage.
+- [ ] `bash -n` passes for pipeline scripts.
+- [ ] `run-pipeline.sh` points to `self-coaching-training/pipelines/`.
+- [ ] Training manifest records lineage, log file, and rollback target.
 - [ ] Candidate passes evaluation gates.
-- [ ] Rollback target exists.
+- [ ] Experience logs summarize outcomes without raw log dumps or secrets.

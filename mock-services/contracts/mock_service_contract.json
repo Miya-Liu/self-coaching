@@ -24,6 +24,14 @@
       "base_url": "http://127.0.0.1:8765",
       "endpoints": [
         {
+          "method": "POST",
+          "path": "/eval/runs"
+        },
+        {
+          "method": "GET",
+          "path": "/eval/runs/{run_id}/report"
+        },
+        {
           "method": "GET",
           "path": "/health"
         },
@@ -33,25 +41,18 @@
         },
         {
           "method": "POST",
+          "path": "/pipeline/run-all"
+        },
+        {
+          "method": "POST",
           "path": "/self-play/generate"
         },
         {
           "method": "POST",
-          "path": "/eval/runs"
-        },
-        {
-          "method": "GET",
-          "path": "/eval/runs/{run_id}/report"
-        },
-        {
-          "method": "POST",
           "path": "/training/runs"
-        },
-        {
-          "method": "POST",
-          "path": "/pipeline/run-all"
         }
-      ]
+      ],
+      "openapi": "openapi.yaml"
     },
     "python_module": {
       "functions": [
@@ -65,6 +66,7 @@
       "module": "mock_self_coaching"
     }
   },
+  "openapi_version": "1.0.0",
   "purpose": "Local deterministic mock interfaces for testing the self-coaching learning -> self-play -> evaluation -> training pipeline without real external services.",
   "service": "mock-self-coaching",
   "version": 1

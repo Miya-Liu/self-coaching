@@ -1,0 +1,470 @@
+openapi: 3.0.3
+info:
+  title: Self-Coaching Service Contract
+  version: 1.0.0
+  description: |
+    HTTP contract for the self-coaching learning → self-play → evaluation → training
+    pipeline. Any real implementation (LLM service, trainer, evaluator) MUST satisfy
+    this contract to drop into the skill without code changes.
+
+    The deterministic stdlib-only reference implementation lives at
+    `mock-services/mock_self_coaching.py serve`.
+
+    Versioning: this file is the source of truth. The compact JSON form at
+    `contracts/mock_service_contract.json` is generated from this file and MUST
+    stay in sync (CI enforces).
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: http://127.0.0.1:8765
+    description: Default local mock service
+  - url: http://localhost:{port}
+    description: Local development
+    variables:
+      port:
+        default: "8765"
+
+tags:
+  - name: health
+    description: Liveness / readiness probes
+  - name: learning
+    description: Capture an agent learning event
+  - name: self-play
+    description: Generate self-play training candidates
+  - name: evaluation
+    description: Run an evaluation suite against a candidate
+  - name: training
+    description: Launch a training pipeline
+  - name: pipeline
+    description: End-to-end pipeline orchestration
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Liveness probe
+      operationId: health
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /learning/events:
+    post:
+      tags: [learning]
+      summary: Record a learning event
+      description: |
+        Capture an agent learning event (correction, mistake, preference update).
+        The service appends it to its learning-events log and may seed self-play.
+      operationId: createLearningEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LearningEventRequest"
+      responses:
+        "200":
+          description: Event recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningEventRecord"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /self-play/generate:
+    post:
+      tags: [self-play]
+      summary: Generate self-play candidate cases
+      operationId: generateSelfPlay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SelfPlayRequest"
+      responses:
+        "200":
+          description: Cases generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SelfPlayResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /eval/runs:
+    post:
+      tags: [evaluation]
+      summary: Run an evaluation against curated eval cases
+      operationId: createEvalRun
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvalRequest"
+      responses:
+        "200":
+          description: Evaluation completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalSummary"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /eval/runs/{run_id}/report:
+    get:
+      tags: [evaluation]
+      summary: Fetch the full report for a completed eval run
+      operationId: getEvalReport
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+          description: Run identifier returned by POST /eval/runs
+      responses:
+        "200":
+          description: Full report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalReport"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /training/runs:
+    post:
+      tags: [training]
+      summary: Launch a training pipeline
+      operationId: createTrainingRun
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrainingRequest"
+      responses:
+        "200":
+          description: Training completed (mock) or accepted (real, async)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainingResponse"
+        "400":
+          description: Unsupported pipeline id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /pipeline/run-all:
+    post:
+      tags: [pipeline]
+      summary: Run the full learn → self-play → evaluate → train → re-evaluate loop
+      description: |
+        Orchestrates the entire pipeline end-to-end. Returns a summary that wires
+        the candidate eval result back into the training manifest's `eval_run_id`.
+      operationId: runFullPipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunAllRequest"
+      responses:
+        "200":
+          description: Pipeline completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunAllResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalError:
+      description: Internal service error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, version]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        version:
+          type: string
+          description: Service implementation version
+        root:
+          type: string
+          description: Absolute path to the demo/work root (mock only)
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        type:
+          type: string
+          description: Exception class name or error code
+
+    Capability:
+      type: string
+      description: Agent capability tag
+      example: tool_use
+
+    # ---- learning ----
+    LearningEventRequest:
+      type: object
+      required: [event]
+      properties:
+        event:
+          type: string
+          description: Short description of what the agent learned/missed
+          maxLength: 1024
+        source:
+          type: string
+          default: http
+          description: Origin tag (e.g. "http", "cli", "manual", "ci")
+        capability:
+          $ref: "#/components/schemas/Capability"
+
+    LearningEventRecord:
+      type: object
+      required: [id, timestamp, event, capability, source, privacy_checked]
+      properties:
+        id:
+          type: string
+          description: Stable content-hash identifier
+        timestamp:
+          type: string
+          format: date-time
+        source:
+          type: string
+        capability:
+          type: array
+          items: { $ref: "#/components/schemas/Capability" }
+        event:
+          type: string
+        classification:
+          type: string
+          enum: [eval_case_candidate, training_candidate, skill_patch_candidate, none]
+        privacy_checked:
+          type: boolean
+        durable_artifact:
+          type: string
+        notes:
+          type: string
+
+    # ---- self-play ----
+    SelfPlayRequest:
+      type: object
+      properties:
+        capability:
+          $ref: "#/components/schemas/Capability"
+        n:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 3
+          description: Number of candidate cases to generate
+
+    SelfPlayResponse:
+      type: object
+      required: [status, count, case_ids]
+      properties:
+        status:
+          type: string
+          enum: [generated]
+        count:
+          type: integer
+        case_ids:
+          type: array
+          items: { type: string }
+
+    # ---- evaluation ----
+    EvalRequest:
+      type: object
+      properties:
+        candidate:
+          type: string
+          default: mock-candidate-v1
+          description: Identifier of the candidate model/agent/config under test
+        baseline:
+          type: string
+          default: mock-baseline-v0
+          description: Identifier of the baseline to compare against
+
+    EvalSummary:
+      type: object
+      required: [status, run_id, report, recommendation]
+      properties:
+        status:
+          type: string
+          enum: [passed, failed]
+        run_id:
+          type: string
+        report:
+          type: string
+          description: Path to the full JSON report
+        recommendation:
+          type: string
+          enum: [promote, do_not_promote]
+
+    EvalReport:
+      type: object
+      required: [run_id, candidate, baseline, status, scores, case_count, recommendation]
+      properties:
+        run_id: { type: string }
+        timestamp: { type: string, format: date-time }
+        candidate: { type: string }
+        baseline: { type: string }
+        status:
+          type: string
+          enum: [passed, failed]
+        scores:
+          type: object
+          required: [overall]
+          properties:
+            overall: { type: number, minimum: 0, maximum: 1 }
+            tool_use: { type: number, minimum: 0, maximum: 1 }
+            safety: { type: number, minimum: 0, maximum: 1 }
+            privacy: { type: number, minimum: 0, maximum: 1 }
+          additionalProperties:
+            type: number
+        case_count: { type: integer }
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              case_id: { type: string }
+              passed: { type: boolean }
+              score: { type: number }
+              failures:
+                type: array
+                items: { type: string }
+              route: { type: string }
+        regressions:
+          type: array
+          items: { type: object }
+        top_failures:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            properties:
+              case_id: { type: string }
+              reason: { type: string }
+              route: { type: string }
+        recommendation:
+          type: string
+          enum: [promote, do_not_promote]
+        cost:
+          type: object
+          properties:
+            tokens: { type: integer }
+            usd: { type: number }
+        latency:
+          type: object
+          properties:
+            p50_s: { type: number }
+            p95_s: { type: number }
+
+    # ---- training ----
+    TrainingRequest:
+      type: object
+      properties:
+        pipeline:
+          type: string
+          enum: [sft, grpo]
+          default: sft
+        dataset:
+          type: string
+          nullable: true
+          description: Path to a JSONL dataset; defaults to the curated train split
+        base_model:
+          type: string
+          default: mock-base
+
+    TrainingResponse:
+      type: object
+      required: [status, run_id, candidate, manifest, log_file]
+      properties:
+        status:
+          type: string
+          enum: [trained, accepted]
+          description: "`trained` = synchronous (mock); `accepted` = async (real service)"
+        run_id:
+          type: string
+        candidate:
+          type: string
+          description: Identifier of the resulting model/agent
+        manifest:
+          type: string
+          description: Path to the training manifest JSON
+        log_file:
+          type: string
+          description: Path to the training log file (stdout/stderr captured here)
+
+    # ---- run-all ----
+    RunAllRequest:
+      type: object
+      properties:
+        capability:
+          $ref: "#/components/schemas/Capability"
+        pipeline:
+          type: string
+          enum: [sft, grpo]
+          default: sft
+
+    RunAllResponse:
+      type: object
+      required: [status, root, learning_event_id, self_play, baseline_eval, training, candidate_eval, promotion_allowed]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        root:
+          type: string
+        init:
+          type: object
+        learning_event_id:
+          type: string
+        self_play:
+          $ref: "#/components/schemas/SelfPlayResponse"
+        baseline_eval:
+          $ref: "#/components/schemas/EvalSummary"
+        training:
+          $ref: "#/components/schemas/TrainingResponse"
+        candidate_eval:
+          $ref: "#/components/schemas/EvalSummary"
+        promotion_allowed:
+          type: boolean
+          description: True iff candidate_eval.recommendation == "promote"

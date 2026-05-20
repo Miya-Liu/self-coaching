@@ -1,0 +1,106 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  doctor:
+    name: doctor.sh (lint + structure + content)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shell tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends jq shellcheck
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run doctor.sh
+        run: bash scripts/doctor.sh
+
+  shellcheck:
+    name: shellcheck (all .sh files)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends shellcheck
+
+      - name: Run shellcheck
+        run: |
+          # SC1091 = "can't follow non-constant source" (sourcing .env at runtime is fine)
+          # SC2155 = "declare and assign separately" (style only)
+          # Recurse over every .sh we ship; ignore the vendored superpowers-skills clone.
+          mapfile -d '' files < <(find scripts self-coaching-training/pipelines -type f -name '*.sh' -print0)
+          shellcheck --exclude=SC1091,SC2155 --severity=warning "${files[@]}"
+
+  python-tests:
+    name: pytest (mock-services)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile-check mock service
+        run: |
+          python -m py_compile mock-services/mock_self_coaching.py
+          python -m py_compile mock-services/plugin_mock.py
+
+      - name: Assert OpenAPI and compact contract stay in sync
+        run: python mock-services/contracts/regenerate.py --check
+
+      - name: Install pytest
+        run: pip install --quiet pytest
+
+      - name: Run pytest suite
+        run: pytest -q tests/
+
+  mock-smoke:
+    name: mock pipeline smoke test (run-all)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run end-to-end mock pipeline
+        run: |
+          python mock-services/mock_self_coaching.py run-all \
+            --root mock-services/ci-smoke-run \
+            --capability tool_use \
+            --pipeline sft
+
+      - name: Verify expected artifacts exist
+        run: |
+          set -e
+          for f in \
+            mock-services/ci-smoke-run/experience/EXPERIMENT_LOG.md \
+            mock-services/ci-smoke-run/.self-coaching/events/learning_events.jsonl \
+            mock-services/ci-smoke-run/.self-coaching/cases/self_play_candidates.jsonl \
+            mock-services/ci-smoke-run/.self-coaching/cases/eval_cases.jsonl \
+            mock-services/ci-smoke-run/.self-coaching/curated/train.jsonl \
+            mock-services/ci-smoke-run/.self-coaching/manifests/training_run_manifest.json \
+            mock-services/ci-smoke-run/.self-coaching/manifests/mock_pipeline_summary.json
+          do
+            if [[ ! -f "$f" ]]; then
+              echo "MISSING expected artifact: $f" >&2
+              exit 1
+            fi
+            echo "ok: $f"
+          done

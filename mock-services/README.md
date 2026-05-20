@@ -10,9 +10,20 @@ It provides three interface styles:
 
 ## Full Pipeline Smoke Test
 
+From the repository root (or wherever the skill is installed — set `SKILL_ROOT` accordingly):
+
 ```bash
-python C:/Users/liumy26/.hermes/skills/self-coaching/mock-services/mock_self_coaching.py run-all \
-  --root C:/Users/liumy26/.hermes/skills/self-coaching/mock-services/demo-run \
+python "$SKILL_ROOT/mock-services/mock_self_coaching.py" run-all \
+  --root "$SKILL_ROOT/mock-services/demo-run" \
+  --capability tool_use \
+  --pipeline sft
+```
+
+Or, when running from the repo root directly, the relative form is fine:
+
+```bash
+python mock-services/mock_self_coaching.py run-all \
+  --root mock-services/demo-run \
   --capability tool_use \
   --pipeline sft
 ```

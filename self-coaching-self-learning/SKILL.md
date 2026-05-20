@@ -35,20 +35,23 @@ Do not use it to save temporary task state, PR numbers, issue numbers, raw logs,
 
 ## Executable Workflow
 
-The category-level scripts live under:
+The category-level scripts live under `$SKILL_ROOT/scripts/`, where `SKILL_ROOT` is wherever the `self-coaching` skill is installed (see the umbrella `README.md` → **Installation paths**). Common values:
 
 ```text
-C:/Users/liumy26/.hermes/skills/self-coaching/scripts/
+# project-local
+SKILL_ROOT="$(pwd)/.hermes/skills/self-coaching"
+# user-global (Hermes)
+SKILL_ROOT="$HOME/.hermes/skills/self-coaching"
 ```
 
-Use them from Bash/git-bash. On Windows Hermes terminal also uses Bash, so POSIX syntax is expected.
+Set `SKILL_ROOT` once at the top of your shell and reuse it in every command below. Use Bash/git-bash; on Windows the Hermes terminal also runs Bash, so POSIX syntax is expected.
 
 ### Step 0: Initialize an Experience Workspace
 
 For a target project or experiment root:
 
 ```bash
-bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/init-experience.sh <project-root>
+bash "$SKILL_ROOT/scripts/init-experience.sh" <project-root>
 ```
 
 This creates, without overwriting existing files:
@@ -101,13 +104,13 @@ Use this learning block for `LEARNINGS.md`:
 When debugging a similar error:
 
 ```bash
-ERROR_TAIL_LINES=120 bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/hook-inject-errors.sh
+ERROR_TAIL_LINES=120 bash "$SKILL_ROOT/scripts/hook-inject-errors.sh"
 ```
 
 When optimization has stalled or training strategy is being changed:
 
 ```bash
-LEARNINGS_TAIL_LINES=120 bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/hook-inject-learnings.sh
+LEARNINGS_TAIL_LINES=120 bash "$SKILL_ROOT/scripts/hook-inject-learnings.sh"
 ```
 
 These hooks print bounded tails of the experience files so an agent can reuse prior context without flooding the prompt.

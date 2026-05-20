@@ -10,4 +10,4 @@ run.log
 references/superpowers-skills/
 
 # Local secrets for AERL / OpenAI-compatible service endpoints
-training/services/.env
+self-coaching-training/services/.env

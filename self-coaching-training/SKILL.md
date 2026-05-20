@@ -33,10 +33,10 @@ Do not train when fewer examples, clearer instructions, a skill patch, or a tool
 
 ## Folder Map
 
-From the category root:
+The category root (`SKILL_ROOT`) is wherever the `self-coaching` skill is installed — see the umbrella `README.md` → **Installation paths** (e.g. `$(pwd)/.hermes/skills/self-coaching`, `$HOME/.hermes/skills/self-coaching`, or your IDE's skill directory). All paths below are relative to `SKILL_ROOT`:
 
 ```text
-C:/Users/liumy26/.hermes/skills/self-coaching/
+$SKILL_ROOT/
   scripts/
     preflight.sh
     run-once.sh
@@ -67,13 +67,13 @@ Copy `self-coaching-training/services/example.env` to `self-coaching-training/se
 Run preflight before using a vendored upstream trainer:
 
 ```bash
-bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/preflight.sh
+bash "$SKILL_ROOT/scripts/preflight.sh"
 ```
 
 Current preflight expects `uv` and a vendored upstream tree at:
 
 ```text
-C:/Users/liumy26/.hermes/skills/self-coaching/upstream/autoresearch
+$SKILL_ROOT/upstream/autoresearch
 ```
 
 If that tree does not exist, either vendor/clone the trainer there, or skip `preflight.sh` and use the HTTP AERL pipeline mode below.
@@ -89,22 +89,22 @@ response body: training log stream/text
 Environment file shape:
 
 ```bash
-cp C:/Users/liumy26/.hermes/skills/self-coaching/self-coaching-training/services/example.env \
-   C:/Users/liumy26/.hermes/skills/self-coaching/self-coaching-training/services/.env
+cp "$SKILL_ROOT/self-coaching-training/services/example.env" \
+   "$SKILL_ROOT/self-coaching-training/services/.env"
 # edit .env locally; keep secrets out of chat and source control
 ```
 
 ## Running a Named Pipeline
 
-Use the category-level wrapper:
+Use the category-level wrapper (set `SKILL_ROOT` first; see Folder Map):
 
 ```bash
-bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/run-pipeline.sh \
-  sft C:/Users/liumy26/.hermes/skills/self-coaching/logs/sft-001.log \
+bash "$SKILL_ROOT/scripts/run-pipeline.sh" \
+  sft "$SKILL_ROOT/logs/sft-001.log" \
   dataset.path=.self-coaching/curated/train.jsonl
 
-bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/run-pipeline.sh \
-  grpo C:/Users/liumy26/.hermes/skills/self-coaching/logs/grpo-001.log \
+bash "$SKILL_ROOT/scripts/run-pipeline.sh" \
+  grpo "$SKILL_ROOT/logs/grpo-001.log" \
   scheduler.type=local
 ```
 
@@ -118,8 +118,8 @@ Default mode is HTTP via `TRAINER_BASE_URL` (default `http://localhost:8004`). F
 
 ```bash
 PIPELINE_MODE=local AERL_ROOT=/path/to/AERL \
-  bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/run-pipeline.sh \
-  grpo C:/Users/liumy26/.hermes/skills/self-coaching/logs/grpo-local-001.log
+  bash "$SKILL_ROOT/scripts/run-pipeline.sh" \
+  grpo "$SKILL_ROOT/logs/grpo-local-001.log"
 ```
 
 All stdout/stderr must go to log files. Read only relevant line ranges back into context.
@@ -129,10 +129,10 @@ All stdout/stderr must go to log files. Read only relevant line ranges back into
 For autoresearch-style experiments, keep edits isolated in `worktrees/<id>/` and log the full run:
 
 ```bash
-bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/hook-experiment.sh
-bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/run-once.sh \
-  C:/Users/liumy26/.hermes/skills/self-coaching/worktrees/exp-001 \
-  C:/Users/liumy26/.hermes/skills/self-coaching/logs/exp-001.log
+bash "$SKILL_ROOT/scripts/hook-experiment.sh"
+bash "$SKILL_ROOT/scripts/run-once.sh" \
+  "$SKILL_ROOT/worktrees/exp-001" \
+  "$SKILL_ROOT/logs/exp-001.log"
 ```
 
 `run-once.sh` expects `uv run train.py` to work inside the experiment worktree.
@@ -190,8 +190,8 @@ After each run, update:
 Use bounded hooks to inspect prior context:
 
 ```bash
-bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/hook-inject-errors.sh
-bash C:/Users/liumy26/.hermes/skills/self-coaching/scripts/hook-inject-learnings.sh
+bash "$SKILL_ROOT/scripts/hook-inject-errors.sh"
+bash "$SKILL_ROOT/scripts/hook-inject-learnings.sh"
 ```
 
 ## Evaluation Gate

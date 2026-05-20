@@ -17,7 +17,7 @@ metadata:
 
 A self-coaching loop is only safe if candidates are evaluated against fixed regression suites, capability suites, and safety gates before promotion.
 
-This skill defines the evaluation contract. The current folder contains executable training helpers plus a deterministic mock service harness documented by the overview skill's `references/mock-service-pipeline.md`. Until a project-specific runner exists, scaffold the smallest local runner that executes JSONL cases, records outputs, scores deterministic checks, emits a JSON report, and routes failures back into self-learning or self-play.
+This skill defines the evaluation contract. The current folder contains executable training helpers plus a deterministic stdlib-only mock service harness under `mock-services/` (see `mock-services/README.md` for the CLI/HTTP contracts and the `run-all` smoke test). Until a project-specific runner exists, scaffold the smallest local runner that executes JSONL cases, records outputs, scores deterministic checks, emits a JSON report, and routes failures back into self-learning or self-play.
 
 ## When to Use
 

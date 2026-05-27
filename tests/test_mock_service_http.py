@@ -15,48 +15,20 @@ Endpoints (from mock-services/README.md):
 """
 
 import json
-import os
-import socket
-import subprocess
-import sys
-import time
 import urllib.error
 import urllib.request
-from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-MOCK_MAIN = REPO_ROOT / "mock-services" / "mock_self_coaching.py"
 
-
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-def _wait_for_health(port: int, timeout: float = 15.0) -> None:
-    url = f"http://127.0.0.1:{port}/health"
-    deadline = time.time() + timeout
-    last_err: Exception | None = None
-    while time.time() < deadline:
-        try:
-            with urllib.request.urlopen(url, timeout=1.0) as resp:
-                if resp.status == 200:
-                    return
-        except (urllib.error.URLError, ConnectionError, OSError) as e:
-            last_err = e
-            time.sleep(0.15)
-    raise RuntimeError(f"mock service /health never came up on port {port}: {last_err}")
-
-
-def _post(port: int, path: str, payload: dict) -> dict:
+def _post(port: int, path: str, payload: dict, *,
+          headers: dict[str, str] | None = None) -> dict:
     body = json.dumps(payload).encode("utf-8")
+    hdrs = {"Content-Type": "application/json", **(headers or {})}
     req = urllib.request.Request(
         f"http://127.0.0.1:{port}{path}",
         data=body,
-        headers={"Content-Type": "application/json"},
+        headers=hdrs,
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=10.0) as resp:
@@ -66,32 +38,6 @@ def _post(port: int, path: str, payload: dict) -> dict:
 def _get(port: int, path: str) -> dict:
     with urllib.request.urlopen(f"http://127.0.0.1:{port}{path}", timeout=10.0) as resp:
         return json.loads(resp.read().decode("utf-8"))
-
-
-@pytest.fixture
-def mock_server(tmp_path: Path):
-    """Yield (port, root) for a running mock HTTP server. Server is killed on teardown."""
-    port = _free_port()
-    root = tmp_path / "http-demo"
-    # Use the same Python that's running pytest to avoid version drift.
-    env = os.environ.copy()
-    env["PYTHONUNBUFFERED"] = "1"
-    proc = subprocess.Popen(
-        [sys.executable, str(MOCK_MAIN), "serve", "--root", str(root), "--port", str(port)],
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    try:
-        _wait_for_health(port)
-        yield port, root
-    finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=5.0)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait(timeout=5.0)
 
 
 # -------- endpoints --------
@@ -162,7 +108,7 @@ def test_unknown_endpoint_returns_404(mock_server):
 
 
 def test_unsupported_pipeline_returns_500(mock_server):
-    """train() raises SystemExit for unsupported pipelines; the HTTP handler
+    """train() raises ValueError for unsupported pipelines; the HTTP handler
     catches it and returns 500 with a JSON error body."""
     port, _ = mock_server
     with pytest.raises(urllib.error.HTTPError) as exc_info:
@@ -171,3 +117,42 @@ def test_unsupported_pipeline_returns_500(mock_server):
     err_body = json.loads(exc_info.value.read().decode("utf-8"))
     assert "error" in err_body
     assert "type" in err_body
+
+
+def test_auth_required_when_token_configured(mock_server_authenticated):
+    port, _ = mock_server_authenticated
+    with pytest.raises(urllib.error.HTTPError) as exc_info:
+        _post(port, "/learning/events", {"event": "no auth header"})
+    assert exc_info.value.code == 401
+
+
+def test_auth_accepts_bearer_token(mock_server_authenticated):
+    port, _ = mock_server_authenticated
+    data = _post(
+        port, "/learning/events", {"event": "authenticated"},
+        headers={"Authorization": "Bearer test-secret"},
+    )
+    assert data["event"] == "authenticated"
+
+
+def test_idempotency_replays_prior_response(mock_server):
+    port, _ = mock_server
+    key = "idem-test-key-001"
+    first = _post(
+        port, "/learning/events", {"event": "first call"},
+        headers={"Idempotency-Key": key},
+    )
+    second = _post(
+        port, "/learning/events", {"event": "second call should be ignored"},
+        headers={"Idempotency-Key": key},
+    )
+    assert first["id"] == second["id"]
+    assert first["event"] == second["event"] == "first call"
+
+
+def test_oversized_body_returns_413(mock_server_small_body):
+    port, _ = mock_server_small_body
+    huge = {"event": "x" * 512}
+    with pytest.raises(urllib.error.HTTPError) as exc_info:
+        _post(port, "/learning/events", huge)
+    assert exc_info.value.code == 413

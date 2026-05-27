@@ -46,6 +46,7 @@ paths:
       tags: [health]
       summary: Liveness probe
       operationId: health
+      security: []
       responses:
         "200":
           description: Service is up
@@ -62,6 +63,8 @@ paths:
         Capture an agent learning event (correction, mistake, preference update).
         The service appends it to its learning-events log and may seed self-play.
       operationId: createLearningEvent
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
@@ -75,6 +78,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LearningEventRecord"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -83,6 +90,8 @@ paths:
       tags: [self-play]
       summary: Generate self-play candidate cases
       operationId: generateSelfPlay
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
@@ -96,6 +105,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SelfPlayResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -104,6 +117,8 @@ paths:
       tags: [evaluation]
       summary: Run an evaluation against curated eval cases
       operationId: createEvalRun
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
@@ -117,6 +132,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EvalSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -141,12 +160,16 @@ paths:
                 $ref: "#/components/schemas/EvalReport"
         "404":
           $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /training/runs:
     post:
       tags: [training]
       summary: Launch a training pipeline
       operationId: createTrainingRun
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
@@ -166,6 +189,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -177,6 +204,8 @@ paths:
         Orchestrates the entire pipeline end-to-end. Returns a summary that wires
         the candidate eval result back into the training manifest's `eval_run_id`.
       operationId: runFullPipeline
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
@@ -190,10 +219,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RunAllResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalError"
 
+security:
+  - bearerAuth: []
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Bearer token. Set `MOCK_SERVICE_TOKEN` on the server and pass the same
+        value as `Authorization: Bearer <token>` from clients. When the env var
+        is unset, auth is disabled (local mock default).
+
+  parameters:
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: false
+      schema:
+        type: string
+      description: |
+        Optional idempotency key. When provided on POST mutating endpoints, the
+        server returns the prior response for the same (endpoint, key) within
+        ~24 hours instead of re-executing the operation.
+
   responses:
     NotFound:
       description: Resource not found
@@ -203,6 +260,18 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
     InternalError:
       description: Internal service error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    PayloadTooLarge:
+      description: Request body exceeds server limit
       content:
         application/json:
           schema:

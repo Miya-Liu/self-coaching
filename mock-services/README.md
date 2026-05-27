@@ -77,6 +77,28 @@ Endpoints:
 - `POST /training/runs` with `{"pipeline":"sft"}`
 - `POST /pipeline/run-all` with `{"capability":"tool_use","pipeline":"sft"}`
 
+Formal contract (including auth and idempotency): `contracts/openapi.yaml`.
+
+### HTTP hardening (mock)
+
+| Env var | Purpose |
+|---------|---------|
+| `MOCK_SERVICE_TOKEN` | When set, all endpoints except `GET /health` require `Authorization: Bearer <token>`. Unset = auth disabled (local default). |
+| `MOCK_MAX_BODY_BYTES` | Max POST body size (default 1 MiB). Oversized bodies return `413`. |
+
+Mutating `POST` endpoints accept optional `Idempotency-Key`. Replays within ~24h return the cached response (stored under `.self-coaching/idempotency/`).
+
+### Python client
+
+```python
+from client import HTTPClient, build_client
+
+client = build_client("http", base_url="http://127.0.0.1:8765", api_key="your-token")
+client.learn(event="...", headers={"X-Request-ID": "req-1"})  # Idempotency-Key auto on POST
+```
+
+`HTTPClient` reads `MOCK_SERVICE_TOKEN` from the environment when `api_key` is omitted.
+
 ## Design Notes
 
 - Deterministic and stdlib-only.

@@ -31,11 +31,13 @@ The shared interface is the `SelfCoachingClient` Protocol below.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
+import uuid
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
@@ -78,6 +80,10 @@ class ServiceError(SelfCoachingError):
         self.status = status
         self.body = body
         super().__init__(f"service returned {status}: {body!r}")
+
+
+class AuthError(ServiceError):
+    """Missing or invalid bearer token (HTTP 401)."""
 
 
 class TransportError(SelfCoachingError):
@@ -168,16 +174,19 @@ class CLIClient:
                 status=proc.returncode,
                 body={"stderr": proc.stderr.strip(), "stdout": proc.stdout.strip()},
             )
-        # The CLI prints a JSON object as its last non-empty line.
-        for line in reversed(proc.stdout.splitlines()):
-            line = line.strip()
-            if not line:
-                continue
+        text = proc.stdout.strip()
+        if text:
             try:
-                return json.loads(line)
+                return json.loads(text)
             except json.JSONDecodeError:
-                break
-        # Fall back: return the raw stdout as a payload.
+                pass
+            # Pretty-printed multi-line JSON: find the first object.
+            start = text.find("{")
+            if start >= 0:
+                try:
+                    return json.loads(text[start:])
+                except json.JSONDecodeError:
+                    pass
         return {"status": "ok", "stdout": proc.stdout, "stderr": proc.stderr}
 
     def health(self) -> dict[str, Any]:
@@ -234,11 +243,15 @@ class HTTPClient:
     """
 
     def __init__(self, base_url: str = "http://127.0.0.1:8765", *,
+                 api_key: str | None = None,
+                 default_headers: dict[str, str] | None = None,
                  timeout: float = 30.0,
                  max_retries: int = 3,
                  backoff_initial_s: float = 0.5,
                  backoff_factor: float = 2.0):
         self.base_url = base_url.rstrip("/")
+        self.api_key = api_key if api_key is not None else os.environ.get("MOCK_SERVICE_TOKEN")
+        self.default_headers = dict(default_headers or {})
         self.timeout = timeout
         self.max_retries = max(0, max_retries)
         self.backoff_initial_s = backoff_initial_s
@@ -248,13 +261,20 @@ class HTTPClient:
 
     def _request(self, method: str, path: str,
                  payload: dict[str, Any] | None = None,
-                 *, idempotent: bool = False) -> dict[str, Any]:
+                 *, idempotent: bool = False,
+                 headers: dict[str, str] | None = None) -> dict[str, Any]:
         url = f"{self.base_url}{path}"
         body = json.dumps(payload).encode("utf-8") if payload is not None else None
-        headers = {"Accept": "application/json"}
+        hdrs: dict[str, str] = {"Accept": "application/json", **self.default_headers}
+        if headers:
+            hdrs.update(headers)
+        if self.api_key:
+            hdrs["Authorization"] = f"Bearer {self.api_key}"
         if body is not None:
-            headers["Content-Type"] = "application/json"
-        req = urllib.request.Request(url, data=body, headers=headers, method=method)
+            hdrs["Content-Type"] = "application/json"
+            if method == "POST" and "Idempotency-Key" not in hdrs:
+                hdrs["Idempotency-Key"] = str(uuid.uuid4())
+        req = urllib.request.Request(url, data=body, headers=hdrs, method=method)
 
         retries_allowed = self.max_retries if (idempotent or method == "GET") else 1
         delay = self.backoff_initial_s
@@ -277,6 +297,8 @@ class HTTPClient:
                     err_body = json.loads(exc.read().decode("utf-8"))
                 except Exception:
                     err_body = str(exc)
+                if exc.code == 401:
+                    raise AuthError(exc.code, err_body) from exc
                 if 500 <= exc.code < 600 and idempotent and attempt < retries_allowed:
                     last_exc = exc
                 else:
@@ -360,6 +382,7 @@ __all__ = [
     "HTTPClient",
     "SelfCoachingError",
     "ServiceError",
+    "AuthError",
     "TransportError",
     "build_client",
 ]

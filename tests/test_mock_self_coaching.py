@@ -11,7 +11,7 @@ Return-shape reference (read from the implementation):
   self_play -> {"status": "generated", "count": int, "case_ids": [str, ...]}
   evaluate  -> {"status": "passed"|"failed", "run_id": str, "report": str, "recommendation": str}
   train     -> {"status": "trained", "run_id": str, "candidate": str, "manifest": str, "log_file": str}
-              (raises SystemExit for unsupported pipelines)
+              (raises ValueError for unsupported pipelines)
   run_all   -> {"status": "ok", "root", "init", "learning_event_id", "self_play",
                 "baseline_eval", "training", "candidate_eval", "promotion_allowed"}
 """
@@ -188,7 +188,7 @@ def test_train_supports_both_documented_pipelines(root):
 def test_train_unknown_pipeline_is_rejected(root):
     msc.init(root)
     msc.self_play(root, capability="tool_use", n=2)
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         msc.train(root, pipeline="not-a-real-pipeline-id")
 
 

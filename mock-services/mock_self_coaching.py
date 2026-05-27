@@ -31,6 +31,16 @@ import urllib.parse
 
 VERSION = "0.1.0"
 UTC = _dt.timezone.utc
+DEFAULT_MAX_BODY_BYTES = 1 << 20  # 1 MiB
+IDEMPOTENCY_TTL_S = 86400
+IDEMPOTENCY_MAX_ENTRIES = 1000
+_IDEMPOTENT_POST_PATHS = frozenset({
+    "/learning/events",
+    "/self-play/generate",
+    "/eval/runs",
+    "/training/runs",
+    "/pipeline/run-all",
+})
 
 
 def now() -> str:
@@ -82,6 +92,7 @@ def paths(root: Path) -> dict[str, Path]:
         "reports": base / "reports" / "eval_runs",
         "manifests": base / "manifests",
         "logs": base / "logs",
+        "idempotency": base / "idempotency",
         "experience": root / "experience",
     }
 
@@ -95,6 +106,7 @@ def init(root: Path) -> dict:
         p["reports"],
         p["manifests"],
         p["logs"],
+        p["idempotency"],
         p["experience"],
         root / "logs",
         root / "worktrees",
@@ -275,7 +287,7 @@ def train(root: Path, pipeline: str = "sft", dataset: str | None = None, base_mo
     init(root)
     p = paths(root)
     if pipeline not in {"sft", "grpo"}:
-        raise SystemExit(f"unsupported mock pipeline: {pipeline}")
+        raise ValueError(f"unsupported mock pipeline: {pipeline}")
     if dataset is None:
         dataset = str(p["train"])
     if not Path(dataset).exists():
@@ -338,6 +350,79 @@ def run_all(root: Path, capability: str = "tool_use", pipeline: str = "sft") -> 
     return summary
 
 
+def _max_body_bytes() -> int:
+    raw = os.environ.get("MOCK_MAX_BODY_BYTES", "")
+    if not raw:
+        return DEFAULT_MAX_BODY_BYTES
+    return int(raw)
+
+
+def _service_token() -> str | None:
+    token = os.environ.get("MOCK_SERVICE_TOKEN", "").strip()
+    return token or None
+
+
+def _idempotency_key(endpoint: str, key: str) -> str:
+    digest = hashlib.sha256(f"{endpoint}\0{key}".encode("utf-8")).hexdigest()
+    return digest[:32]
+
+
+class IdempotencyStore:
+    """On-disk cache of prior POST responses keyed by (endpoint, Idempotency-Key)."""
+
+    def __init__(self, directory: Path, *, ttl_s: int = IDEMPOTENCY_TTL_S,
+                 max_entries: int = IDEMPOTENCY_MAX_ENTRIES) -> None:
+        self.directory = directory
+        self.ttl_s = ttl_s
+        self.max_entries = max_entries
+        self.directory.mkdir(parents=True, exist_ok=True)
+
+    def _path(self, endpoint: str, key: str) -> Path:
+        return self.directory / f"{_idempotency_key(endpoint, key)}.json"
+
+    def get(self, endpoint: str, key: str) -> tuple[int, dict] | None:
+        path = self._path(endpoint, key)
+        if not path.is_file():
+            return None
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            path.unlink(missing_ok=True)
+            return None
+        stored_at = record.get("stored_at", 0)
+        if time.time() - stored_at > self.ttl_s:
+            path.unlink(missing_ok=True)
+            return None
+        return int(record["status"]), record["body"]
+
+    def put(self, endpoint: str, key: str, status: int, body: dict) -> None:
+        self._evict_expired()
+        path = self._path(endpoint, key)
+        path.write_text(
+            json.dumps({"stored_at": time.time(), "status": status, "body": body},
+                       ensure_ascii=False, sort_keys=True),
+            encoding="utf-8",
+        )
+        self._trim()
+
+    def _evict_expired(self) -> None:
+        cutoff = time.time() - self.ttl_s
+        for path in self.directory.glob("*.json"):
+            try:
+                record = json.loads(path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                path.unlink(missing_ok=True)
+                continue
+            if record.get("stored_at", 0) < cutoff:
+                path.unlink(missing_ok=True)
+
+    def _trim(self) -> None:
+        files = sorted(self.directory.glob("*.json"),
+                       key=lambda p: p.stat().st_mtime, reverse=True)
+        for path in files[self.max_entries:]:
+            path.unlink(missing_ok=True)
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     server_version = "MockSelfCoaching/" + VERSION
 
@@ -349,18 +434,54 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _auth_ok(self, path: str) -> bool:
+        if path == "/health":
+            return True
+        expected = _service_token()
+        if expected is None:
+            return True
+        auth = self.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            return False
+        return auth[7:].strip() == expected
+
     def _body(self) -> dict:
         n = int(self.headers.get("Content-Length", "0") or "0")
         if not n:
             return {}
+        if n > _max_body_bytes():
+            raise ValueError(f"request body exceeds limit of {_max_body_bytes()} bytes")
         return json.loads(self.rfile.read(n).decode("utf-8"))
 
     @property
     def root(self) -> Path:
         return self.server.root  # type: ignore[attr-defined]
 
+    @property
+    def idempotency(self) -> IdempotencyStore:
+        return self.server.idempotency  # type: ignore[attr-defined]
+
+    def _handle_post(self, path: str, data: dict) -> tuple[int, dict]:
+        if path == "/learning/events":
+            return 200, learn(self.root, data.get("event", "mock event"),
+                              data.get("source", "http"), data.get("capability", "tool_use"))
+        if path == "/self-play/generate":
+            return 200, self_play(self.root, data.get("capability", "tool_use"), int(data.get("n", 3)))
+        if path == "/eval/runs":
+            return 200, evaluate(self.root, data.get("candidate", "mock-candidate-v1"),
+                                data.get("baseline", "mock-baseline-v0"))
+        if path == "/training/runs":
+            return 200, train(self.root, data.get("pipeline", "sft"), data.get("dataset"),
+                             data.get("base_model", "mock-base"))
+        if path == "/pipeline/run-all":
+            return 200, run_all(self.root, data.get("capability", "tool_use"), data.get("pipeline", "sft"))
+        return 404, {"error": "not found"}
+
     def do_GET(self) -> None:  # noqa: N802
         path = urllib.parse.urlparse(self.path).path
+        if not self._auth_ok(path):
+            self._json(401, {"error": "unauthorized", "type": "AuthError"})
+            return
         if path == "/health":
             self._json(200, {"status": "ok", "version": VERSION, "root": str(self.root)})
             return
@@ -376,20 +497,30 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urllib.parse.urlparse(self.path).path
-        data = self._body()
+        if not self._auth_ok(path):
+            self._json(401, {"error": "unauthorized", "type": "AuthError"})
+            return
+        idem_key = self.headers.get("Idempotency-Key", "").strip()
+        if idem_key and path in _IDEMPOTENT_POST_PATHS:
+            cached = self.idempotency.get(path, idem_key)
+            if cached is not None:
+                code, body = cached
+                self._json(code, body)
+                return
         try:
-            if path == "/learning/events":
-                self._json(200, learn(self.root, data.get("event", "mock event"), data.get("source", "http"), data.get("capability", "tool_use")))
-            elif path == "/self-play/generate":
-                self._json(200, self_play(self.root, data.get("capability", "tool_use"), int(data.get("n", 3))))
-            elif path == "/eval/runs":
-                self._json(200, evaluate(self.root, data.get("candidate", "mock-candidate-v1"), data.get("baseline", "mock-baseline-v0")))
-            elif path == "/training/runs":
-                self._json(200, train(self.root, data.get("pipeline", "sft"), data.get("dataset"), data.get("base_model", "mock-base")))
-            elif path == "/pipeline/run-all":
-                self._json(200, run_all(self.root, data.get("capability", "tool_use"), data.get("pipeline", "sft")))
+            data = self._body()
+        except ValueError as e:
+            msg = str(e)
+            if "exceeds limit" in msg:
+                self._json(413, {"error": msg, "type": "PayloadTooLarge"})
             else:
-                self._json(404, {"error": "not found"})
+                self._json(400, {"error": msg, "type": "ValueError"})
+            return
+        try:
+            code, result = self._handle_post(path, data)
+            if idem_key and path in _IDEMPOTENT_POST_PATHS and code < 500:
+                self.idempotency.put(path, idem_key, code, result)
+            self._json(code, result)
         except Exception as e:  # intentionally visible for mock debugging
             self._json(500, {"error": str(e), "type": type(e).__name__})
 
@@ -397,11 +528,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         sys.stderr.write("[mock-self-coaching] " + fmt % args + "\n")
 
 
-def serve(root: Path, port: int) -> None:
+def serve(root: Path, port: int, host: str = "127.0.0.1") -> None:
     init(root)
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = http.server.ThreadingHTTPServer((host, port), Handler)
     server.root = root  # type: ignore[attr-defined]
-    print(json.dumps({"status": "serving", "url": f"http://127.0.0.1:{port}", "root": str(root)}, indent=2))
+    server.idempotency = IdempotencyStore(paths(root)["idempotency"])  # type: ignore[attr-defined]
+    print(json.dumps({"status": "serving", "url": f"http://{host}:{port}", "root": str(root)}, indent=2))
     server.serve_forever()
 
 
@@ -419,7 +551,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("evaluate"); add_root(p); p.add_argument("--candidate", default="mock-candidate-v1"); p.add_argument("--baseline", default="mock-baseline-v0")
     p = sub.add_parser("train"); add_root(p); p.add_argument("--pipeline", choices=["sft", "grpo"], default="sft"); p.add_argument("--dataset"); p.add_argument("--base-model", default="mock-base")
     p = sub.add_parser("run-all"); add_root(p); p.add_argument("--capability", default="tool_use"); p.add_argument("--pipeline", choices=["sft", "grpo"], default="sft")
-    p = sub.add_parser("serve"); add_root(p); p.add_argument("--port", type=int, default=8765)
+    p = sub.add_parser("serve"); add_root(p); p.add_argument("--host", default="127.0.0.1"); p.add_argument("--port", type=int, default=8765)
 
     args = parser.parse_args(argv)
     root = Path(args.root).resolve()
@@ -430,7 +562,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "train": result = train(root, args.pipeline, args.dataset, args.base_model)
     elif args.cmd == "run-all": result = run_all(root, args.capability, args.pipeline)
     elif args.cmd == "serve":
-        serve(root, args.port)
+        serve(root, args.port, args.host)
         return 0
     else:
         raise SystemExit(f"unknown command {args.cmd}")

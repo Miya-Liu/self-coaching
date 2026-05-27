@@ -8,7 +8,6 @@ This repository **decomposes** that policy into **atomic step skills** (separate
 
 The default **target git tree** for the vendored trainer loop is `upstream/autoresearch/` (from [karpathy/autoresearch](https://github.com/karpathy/autoresearch)). The same workflow applies to other ML repos you attach.
 
-**Upstream:** [github.com/Miya-Liu/self-coaching](https://github.com/Miya-Liu/self-coaching) (`main`).
 
 ## Workflow
 

@@ -14,7 +14,7 @@ Shared executable helpers live in `scripts/`:
 - `init-experience.sh` creates `experience/`, `logs/`, and `worktrees/` in a target root.
 - `hook-inject-errors.sh` and `hook-inject-learnings.sh` print bounded experience context.
 - `hook-experiment.sh` prints the standard worktree/logging pattern.
-- `preflight.sh` prepares a vendored upstream trainer if present.
+- `preflight.sh` syncs an external autoresearch clone when `AUTORESEARCH_ROOT` is set.
 - `run-once.sh` runs `uv run train.py` in an experiment worktree and redirects output to a log file.
 - `run-pipeline.sh` runs named SFT/GRPO pipelines under `self-coaching-training/pipelines/`.
 - `mock-run-all.sh` runs a deterministic local mock of the full learning → self-play → evaluation → training → evaluation loop.

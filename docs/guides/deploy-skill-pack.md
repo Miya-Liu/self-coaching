@@ -23,7 +23,7 @@ Optional (not required for T1): `mock-services/`, `services/orchestrator/` (T2/T
 | **git** | Yes | Worktree experiment flow |
 | **python** | Recommended | Mock dry-run; some pipeline helpers |
 | **jq**, **curl** | For AERL HTTP pipelines | `run-pipeline.sh` |
-| **uv** | For autoresearch `train.py` only | `preflight.sh` + `run-once.sh`; optional if you use AERL HTTP only |
+| **uv** | For external autoresearch `train.py` | `AUTORESEARCH_ROOT` + `preflight.sh` + `run-once.sh`; optional if you use AERL HTTP only |
 
 ## Install (recommended)
 
@@ -37,7 +37,7 @@ Arguments:
 
 - `[target-root]` — where `experience/`, `logs/`, `worktrees/` are created (default: repo root).
 - `--with-mock` — runs `mock-run-all.sh` to prove the artifact layout.
-- `--with-upstream` — runs `preflight.sh` (needs `uv` + `upstream/autoresearch`).
+- `--with-trainer` — runs `preflight.sh` (needs `uv` + `AUTORESEARCH_ROOT`).
 
 Or step by step:
 
@@ -86,11 +86,11 @@ CI runs the same checks on every push to `main`.
 
 ## Out of scope for T1
 
-- Hosting `mock_self_coaching.py serve` → see [production-deployment.md](production-deployment.md) T2.
+- Hosting `mock_self_coaching.py serve` → see [deploy-overview.md](deploy-overview.md) T2.
 - Automatic improve-on-eval-drop → see T3 / `services/orchestrator/`.
 
 ## Related
 
-- [RUNBOOK.md](RUNBOOK.md) — day-to-day commands
-- [ARCHITECTURE.md](ARCHITECTURE.md) — control boundaries
-- [roadmap.md](roadmap.md) — when to adopt T2/T3
+- [runbook.md](runbook.md) — day-to-day commands
+- [architecture.md](../design/architecture.md) — control boundaries
+- [roadmap.md](../project/roadmap.md) — when to adopt T2/T3

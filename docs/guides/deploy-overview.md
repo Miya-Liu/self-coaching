@@ -2,9 +2,9 @@
 
 ## Active deploy target: **T1 — Skill pack**
 
-This repository is currently shipped and supported as a **portable skill pack** (markdown + Bash). T2 (HTTP API) and T3 (orchestrator) are optional add-ons — see [roadmap.md](roadmap.md).
+This repository is currently shipped and supported as a **portable skill pack** (markdown + Bash). T2 (HTTP API) and T3 (orchestrator) are optional add-ons — see [roadmap.md](../project/roadmap.md).
 
-**Canonical T1 guide:** [`deploy-t1-skill-pack.md`](deploy-t1-skill-pack.md)
+**Canonical T1 guide:** [`deploy-skill-pack.md`](deploy-skill-pack.md)
 
 ```bash
 bash scripts/install-skill-pack.sh . --with-mock
@@ -16,7 +16,7 @@ bash scripts/install-skill-pack.sh . --with-mock
 
 | If you need… | Deploy | Start here |
 |--------------|--------|------------|
-| Agents to follow coaching **policy** (skills, experience logs, manual training) | **T1 — Skill pack** ✓ **active** | [deploy-t1-skill-pack.md](deploy-t1-skill-pack.md) |
+| Agents to follow coaching **policy** (skills, experience logs, manual training) | **T1 — Skill pack** ✓ **active** | [deploy-skill-pack.md](deploy-skill-pack.md) |
 | A **stable HTTP API** for learn / eval / train from your agent platform | **T2 — Coaching API** | [Coaching API](#t2--coaching-api) |
 | **Automatic** improve-on-eval-drop with artifacts and gates | **T3 — Pipeline** | [Self-improving pipeline](#t3--self-improving-pipeline) |
 
@@ -34,7 +34,7 @@ Adopt T2/T3 when you outgrow file-based skills; T1 remains valid without them.
 
 **Secrets:** Never commit `self-coaching-training/services/.env`.
 
-**Upgrade:** Pull tree → compare `SKILL_PACK_VERSION` → re-run install script; see [CHANGELOG-skills.md](CHANGELOG-skills.md).
+**Upgrade:** Pull tree → compare `SKILL_PACK_VERSION` → re-run install script; see [changelog-skills.md](../project/changelog-skills.md).
 
 ---
 
@@ -67,7 +67,7 @@ c.learn(event="verification missed", capability="tool_use")
 | `MOCK_SERVICE_TOKEN` | When set, requires `Authorization: Bearer <token>` (except `GET /health`) |
 | `MOCK_MAX_BODY_BYTES` | Max POST body (default 1 MiB) |
 
-**Production (M2, planned):** container image, sqlite volume, async training endpoints, AERL/AgentEvals adapters — see [`roadmap.md`](roadmap.md) M2.
+**Production (M2, planned):** container image, sqlite volume, async training endpoints, AERL/AgentEvals adapters — see [`roadmap.md`](../project/roadmap.md) M2.
 
 ---
 
@@ -128,7 +128,7 @@ export ORCHESTRATOR_BASE_URL=http://127.0.0.1:8765
 export MOCK_SERVICE_TOKEN=change-me
 ```
 
-**Production (M3–M4, planned):** real curation, holdout gates, canary deploy script — see [`roadmap.md`](roadmap.md).
+**Production (M3–M4, planned):** real curation, holdout gates, canary deploy script — see [`roadmap.md`](../project/roadmap.md).
 
 ---
 
@@ -154,6 +154,6 @@ export MOCK_SERVICE_TOKEN=change-me
 
 ## See also
 
-- [`roadmap.md`](roadmap.md) — milestones M0–M4
-- [`progress.md`](progress.md) — component status table
-- [`pipeline.md`](pipeline.md) — full loop design
+- [`roadmap.md`](../project/roadmap.md) — milestones M0–M4
+- [`progress.md`](../project/progress.md) — component status table
+- [`pipeline.md`](../design/pipeline.md) — full loop design

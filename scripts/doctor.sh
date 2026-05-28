@@ -154,7 +154,7 @@ required_files=(
   "README.md"
   "LICENSE"
   "scripts/install-skill-pack.sh"
-  "docs/deploy-t1-skill-pack.md"
+  "docs/guides/deploy-skill-pack.md"
   "scripts/run-pipeline.sh"
   "self-coaching-training/services/example.env"
   "self-coaching-training/pipelines/registry.yaml"

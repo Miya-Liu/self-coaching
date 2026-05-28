@@ -1,22 +1,30 @@
 # Runbook
 
-From the skill repository root (directory containing `SKILL.md`). The runbook is **agent-agnostic**: Bash is required; **uv** is only needed for the vendored `upstream/autoresearch` training path.
+From the skill repository root (directory containing `SKILL.md`). The runbook is **agent-agnostic**: Bash is required; **uv** is only needed for the external autoresearch training path.
 
-**T1 install:** see [`deploy-t1-skill-pack.md`](deploy-t1-skill-pack.md) or run `bash scripts/install-skill-pack.sh . --with-mock`.
+**T1 install:** see [`deploy-skill-pack.md`](deploy-skill-pack.md) or run `bash scripts/install-skill-pack.sh . --with-mock`.
 
 ## One-time: dependencies and data
 
 1. `bash scripts/install-skill-pack.sh .` (or `init-experience.sh` + `doctor.sh` manually).
-2. **If using autoresearch worktrees:** install [uv](https://docs.astral.sh/uv/), then `bash scripts/preflight.sh`.
-3. If needed: `uv --directory upstream/autoresearch run prepare.py` (cache per upstream docs).
+2. **If using autoresearch worktrees:** clone the trainer repo and set `AUTORESEARCH_ROOT` (see [`upstream/README.md`](../../upstream/README.md)), install [uv](https://docs.astral.sh/uv/), then `bash scripts/preflight.sh`.
+3. If needed: `uv --directory "$AUTORESEARCH_ROOT" run prepare.py` (cache per autoresearch docs).
 
-## One-time: git in upstream (if not a repo)
+Example:
 
-See `SKILL.md` — `git init` in `upstream/autoresearch`, first commit on `main`.
+```bash
+git clone https://github.com/karpathy/autoresearch.git ~/src/autoresearch
+export AUTORESEARCH_ROOT=~/src/autoresearch
+bash scripts/preflight.sh
+```
+
+## One-time: git in the trainer repo (if not a repo)
+
+See `SKILL.md` — `git init` in your `AUTORESEARCH_ROOT` checkout, first commit on `main`.
 
 ## Per experiment: worktree
 
-See `SKILL.md` — `git worktree add` to create `worktrees/<id>/`.
+See `SKILL.md` — `git worktree add` into `worktrees/<id>/` under the skill root.
 
 ## Run training (log to file)
 

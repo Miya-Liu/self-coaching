@@ -2,7 +2,7 @@
 # T1 — Install / verify the self-coaching skill pack at a target root.
 #
 # Usage:
-#   bash scripts/install-skill-pack.sh [target-root] [--with-mock] [--with-upstream]
+#   bash scripts/install-skill-pack.sh [target-root] [--with-mock] [--with-trainer]
 #
 # Examples:
 #   bash scripts/install-skill-pack.sh .              # current repo as skill root
@@ -13,7 +13,7 @@ IFS=$'\n\t'
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="${ROOT}"
 WITH_MOCK=0
-WITH_UPSTREAM=0
+WITH_TRAINER=0
 
 if [[ $# -gt 0 && "${1}" != --* ]]; then
   TARGET="$(cd "${1}" && pwd)"
@@ -23,7 +23,7 @@ fi
 for arg in "$@"; do
   case "${arg}" in
     --with-mock) WITH_MOCK=1 ;;
-    --with-upstream) WITH_UPSTREAM=1 ;;
+    --with-trainer|--with-upstream) WITH_TRAINER=1 ;;
     -h|--help)
       sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
@@ -41,12 +41,12 @@ echo "    Target: ${TARGET}"
 
 bash "${ROOT}/scripts/init-experience.sh" "${TARGET}"
 
-if [[ "${WITH_UPSTREAM}" -eq 1 && -d "${ROOT}/upstream/autoresearch" ]]; then
+if [[ "${WITH_TRAINER}" -eq 1 ]]; then
   if command -v uv >/dev/null 2>&1; then
-    echo "==> Syncing upstream/autoresearch (uv)..."
+    echo "==> Syncing external trainer repo (preflight)..."
     bash "${ROOT}/scripts/preflight.sh"
   else
-    echo "WARN: --with-upstream requires uv; skipped preflight" >&2
+    echo "WARN: --with-trainer requires uv and AUTORESEARCH_ROOT; skipped preflight" >&2
   fi
 fi
 
@@ -72,7 +72,8 @@ Skill pack ready at: ${TARGET}
 
 Next steps:
   1. Point your agent at: ${TARGET}/SKILL.md
-  2. Read: ${ROOT}/docs/deploy-t1-skill-pack.md
+  2. Read: ${ROOT}/docs/guides/deploy-skill-pack.md
   3. Optional AERL: cp self-coaching-training/services/example.env -> .env
+  4. Optional autoresearch: clone karpathy/autoresearch, export AUTORESEARCH_ROOT, see upstream/README.md
 
 EOF

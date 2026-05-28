@@ -601,48 +601,53 @@ Collect once per session (or per experiment branch):
 - `experiment_id`: short id (e.g. `20250424-01`) for branch and paths
 - `metric_name` (default: `val_bpb`), `direction` (default: `lower`)
 - `time_budget` / `max_iterations` / guardrails: as in **Strict guardrails**
-- `upstream_git_dir`: `upstream/autoresearch` (must become or already be a git repo)
+- `trainer_git_dir` / `AUTORESEARCH_ROOT`: absolute path to your autoresearch (or compatible) clone — must be a git repo
 - `experiment_worktree`: e.g. `worktrees/<experiment_id>` (path under skill root; **only** this tree is edited during the loop)
 - `train_log_file`: e.g. `logs/<experiment_id>.log`
 
 ## Non-negotiable constraints
 
-1. **Worktree boundary**: apply experiment edits and commits **only** inside `experiment_worktree` until the user approves merge. Do not change tracked files in `upstream/autoresearch` on `main` during the loop except via the merge step after approval.
+1. **Worktree boundary**: apply experiment edits and commits **only** inside `experiment_worktree` until the user approves merge. Do not change tracked files in the trainer repo on `main` during the loop except via the merge step after approval.
 2. **Training command**: use the **exact pattern** in **Run one training experiment (log to file)**. Redirect **all** stdout and stderr to `logs/…`; parse metrics from that file. For `self-coaching-training/pipelines` (SFT/GRPO), use `scripts/run-pipeline.sh` or the per-pipeline `run.sh` so output still goes to the given log path (`LOG_FILE`)—same discipline, different entrypoint.
 3. Experiments may run autonomously within guardrails until stop conditions.
 4. One clear hypothesis per iteration; small, attributable commits in the **experiment** branch.
-5. **Merge**: `git merge` of the experiment branch into `main` in `upstream/autoresearch` **only after explicit user authorization**.
+5. **Merge**: `git merge` of the experiment branch into `main` in the trainer repo (`AUTORESEARCH_ROOT`) **only after explicit user authorization**.
 6. External deployment/promotion (artifacts, production pointers) also requires explicit approval (same or separate confirmation as merge, per user).
 
 ---
 
-## One-time: git baseline in `upstream/autoresearch`
+## One-time: trainer repo (`AUTORESEARCH_ROOT`)
 
-If `upstream/autoresearch` is not yet a git repository, initialize once (from skill root, paths illustrative):
+Clone [karpathy/autoresearch](https://github.com/karpathy/autoresearch) **outside** this skill pack (see `upstream/README.md`). Export an absolute path:
 
 ```bash
-cd upstream/autoresearch
+export AUTORESEARCH_ROOT="${AUTORESEARCH_ROOT:-$HOME/src/autoresearch}"
+```
+
+If that directory is not yet a git repository, initialize once:
+
+```bash
+cd "${AUTORESEARCH_ROOT}"
 git init
 git add -A
-git commit -m "vendor baseline"
+git commit -m "baseline"
 git branch -M main
-cd ../..
 ```
 
 If it is already a repo, skip this block.
 
 ## Create the experiment worktree (fork for this session)
 
-From **skill root** (the directory that contains `SKILL.md` and `upstream/`), with `EXPERIMENT_ID` set. Use an **absolute** worktree path so it resolves regardless of `git -C` behavior:
+From **skill root** (directory containing `SKILL.md`), with `EXPERIMENT_ID` and `AUTORESEARCH_ROOT` set. Use an **absolute** worktree path under the skill root:
 
 ```bash
 EXPERIMENT_ID="run-01"
-# SKILL_ROOT: absolute path to this skill repo
 SKILL_ROOT="$(pwd)"
+AUTORESEARCH_ROOT="${AUTORESEARCH_ROOT:?set AUTORESEARCH_ROOT to your autoresearch clone}"
 EXPERIMENT_BRANCH="experiment/${EXPERIMENT_ID}"
 WT_PATH="${SKILL_ROOT}/worktrees/${EXPERIMENT_ID}"
 
-git -C upstream/autoresearch worktree add -b "${EXPERIMENT_BRANCH}" "${WT_PATH}"
+git -C "${AUTORESEARCH_ROOT}" worktree add -b "${EXPERIMENT_BRANCH}" "${WT_PATH}"
 ```
 
 - All subsequent training edits use files under `"${WT_PATH}/"` (e.g. `train.py` in that worktree).
@@ -664,16 +669,17 @@ mkdir -p logs
 ```
 
 - Parse `metric_name` and `peak_vram_mb` (or equivalent) from `"${LOG_FILE}"` with `Read`, not from raw terminal flood.
-- If `uv` / env must run from a specific cwd, only `cd` to **`WT_PATH`**, not to `upstream/autoresearch` on `main`.
+- If `uv` / env must run from a specific cwd, only `cd` to **`WT_PATH`**, not to the trainer repo on `main`.
 
-**Dependency / data prep** (unchanged, run against upstream checkout if needed, typically once):
+**Dependency / data prep** (run against `AUTORESEARCH_ROOT`, typically once):
 
 ```bash
-uv --directory upstream/autoresearch sync
-uv --directory upstream/autoresearch run prepare.py
+AUTORESEARCH_ROOT="${AUTORESEARCH_ROOT:?set AUTORESEARCH_ROOT}"
+uv --directory "${AUTORESEARCH_ROOT}" sync
+uv --directory "${AUTORESEARCH_ROOT}" run prepare.py
 ```
 
-(Use the same venv/lock as upstream; the worktree shares the same working tree’s git metadata but the experiment files live in `WT_PATH`.)
+(The worktree shares the trainer repo’s git metadata; experiment files live in `WT_PATH`.)
 
 ## Training pipelines (SFT, GRPO, **AERL** trainer API)
 
@@ -716,9 +722,9 @@ SKILL_ROOT="$(pwd)"
 EXPERIMENT_BRANCH="experiment/${EXPERIMENT_ID}"
 WT_PATH="${SKILL_ROOT}/worktrees/${EXPERIMENT_ID}"
 
-git -C upstream/autoresearch checkout main
-git -C upstream/autoresearch merge --no-ff "${EXPERIMENT_BRANCH}" -m "merge experiment ${EXPERIMENT_ID}"
-git -C upstream/autoresearch worktree remove "${WT_PATH}"   # optional cleanup when finished
+git -C "${AUTORESEARCH_ROOT}" checkout main
+git -C "${AUTORESEARCH_ROOT}" merge --no-ff "${EXPERIMENT_BRANCH}" -m "merge experiment ${EXPERIMENT_ID}"
+git -C "${AUTORESEARCH_ROOT}" worktree remove "${WT_PATH}"   # optional cleanup when finished
 ```
 
 Do not run the merge block without user approval.
@@ -740,7 +746,7 @@ Do not run the merge block without user approval.
 
 ## Experience (persistent logs)
 
-**Experience** is the name for this skill’s durable log set: what happened in experiments, what broke, and what the agent learned about training the model. It is separate from raw `logs/*.log` files (execution) and from the git repo under `upstream/` (code).
+**Experience** is the name for this skill’s durable log set: what happened in experiments, what broke, and what the agent learned about training the model. It is separate from raw `logs/*.log` files (execution) and from the trainer git repo (`AUTORESEARCH_ROOT`).
 
 Write to these paths under the skill root (bootstrap with `bash scripts/init-experience.sh` if needed):
 
@@ -790,7 +796,7 @@ commit	val_bpb	memory_gb	status	description
 - experience/EXPERIMENT_LOG.md updated: yes | no
 - experience/LEARNINGS.md (if optimization insight): yes | no
 - experience/ERROR.md (if failure): yes | no
-- merge to upstream/main: not requested | pending user auth | user authorized
+- merge to trainer main: not requested | pending user auth | user authorized
 ```
 
 ---

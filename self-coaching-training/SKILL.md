@@ -64,19 +64,15 @@ Copy `self-coaching-training/services/example.env` to `self-coaching-training/se
 
 ## Preflight and Environment
 
-Run preflight before using a vendored upstream trainer:
+Run preflight before using an external autoresearch trainer:
 
 ```bash
 bash "$SKILL_ROOT/scripts/preflight.sh"
 ```
 
-Current preflight expects `uv` and a vendored upstream tree at:
+Current preflight expects `uv` and `AUTORESEARCH_ROOT` pointing at a clone of [karpathy/autoresearch](https://github.com/karpathy/autoresearch) (see `upstream/README.md` at the skill root).
 
-```text
-$SKILL_ROOT/upstream/autoresearch
-```
-
-If that tree does not exist, either vendor/clone the trainer there, or skip `preflight.sh` and use the HTTP AERL pipeline mode below.
+If you do not use autoresearch, skip `preflight.sh` and use the HTTP AERL pipeline mode below.
 
 For HTTP pipeline mode, configure a local service compatible with this contract:
 
@@ -220,7 +216,7 @@ Prefer cheap improvements first. Training should be gated by evidence, not by th
 
 1. **Training before eval exists.** Build or select the eval runner first.
 2. **Wrong service path.** Pipeline scripts live under `self-coaching-training/pipelines/`, not `training/pipelines/`.
-3. **Missing upstream trainer.** `preflight.sh` needs `upstream/autoresearch`; HTTP mode does not.
+3. **Missing trainer clone.** `preflight.sh` needs `AUTORESEARCH_ROOT`; HTTP-only AERL mode does not.
 4. **Pasting full logs.** Logs belong in `logs/*.log`; summarize key metrics and line ranges.
 5. **Leaking secrets.** Keep `.env` values out of chat, memory, skills, and source control.
 6. **No rollback.** Record the baseline model/config before training.

@@ -1,6 +1,6 @@
 # Self-coaching deployment roadmap
 
-This document is the execution plan for taking the repository from **skill demo + mock API** to a **deployable self-improving loop** aligned with [`pipeline.md`](pipeline.md).
+This document is the execution plan for taking the repository from **skill demo + mock API** to a **deployable self-improving loop** aligned with [`pipeline.md`](../design/pipeline.md).
 
 ## Deploy targets (decision)
 
@@ -12,7 +12,7 @@ We ship three targets in order. Each has a clear audience and exit criterion.
 | **T2 — Coaching API** | `mock_self_coaching.py serve` → later real eval/train adapters | Integrators calling `client.HTTPClient` | **Deferred**; mock ready when needed |
 | **T3 — Self-improving pipeline** | `services/orchestrator` + metrics store + drop detector | Operators running closed-loop improvement | **Built (M1)**; optional until T2 adapters |
 
-**Primary focus:** **T1 / M0** — skill pack install, doctor, and onboarding. See [`deploy-t1-skill-pack.md`](deploy-t1-skill-pack.md).
+**Primary focus:** **T1 / M0** — skill pack install, doctor, and onboarding. See [`deploy-skill-pack.md`](../guides/deploy-skill-pack.md).
 
 ```text
 [T1 skills]          agent reads SKILL.md, runs bash locally
@@ -39,11 +39,11 @@ One orchestrator, many adapters — not nine separate integration projects.
 ### M0 — Baseline (skill pack deployable) ← **current**
 
 - [x] CI: doctor, shellcheck, pytest, mock smoke `run-all`
-- [x] `scripts/install-skill-pack.sh` + `docs/deploy-t1-skill-pack.md`
-- [x] `SKILL_PACK_VERSION` + `CHANGELOG-skills.md`
+- [x] `scripts/install-skill-pack.sh` + `docs/guides/deploy-skill-pack.md`
+- [x] `SKILL_PACK_VERSION` + `project/changelog-skills.md`
 - [x] Shell strictness on shipped scripts; `run-once.sh` python fallback
 - [x] `preflight.sh` AERL_ROOT sanity; registry documents `TRAINER_BASE_URL`
-- [x] `docs/production-deployment.md` — T1 as active target
+- [x] `docs/guides/deploy-overview.md` — T1 as active target
 - [ ] Git tag `v0.2.0-skills` on release (manual after review)
 
 **Exit:** `bash scripts/install-skill-pack.sh . --with-mock` succeeds on a clean machine with bash + python.
@@ -105,7 +105,8 @@ See `services/orchestrator/eval_metrics.py` for the schema and `normalize_from_m
 
 ## Related docs
 
+- [Documentation index](../README.md)
 - [`integration-plan.md`](integration-plan.md) — production agent + AgentEvals integration (phases, testing)
-- [`pipeline.md`](pipeline.md) — product architecture and phases
+- [`pipeline.md`](../design/pipeline.md) — product architecture and phases
 - [`progress.md`](progress.md) — component status vs milestones
-- [`production-deployment.md`](production-deployment.md) — how to deploy T1 / T2 / T3
+- [`deploy-overview.md`](../guides/deploy-overview.md) — how to deploy T1 / T2 / T3

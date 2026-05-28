@@ -6,7 +6,7 @@ This repository **decomposes** that policy into **atomic step skills** (separate
 
 **Install** the tree wherever your environment expects skills (project-local `skills/self-coaching`, a shared `tools/` tree, or a path your stack documents — see [Installation paths](#installation-paths)). Wire your **agent** to load root `SKILL.md` for the full loop, or load a subfolder skill when working in one phase only.
 
-The default **target git tree** for the vendored trainer loop is `upstream/autoresearch/` (from [karpathy/autoresearch](https://github.com/karpathy/autoresearch)). The same workflow applies to other ML repos you attach.
+The default **target git tree** for the autoresearch-style trainer loop is an **external clone** of [karpathy/autoresearch](https://github.com/karpathy/autoresearch) (set `AUTORESEARCH_ROOT`; see [`upstream/README.md`](upstream/README.md)). The same worktree workflow applies to other ML repos you attach.
 
 
 ## Workflow
@@ -90,17 +90,18 @@ The experiment loop runs autonomously inside the **Deploy Gate** boundary; **Rep
 |------|------|
 | `SKILL.md` | Full procedure: git, worktree, training redirect, merge gate, **Experience**, self-learning / self-play / eval / training playbooks. |
 | `DESCRIPTION.md` | Short index of atomic skills and when to load each. |
-| `docs/RUNBOOK.md` | Quick setup |
-| `docs/ARCHITECTURE.md` | Structure and control boundaries |
-| `docs/pipeline.md` | Self-improving agent loop (eval drop → improve → gate → deploy) |
-| `docs/roadmap.md` | Deploy targets T1–T3 and milestones M0–M4 |
-| `docs/progress.md` | Component status vs roadmap |
-| `docs/integration-plan.md` | Production agent + AgentEvals adapter plan (T2/T3) |
-| `docs/deploy-t1-skill-pack.md` | **Active:** skill pack install and verification (T1) |
-| `docs/production-deployment.md` | T1/T2/T3 deployment index |
+| `docs/README.md` | Documentation index |
+| `docs/guides/runbook.md` | Quick setup and day-to-day commands |
+| `docs/guides/deploy-skill-pack.md` | **Active:** skill pack install and verification (T1) |
+| `docs/guides/deploy-overview.md` | T1/T2/T3 deployment index |
+| `docs/design/architecture.md` | Structure and control boundaries |
+| `docs/design/pipeline.md` | Self-improving agent loop (eval → improve → deploy) |
+| `docs/project/roadmap.md` | Deploy targets T1–T3 and milestones M0–M4 |
+| `docs/project/progress.md` | Component status vs roadmap |
+| `docs/project/integration-plan.md` | Production agent + AgentEvals adapter plan (T2/T3) |
 | `SKILL_PACK_VERSION` | Skill pack release version (e.g. `0.2.0`) |
 | `services/orchestrator/` | Optional pipeline orchestrator (T3) |
-| `upstream/autoresearch/` | Vendored repo to train |
+| `upstream/README.md` | How to clone autoresearch externally (`AUTORESEARCH_ROOT`) |
 | `experience/` | **Experience** templates and optional `RUN_SUMMARY.json` |
 | `self-coaching-self-learning/` | Phase skill: durable memory, skills, tests, eval cases from real experience |
 | `self-coaching-self-play/` | Phase skill: generate and curate challenging tasks and trajectories |
@@ -128,13 +129,13 @@ Hooks in `references/hooks-setup.md` are **illustrative** (JSON + shell); adapt 
 
 1. Clone or copy this repository into your agent’s skill path (see [Installation paths](#installation-paths)).
 2. **Install and verify:** `bash scripts/install-skill-pack.sh . --with-mock`
-3. Read `DESCRIPTION.md`, then **`docs/deploy-t1-skill-pack.md`**, then `docs/RUNBOOK.md`, then root `SKILL.md`.
+3. Read `DESCRIPTION.md`, then **`docs/guides/deploy-skill-pack.md`**, then `docs/guides/runbook.md`, then root `SKILL.md` (or start from **`docs/README.md`**).
 4. Load a `self-coaching-*/SKILL.md` when executing only one phase.
 5. Optional: hooks from `references/hooks-setup.md`; AERL from `self-coaching-training/services/example.env`.
-6. Optional — HTTP mock service or orchestrator: **`docs/production-deployment.md`** (T2/T3; not required for T1).
+6. Optional — HTTP mock service or orchestrator: **`docs/guides/deploy-overview.md`** (T2/T3; not required for T1).
 
-For **AERL** pipelines, configure env from `self-coaching-training/services/example.env`, then from repo root either use `scripts/run-pipeline.sh` or invoke `self-coaching-training/pipelines/<id>/run.sh` with `LOG_FILE` set (see `docs/RUNBOOK.md` and `SKILL.md`).
+For **AERL** pipelines, configure env from `self-coaching-training/services/example.env`, then from repo root either use `scripts/run-pipeline.sh` or invoke `self-coaching-training/pipelines/<id>/run.sh` with `LOG_FILE` set (see `docs/guides/runbook.md` and `SKILL.md`).
 
 ## Scope
 
-- Training runs are automated within guardrails; **merge to upstream `main`** and **external promotion** require explicit user approval.
+- Training runs are automated within guardrails; **merge to the trainer repo `main`** and **external promotion** require explicit user approval.

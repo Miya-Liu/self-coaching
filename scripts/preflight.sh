@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
-# Install deps for the vendored upstream trainer (shared lock under upstream/autoresearch).
+# Install deps for an external autoresearch trainer clone (AUTORESEARCH_ROOT).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-UPSTREAM="${ROOT}/upstream/autoresearch"
+# shellcheck source=lib-trainer-repo.sh
+source "${ROOT}/scripts/lib-trainer-repo.sh"
 
 if ! command -v uv >/dev/null 2>&1; then
   echo "uv is required. Install from https://docs.astral.sh/uv/" >&2
+  exit 1
+fi
+
+if ! TRAINER_REPO="$(resolve_autoresearch_root "${ROOT}")"; then
+  autoresearch_root_hint
   exit 1
 fi
 
@@ -18,9 +24,11 @@ if [[ -n "${AERL_ROOT:-}" ]]; then
   echo "AERL_ROOT ok: ${AERL_ROOT}"
 fi
 
-echo "Syncing Python environment in ${UPSTREAM}..."
-uv --directory "${UPSTREAM}" sync
+echo "Syncing Python environment in ${TRAINER_REPO}..."
+uv --directory "${TRAINER_REPO}" sync
 echo "Done."
-echo "If data/tokenizer cache is missing, run once: uv --directory \"${UPSTREAM}\" run prepare.py"
-echo "Create a worktree (see SKILL.md), then: bash \"${ROOT}/scripts/run-once.sh\" <worktree-path> [log]"
+echo "If data/tokenizer cache is missing, run once:"
+echo "  uv --directory \"${TRAINER_REPO}\" run prepare.py"
+echo "Create a worktree (see SKILL.md), then:"
+echo "  bash \"${ROOT}/scripts/run-once.sh\" <worktree-path> [log]"
 echo "AERL HTTP pipelines: set TRAINER_BASE_URL in self-coaching-training/services/.env (default port 8004)."

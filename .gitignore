@@ -1,6 +1,8 @@
 logs/
 worktrees/
-upstream/autoresearch/.venv/
+# Optional local trainer clone (autoresearch); see upstream/README.md
+upstream/*
+!upstream/README.md
 **/__pycache__/
 *.pyc
 .pytest_cache/

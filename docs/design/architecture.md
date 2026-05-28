@@ -8,7 +8,7 @@ The canonical end-to-end sequence is the same as the Mermaid block in `README.md
 
 ## Control boundaries
 
-- **Upstream integration line:** `upstream/autoresearch` on `main`
+- **Trainer integration line:** external git repo (`AUTORESEARCH_ROOT`) on `main`
 - **Experiment line:** `worktrees/<experiment_id>` with branch `experiment/<id>`
 - **Execution logs:** `logs/<id>.log` (full stdout/stderr redirected)
 - **Experience logs:** `experience/*.md` (+ optional `experience/RUN_SUMMARY.json`)
@@ -16,13 +16,13 @@ The canonical end-to-end sequence is the same as the Mermaid block in `README.md
 
 ## Components
 
-1. **Policy** ù `SKILL.md` (worktree workflow, when to train/stop, merge gate, **Experience** paths).
-2. **Target repo** ù default: `upstream/autoresearch/` (vendored [karpathy/autoresearch](https://github.com/karpathy/autoresearch)); `main` is the integration line.
-3. **Experiment line** ù `worktrees/<id>/` (git worktree + branch). All experiment edits go here during the loop.
-4. **Execution logs** ù `logs/<id>.log` (full `train` stdout/stderr; parse with `Read` in small chunks).
-5. **Training service pipelines (AERL)** ù `self-coaching-training/pipelines/` (`registry.yaml`, `_lib.sh`, per-pipeline `pipeline.yaml` + `run.sh`; HTTP trainer by default via `TRAINER_BASE_URL`, optional `PIPELINE_MODE=local` + `AERL_ROOT`).
-6. **Experience** (persistent) ù `experience/EXPERIMENT_LOG.md` (outcomes), `experience/ERROR.md` (failures), `experience/LEARNINGS.md` (model/training insight). Optional: `experience/RUN_SUMMARY.json`.
-7. **Hooks** ù `scripts/hook-*.sh` + `references/hooks-setup.md`.
+1. **Policy** ? `SKILL.md` (worktree workflow, when to train/stop, merge gate, **Experience** paths).
+2. **Target repo** ? default: external clone ([karpathy/autoresearch](https://github.com/karpathy/autoresearch)); set `AUTORESEARCH_ROOT`; `main` is the integration line.
+3. **Experiment line** ? `worktrees/<id>/` (git worktree + branch). All experiment edits go here during the loop.
+4. **Execution logs** ? `logs/<id>.log` (full `train` stdout/stderr; parse with `Read` in small chunks).
+5. **Training service pipelines (AERL)** ? `self-coaching-training/pipelines/` (`registry.yaml`, `_lib.sh`, per-pipeline `pipeline.yaml` + `run.sh`; HTTP trainer by default via `TRAINER_BASE_URL`, optional `PIPELINE_MODE=local` + `AERL_ROOT`).
+6. **Experience** (persistent) ? `experience/EXPERIMENT_LOG.md` (outcomes), `experience/ERROR.md` (failures), `experience/LEARNINGS.md` (model/training insight). Optional: `experience/RUN_SUMMARY.json`.
+7. **Hooks** ? `scripts/hook-*.sh` + `references/hooks-setup.md`.
 
 ## Data flow
 
@@ -93,9 +93,9 @@ sequenceDiagram
 ## Merge gate
 
 - The agent may run experiment iterations autonomously inside the **Deploy Gate** (worktree only).
-- The agent may not **Replace local model** or **Update data** on the canonical integration path without explicit **Human** authorization (same gate as merging `experiment/<id>` into `upstream/autoresearch` `main`, or swapping promoted weights).
+- The agent may not **Replace local model** or **Update data** on the canonical integration path without explicit **Human** authorization (same gate as merging `experiment/<id>` into the trainer repo `main` (`AUTORESEARCH_ROOT`), or swapping promoted weights).
 - External deployment remains gated separately if your org requires it.
 
 ## Optional reference
 
-- `references/superpowers-skills/` ù not required at runtime.
+- `references/superpowers-skills/` ? not required at runtime.

@@ -1,8 +1,8 @@
 # Integration progress
 
-Status of [`pipeline.md`](pipeline.md) components against the [deployment roadmap](roadmap.md).
+Status of [`pipeline.md`](../design/pipeline.md) components against the [deployment roadmap](roadmap.md).
 
-**Active deploy target:** **T1 — Skill pack** (M0). T2/T3 are optional; see [`deploy-t1-skill-pack.md`](deploy-t1-skill-pack.md).
+**Active deploy target:** **T1 — Skill pack** (M0). T2/T3 are optional; see [`deploy-skill-pack.md`](../guides/deploy-skill-pack.md).
 
 ## Component status
 
@@ -25,7 +25,7 @@ Status of [`pipeline.md`](pipeline.md) components against the [deployment roadma
 
 | Target | Ready? | Notes |
 |--------|--------|-------|
-| **T1 — Skill pack** | **Active** | `install-skill-pack.sh`, `SKILL_PACK_VERSION` 0.2.0, `deploy-t1-skill-pack.md` |
+| **T1 — Skill pack** | **Active** | `install-skill-pack.sh`, `SKILL_PACK_VERSION` 0.2.0, `guides/deploy-skill-pack.md` |
 | **T2 — Coaching API** | Deferred | Mock ready; adopt when agents need HTTP |
 | **T3 — Pipeline** | Optional | M1 orchestrator available; not required for T1 |
 
@@ -35,7 +35,7 @@ Status of [`pipeline.md`](pipeline.md) components against the [deployment roadma
 - HTTP: bearer auth, idempotency, body size cap
 - Client: `api_key`, headers, `AuthError`, CLI JSON parsing
 - Tests: 36+ pytest cases; CI contract sync + smoke `run-all`
-- Docs: `pipeline.md`, `roadmap.md`, `production-deployment.md`
+- Docs: `design/pipeline.md`, `project/roadmap.md`, `guides/deploy-overview.md`
 
 ## Architecture rule
 
@@ -43,7 +43,8 @@ Status of [`pipeline.md`](pipeline.md) components against the [deployment roadma
 
 ## Related
 
+- [Documentation index](../README.md)
 - [Integration plan](integration-plan.md) — production agent + AgentEvals adapters (step-wise)
 - [Roadmap](roadmap.md) — M0–M4 milestones
-- [Production deployment](production-deployment.md) — T1 / T2 / T3 how-to
-- [Pipeline design](pipeline.md) — full loop specification
+- [Deploy overview](../guides/deploy-overview.md) — T1 / T2 / T3 how-to
+- [Pipeline design](../design/pipeline.md) — full loop specification

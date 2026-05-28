@@ -10,7 +10,8 @@
 #   bash scripts/doctor.sh --json    # one JSON object per check on stdout
 #   bash scripts/doctor.sh --quiet   # only print failures + summary
 
-set -uo pipefail
+set -Eeuo pipefail
+IFS=$'\n\t'
 
 # Resolve repo root (parent of this script's directory). Handles symlinked installs.
 SCRIPT_PATH="${BASH_SOURCE[0]}"
@@ -149,8 +150,11 @@ section "Skill structure"
 # Required top-level files for a working install.
 required_files=(
   "SKILL.md"
+  "SKILL_PACK_VERSION"
   "README.md"
   "LICENSE"
+  "scripts/install-skill-pack.sh"
+  "docs/deploy-t1-skill-pack.md"
   "scripts/run-pipeline.sh"
   "self-coaching-training/services/example.env"
   "self-coaching-training/pipelines/registry.yaml"
@@ -241,6 +245,21 @@ if [[ -f "${ROOT}/mock-services/contracts/regenerate.py" ]]; then
   else
     emit WARN "contracts.openapi_sync" "python missing; skipping contract sync check"
   fi
+fi
+
+section "Skill pack (T1)"
+
+if [[ -f "${ROOT}/SKILL_PACK_VERSION" ]]; then
+  ver="$(tr -d '\r\n' < "${ROOT}/SKILL_PACK_VERSION")"
+  emit PASS "skill_pack.version" "SKILL_PACK_VERSION=${ver}"
+else
+  emit FAIL "skill_pack.version" "SKILL_PACK_VERSION missing"
+fi
+
+if [[ -x "${ROOT}/scripts/install-skill-pack.sh" ]] || [[ -f "${ROOT}/scripts/install-skill-pack.sh" ]]; then
+  emit PASS "skill_pack.install_script" "scripts/install-skill-pack.sh present"
+else
+  emit FAIL "skill_pack.install_script" "scripts/install-skill-pack.sh missing"
 fi
 
 section "Python mock service"

@@ -95,6 +95,7 @@ The experiment loop runs autonomously inside the **Deploy Gate** boundary; **Rep
 | `docs/pipeline.md` | Self-improving agent loop (eval drop → improve → gate → deploy) |
 | `docs/roadmap.md` | Deploy targets T1–T3 and milestones M0–M4 |
 | `docs/progress.md` | Component status vs roadmap |
+| `docs/integration-plan.md` | Production agent + AgentEvals adapter plan (T2/T3) |
 | `docs/deploy-t1-skill-pack.md` | **Active:** skill pack install and verification (T1) |
 | `docs/production-deployment.md` | T1/T2/T3 deployment index |
 | `SKILL_PACK_VERSION` | Skill pack release version (e.g. `0.2.0`) |

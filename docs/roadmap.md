@@ -105,6 +105,7 @@ See `services/orchestrator/eval_metrics.py` for the schema and `normalize_from_m
 
 ## Related docs
 
+- [`integration-plan.md`](integration-plan.md) — production agent + AgentEvals integration (phases, testing)
 - [`pipeline.md`](pipeline.md) — product architecture and phases
 - [`progress.md`](progress.md) — component status vs milestones
 - [`production-deployment.md`](production-deployment.md) — how to deploy T1 / T2 / T3

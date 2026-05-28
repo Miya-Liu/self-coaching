@@ -43,6 +43,7 @@ Status of [`pipeline.md`](pipeline.md) components against the [deployment roadma
 
 ## Related
 
+- [Integration plan](integration-plan.md) — production agent + AgentEvals adapters (step-wise)
 - [Roadmap](roadmap.md) — M0–M4 milestones
 - [Production deployment](production-deployment.md) — T1 / T2 / T3 how-to
 - [Pipeline design](pipeline.md) — full loop specification

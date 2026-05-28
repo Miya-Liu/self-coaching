@@ -5,9 +5,17 @@ upstream/autoresearch/.venv/
 *.pyc
 .pytest_cache/
 run.log
+runs/
+.tmp-eval-openapi.json
+.tmp-agent-openapi.json
+mock-services/demo-run*/
+mock-services/ci-*/
 
 # Optional local vendor clone (large); see docs if you pull superpowers-skills separately
 references/superpowers-skills/
 
 # Local secrets for AERL / OpenAI-compatible service endpoints
 self-coaching-training/services/.env
+
+# Local uv lock without root pyproject.toml
+uv.lock

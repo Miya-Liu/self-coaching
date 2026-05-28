@@ -26,6 +26,9 @@ jobs:
       - name: Run doctor.sh
         run: bash scripts/doctor.sh
 
+      - name: T1 skill pack install smoke
+        run: bash scripts/install-skill-pack.sh . --with-mock
+
   shellcheck:
     name: shellcheck (all .sh files)
     runs-on: ubuntu-latest
@@ -67,6 +70,21 @@ jobs:
 
       - name: Run pytest suite
         run: pytest -q tests/
+
+      - name: Orchestrator M1 smoke (module transport)
+        run: |
+          python -m services.orchestrator record-eval \
+            --coaching-root mock-services/ci-orchestrator-root \
+            --agent-id ci-agent \
+            --baseline-score 0.95
+          RUN_DIR=runs/ci-orchestrator-smoke
+          python -m services.orchestrator run \
+            --coaching-root mock-services/ci-orchestrator-root \
+            --run-dir "$RUN_DIR" \
+            --agent-id ci-agent \
+            --force-trigger
+          test -f "$RUN_DIR/decision.json"
+          test -f "$RUN_DIR/deploy_manifest.json"
 
   mock-smoke:
     name: mock pipeline smoke test (run-all)

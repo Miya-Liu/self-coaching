@@ -1,16 +1,48 @@
+# Integration progress
 
-### Mapped to the doc’s components
+Status of [`pipeline.md`](pipeline.md) components against the [deployment roadmap](roadmap.md).
 
-| `pipeline.md` component | Your status | How to integrate |
-|-------------------------|-------------|------------------|
-| **Production Agent** | Out of scope here (your *consumer* is “any agent” via `client.py`) | integrate via API services of remote agents |
-| **Trajectory Store** | Not wired; mock uses local JSONL under `.self-coaching/` | integrate via API services of remote database or LLM API proxy to collect trajectories |
-| **Auto-Evaluation Service** | Not the doc’s scheduled metrics JSON (`score`, `baseline_score`, …); you have **mock** `POST /eval/runs` + reports | integrate with AgentEvals project for agent evaluation via API services |
-| **Drop Detector** | Not implemented | local 24*7 service which automaticlly collect agent evals results at stable frequency and can be utilised by external agents |
-| **Improvement Orchestrator** | **Not implemented** (`examples/self_improving_pipeline/` referenced in the doc isn’t in the repo) | local module to deploy which showcase an example/mock pipeline of how agent do self-improvement |
-| **Curation Agent** | **Skill + mock self-play** only; no production trajectory pull / PII / dedup pipeline | integrate remote self-play service via API to trigger data curation, whose background probably be an agent or not |
-| **Skill learning path** | **SKILLs + `learn()`**; not hooked to `learn_skills` in `pipeline.yaml` | TBD and open for proposals |
-| **Model training path** | **SKILLs + shell pipelines + mock `train()`**; real AERL/trainer is external | integrate with AERL via API services |
-| **Candidate evaluation** | **Mock evaluate + promotion flag**; not holdout/regression/cost gates from the doc |  |
-| **Version Management** | Not implemented | local module to tag or track which agent have been using this skill and log the version of it using either uuid or timestampe or other better proposal approaches |
+**Active deploy target:** **T1 — Skill pack** (M0). T2/T3 are optional; see [`deploy-t1-skill-pack.md`](deploy-t1-skill-pack.md).
 
+## Component status
+
+| Component | Milestone | Status | MVP in repo | Next deliverable |
+|-----------|-----------|--------|-------------|------------------|
+| **Production agent** | — | Out of scope | `client.py` consumers | Trajectory ingest SDK (agent-side) |
+| **Trajectory store** | M3 | Not wired | `.self-coaching/events/*.jsonl` | `POST /trajectories` or extended learn payload |
+| **Auto-evaluation** | M1–M2 | Partial | Mock eval + **`EvalMetrics`** (`record-eval` CLI) | AgentEvals adapter → same schema |
+| **Drop detector** | M1 | **Done** | `python -m services.orchestrator check-drop` | Wire to scheduler/cron |
+| **Improvement orchestrator** | M1 | **Done** | `services/orchestrator`, `scripts/run-orchestrator.sh` | Real `pipeline.yaml` shell hooks (M2+) |
+| **Curation** | M3 | Stub | Mock self-play only | `scripts/curate_data.py` + PII flags |
+| **Self-play** | M2 | Mock | `POST /self-play/generate` | Remote generator adapter |
+| **Skill learning** | M3 | Policy only | `learn()` + SKILLs | Git-tagged bundle in run manifest |
+| **Model training** | M2 | Partial | Shell + mock `train()` | AERL HTTP adapter + async runs |
+| **Candidate evaluation** | M1 | Partial | Holdout `candidate_eval.json` + promotion gates in `decision.json` | Real holdout suite + cost/latency |
+| **Deployment** | M1 dry / M4 live | **Dry-run** | `deploy_manifest.json` (`canary_fraction: 0`) | Canary script + rollback |
+| **Version management** | M1 | Partial | `improvement_run_manifest.json`, skill `bundle.json` stub | Registry query by `agent_id` |
+
+## Deploy targets
+
+| Target | Ready? | Notes |
+|--------|--------|-------|
+| **T1 — Skill pack** | **Active** | `install-skill-pack.sh`, `SKILL_PACK_VERSION` 0.2.0, `deploy-t1-skill-pack.md` |
+| **T2 — Coaching API** | Deferred | Mock ready; adopt when agents need HTTP |
+| **T3 — Pipeline** | Optional | M1 orchestrator available; not required for T1 |
+
+## Completed (integration layer)
+
+- Phase 1 mock fixes: `--host`, `ValueError` for bad pipelines
+- HTTP: bearer auth, idempotency, body size cap
+- Client: `api_key`, headers, `AuthError`, CLI JSON parsing
+- Tests: 36+ pytest cases; CI contract sync + smoke `run-all`
+- Docs: `pipeline.md`, `roadmap.md`, `production-deployment.md`
+
+## Architecture rule
+
+**One spine, many adapters:** orchestrator → `SelfCoachingClient` → OpenAPI service → {mock | AgentEvals | AERL}. Do not add parallel “integration APIs” per component.
+
+## Related
+
+- [Roadmap](roadmap.md) — M0–M4 milestones
+- [Production deployment](production-deployment.md) — T1 / T2 / T3 how-to
+- [Pipeline design](pipeline.md) — full loop specification

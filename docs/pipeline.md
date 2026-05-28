@@ -4,8 +4,9 @@ Goal: build a simple, feasible pipeline that detects agent performance drops, cu
 
 The design intentionally treats your existing evaluation, data curation, training, and deployment scripts as black-box commands. That keeps the first version small and useful instead of becoming a full MLOps platform.
 
-Diagram: `docs/self-improving-agent-pipeline-diagram.html`
-Minimal scaffold: `examples/self_improving_pipeline/`
+**Implementation status:** Milestone 1 orchestrator lives in [`services/orchestrator/`](../services/orchestrator/). See [`roadmap.md`](roadmap.md), [`progress.md`](progress.md), and [`production-deployment.md`](production-deployment.md).
+
+Diagram: `docs/self-improving-agent-pipeline-diagram.html` (optional; not required to run M1)
 
 ## Executive summary
 

@@ -1,0 +1,227 @@
+# SPDX-License-Identifier: MIT
+"""Improvement run orchestration (pipeline.md Phase 1, dry deploy)."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import sys
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from .drop_detector import check_drop, check_promotion, load_thresholds
+from .eval_metrics import (
+    EvalMetrics,
+    append_metrics,
+    metrics_store_path,
+    normalize_from_mock_eval,
+    write_json,
+)
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _default_thresholds_path() -> Path:
+    return Path(__file__).resolve().parent / "config" / "thresholds.json"
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _build_client(coaching_root: Path) -> Any:
+    mock_services = _repo_root() / "mock-services"
+    if str(mock_services) not in sys.path:
+        sys.path.insert(0, str(mock_services))
+    import client as client_mod  # noqa: E402
+
+    transport = os.environ.get("ORCHESTRATOR_TRANSPORT", "module").lower()
+    if transport == "http":
+        return client_mod.build_client(
+            "http",
+            base_url=os.environ.get("ORCHESTRATOR_BASE_URL", "http://127.0.0.1:8765"),
+            api_key=os.environ.get("MOCK_SERVICE_TOKEN"),
+        )
+    return client_mod.build_client("module", root=coaching_root)
+
+
+def record_eval(
+    coaching_root: Path,
+    *,
+    agent_id: str,
+    candidate: str,
+    baseline: str,
+    skill_bundle_version: str = "unknown",
+    split: str = "canary",
+    baseline_score: float | None = None,
+) -> EvalMetrics:
+    coaching_root = coaching_root.resolve()
+    client = _build_client(coaching_root)
+    summary = client.evaluate(candidate=candidate, baseline=baseline)
+    report = client.eval_report(summary["run_id"])
+    metrics = normalize_from_mock_eval(
+        agent_id=agent_id,
+        eval_summary=summary,
+        report=report,
+        baseline_score=baseline_score,
+        skill_bundle_version=skill_bundle_version,
+        model_checkpoint_id=candidate,
+        split=split,
+    )
+    append_metrics(metrics_store_path(coaching_root), metrics)
+    return metrics
+
+
+def run_improvement(
+    coaching_root: Path,
+    run_dir: Path,
+    *,
+    agent_id: str,
+    force_trigger: bool = False,
+    thresholds_path: Path | None = None,
+    production_candidate: str = "mock-baseline-v0",
+    production_baseline: str = "mock-baseline-v0",
+    train_pipeline: str = "sft",
+    capability: str = "tool_use",
+) -> dict[str, Any]:
+    coaching_root = coaching_root.resolve()
+    run_dir = run_dir.resolve()
+    run_dir.mkdir(parents=True, exist_ok=True)
+    thresholds = load_thresholds(thresholds_path or _default_thresholds_path())
+    store = metrics_store_path(coaching_root)
+
+    latest = None
+    if store.is_file():
+        from .eval_metrics import latest_metrics
+
+        latest = latest_metrics(store, agent_id)
+
+    if not force_trigger:
+        if latest is None:
+            raise RuntimeError(
+                "no eval metrics recorded; run record-eval first or pass --force-trigger"
+            )
+        drop = check_drop(latest, thresholds)
+        if not drop.triggered:
+            return {
+                "status": "skipped",
+                "reason": "no_drop_detected",
+                "drop_check": drop.to_dict(),
+            }
+        trigger_metrics = latest
+    else:
+        trigger_metrics = latest
+
+    improvement_run_id = f"imp-{uuid.uuid4().hex[:12]}"
+    client = _build_client(coaching_root)
+
+    # Baseline eval at run start (current production).
+    current_summary = client.evaluate(candidate=production_candidate, baseline=production_baseline)
+    current_report = client.eval_report(current_summary["run_id"])
+    current_metrics = normalize_from_mock_eval(
+        agent_id=agent_id,
+        eval_summary=current_summary,
+        report=current_report,
+        baseline_score=trigger_metrics.baseline_score if trigger_metrics else None,
+        skill_bundle_version=trigger_metrics.skill_bundle_version if trigger_metrics else "unknown",
+        model_checkpoint_id=production_candidate,
+        split="canary",
+    )
+    write_json(run_dir / "current_eval.json", current_metrics.to_dict())
+
+    # Stub collect + curate (M1): seed learning + self-play, reference curated paths.
+    client.learn(
+        event=f"Improvement run {improvement_run_id}: performance drop detected",
+        source="orchestrator",
+        capability=capability,
+    )
+    play = client.self_play(capability=capability, n=4)
+    curate_info = {
+        "status": "stub",
+        "self_play": play,
+        "train_split": str(coaching_root / ".self-coaching" / "curated" / "train.jsonl"),
+        "note": "M1 uses existing mock curated data; M3 adds real curation",
+    }
+    write_json(run_dir / "data" / "curation.json", curate_info)
+
+    n_cases = int(play.get("count", 0))
+    improvement_path = "skill" if n_cases < 100 else "model"
+
+    skill_version = hashlib.sha256(improvement_run_id.encode()).hexdigest()[:12]
+    candidate_ref = production_candidate
+
+    if improvement_path == "skill":
+        write_json(
+            run_dir / "skills" / "bundle.json",
+            {
+                "bundle_version": skill_version,
+                "status": "stub",
+                "note": "M1 records version only; M3 applies git-tagged skill patches",
+            },
+        )
+    else:
+        train_result = client.train(pipeline=train_pipeline, base_model=production_candidate)
+        candidate_ref = str(train_result.get("candidate", production_candidate))
+        write_json(run_dir / "training.json", train_result)
+
+    candidate_summary = client.evaluate(candidate=candidate_ref, baseline=production_baseline)
+    candidate_report = client.eval_report(candidate_summary["run_id"])
+    candidate_metrics = normalize_from_mock_eval(
+        agent_id=agent_id,
+        eval_summary=candidate_summary,
+        report=candidate_report,
+        baseline_score=current_metrics.score,
+        skill_bundle_version=skill_version if improvement_path == "skill" else current_metrics.skill_bundle_version,
+        model_checkpoint_id=candidate_ref,
+        split="holdout",
+    )
+    write_json(run_dir / "candidate_eval.json", candidate_metrics.to_dict())
+
+    ok, gate_reasons = check_promotion(current_metrics, candidate_metrics, thresholds)
+    recommendation = "promote" if ok else "reject"
+    decision = {
+        "improvement_run_id": improvement_run_id,
+        "recommendation": recommendation,
+        "promotion_allowed": ok,
+        "gate_reasons": gate_reasons,
+        "improvement_path": improvement_path,
+        "deploy_mode": "dry_run",
+    }
+    write_json(run_dir / "decision.json", decision)
+
+    deploy_manifest = {
+        "improvement_run_id": improvement_run_id,
+        "agent_id": agent_id,
+        "candidate_ref": candidate_ref,
+        "skill_bundle_version": skill_version if improvement_path == "skill" else current_metrics.skill_bundle_version,
+        "model_checkpoint_id": candidate_ref,
+        "canary_fraction": 0.0,
+        "status": "dry_run_only",
+        "created_at": _utc_now(),
+        "note": "M4 replaces this with a real deploy script",
+    }
+    write_json(run_dir / "deploy_manifest.json", deploy_manifest)
+
+    manifest = {
+        "improvement_run_id": improvement_run_id,
+        "agent_id": agent_id,
+        "coaching_root": str(coaching_root),
+        "run_dir": str(run_dir),
+        "created_at": _utc_now(),
+        "improvement_path": improvement_path,
+        "trigger": "forced" if force_trigger else "drop_detected",
+        "decision": recommendation,
+    }
+    write_json(run_dir / "improvement_run_manifest.json", manifest)
+
+    return {
+        "status": "completed",
+        "improvement_run_id": improvement_run_id,
+        "decision": recommendation,
+        "run_dir": str(run_dir),
+    }

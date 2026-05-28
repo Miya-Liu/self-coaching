@@ -92,6 +92,13 @@ The experiment loop runs autonomously inside the **Deploy Gate** boundary; **Rep
 | `DESCRIPTION.md` | Short index of atomic skills and when to load each. |
 | `docs/RUNBOOK.md` | Quick setup |
 | `docs/ARCHITECTURE.md` | Structure and control boundaries |
+| `docs/pipeline.md` | Self-improving agent loop (eval drop → improve → gate → deploy) |
+| `docs/roadmap.md` | Deploy targets T1–T3 and milestones M0–M4 |
+| `docs/progress.md` | Component status vs roadmap |
+| `docs/deploy-t1-skill-pack.md` | **Active:** skill pack install and verification (T1) |
+| `docs/production-deployment.md` | T1/T2/T3 deployment index |
+| `SKILL_PACK_VERSION` | Skill pack release version (e.g. `0.2.0`) |
+| `services/orchestrator/` | Optional pipeline orchestrator (T3) |
 | `upstream/autoresearch/` | Vendored repo to train |
 | `experience/` | **Experience** templates and optional `RUN_SUMMARY.json` |
 | `self-coaching-self-learning/` | Phase skill: durable memory, skills, tests, eval cases from real experience |
@@ -116,14 +123,14 @@ Use **one** of these (or your own); only the path in hook commands and docs need
 
 Hooks in `references/hooks-setup.md` are **illustrative** (JSON + shell); adapt event names to your product.
 
-## Quick start
+## Quick start (T1 — skill pack)
 
-1. Clone or copy this repository, for example: `git clone git@github.com:Miya-Liu/self-coaching.git` (HTTPS: `https://github.com/Miya-Liu/self-coaching.git`).
-2. Place it on disk where your **agent** is configured to read it (see [Installation paths](#installation-paths)).
-3. Run `bash scripts/init-experience.sh`.
-4. Read `DESCRIPTION.md`, then `docs/RUNBOOK.md`, then root `SKILL.md`. Load a `self-coaching-*/SKILL.md` when executing only one phase.
-5. Add hooks from `references/hooks-setup.md` if you want.
-6. Optional — **dry run without a real trainer:** from repo root run `bash scripts/mock-run-all.sh` (defaults to `mock-services/demo-run/` and pipeline `sft`). For HTTP mocks, Python import surface, and contract details, see **`DESCRIPTION.md`**.
+1. Clone or copy this repository into your agent’s skill path (see [Installation paths](#installation-paths)).
+2. **Install and verify:** `bash scripts/install-skill-pack.sh . --with-mock`
+3. Read `DESCRIPTION.md`, then **`docs/deploy-t1-skill-pack.md`**, then `docs/RUNBOOK.md`, then root `SKILL.md`.
+4. Load a `self-coaching-*/SKILL.md` when executing only one phase.
+5. Optional: hooks from `references/hooks-setup.md`; AERL from `self-coaching-training/services/example.env`.
+6. Optional — HTTP mock service or orchestrator: **`docs/production-deployment.md`** (T2/T3; not required for T1).
 
 For **AERL** pipelines, configure env from `self-coaching-training/services/example.env`, then from repo root either use `scripts/run-pipeline.sh` or invoke `self-coaching-training/pipelines/<id>/run.sh` with `LOG_FILE` set (see `docs/RUNBOOK.md` and `SKILL.md`).
 

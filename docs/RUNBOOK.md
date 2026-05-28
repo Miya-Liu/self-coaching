@@ -1,13 +1,14 @@
 # Runbook
 
-From the skill repository root (directory containing `SKILL.md`). The runbook is **agent-agnostic**: any environment with `uv`, `git`, and Bash can follow it; you do not need a specific IDE.
+From the skill repository root (directory containing `SKILL.md`). The runbook is **agent-agnostic**: Bash is required; **uv** is only needed for the vendored `upstream/autoresearch` training path.
+
+**T1 install:** see [`deploy-t1-skill-pack.md`](deploy-t1-skill-pack.md) or run `bash scripts/install-skill-pack.sh . --with-mock`.
 
 ## One-time: dependencies and data
 
-1. Install [uv](https://docs.astral.sh/uv/).
-2. `bash scripts/preflight.sh`
+1. `bash scripts/install-skill-pack.sh .` (or `init-experience.sh` + `doctor.sh` manually).
+2. **If using autoresearch worktrees:** install [uv](https://docs.astral.sh/uv/), then `bash scripts/preflight.sh`.
 3. If needed: `uv --directory upstream/autoresearch run prepare.py` (cache per upstream docs).
-4. `bash scripts/init-experience.sh`
 
 ## One-time: git in upstream (if not a repo)
 

@@ -21,3 +21,6 @@ self-coaching-training/services/.env
 
 # Local uv lock without root pyproject.toml
 uv.lock
+
+# Local development tests (not published)
+tests/

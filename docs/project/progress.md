@@ -34,7 +34,7 @@ Status of [`pipeline.md`](../design/pipeline.md) components against the [deploym
 - Phase 1 mock fixes: `--host`, `ValueError` for bad pipelines
 - HTTP: bearer auth, idempotency, body size cap
 - Client: `api_key`, headers, `AuthError`, CLI JSON parsing
-- Tests: 36+ pytest cases; CI contract sync + smoke `run-all`
+- CI: contract sync, orchestrator smoke, mock `run-all` (pytest suite is local-only under `tests/`, gitignored)
 - Docs: `design/pipeline.md`, `project/roadmap.md`, `guides/deploy-overview.md`
 
 ## Architecture rule

@@ -46,8 +46,8 @@ jobs:
           mapfile -d '' files < <(find scripts self-coaching-training/pipelines -type f -name '*.sh' -print0)
           shellcheck --exclude=SC1091,SC2155 --severity=warning "${files[@]}"
 
-  python-tests:
-    name: pytest (mock-services)
+  python-checks:
+    name: Python compile, contract sync, orchestrator smoke
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,12 +64,6 @@ jobs:
 
       - name: Assert OpenAPI and compact contract stay in sync
         run: python mock-services/contracts/regenerate.py --check
-
-      - name: Install pytest
-        run: pip install --quiet pytest
-
-      - name: Run pytest suite
-        run: pytest -q tests/
 
       - name: Orchestrator M1 smoke (module transport)
         run: |

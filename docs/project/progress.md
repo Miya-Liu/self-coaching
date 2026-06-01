@@ -31,6 +31,7 @@ Status of [`pipeline.md`](../design/pipeline.md) components against the [deploym
 
 ## Completed (integration layer)
 
+- **2026-05-29:** M0 exit verified locally (`doctor.sh` + `install-skill-pack.sh . --with-mock`); production agent OpenAPI snapshot in `docs/integration/api-snapshots/agent-openapi.json`
 - Phase 1 mock fixes: `--host`, `ValueError` for bad pipelines
 - HTTP: bearer auth, idempotency, body size cap
 - Client: `api_key`, headers, `AuthError`, CLI JSON parsing

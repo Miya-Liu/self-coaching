@@ -36,7 +36,7 @@ One orchestrator, many adapters — not nine separate integration projects.
 
 ## Milestones
 
-### M0 — Baseline (skill pack deployable) ← **current**
+### M0 — Baseline (skill pack deployable) ✓
 
 - [x] CI: doctor, shellcheck, pytest, mock smoke `run-all`
 - [x] `scripts/install-skill-pack.sh` + `docs/guides/deploy-skill-pack.md`
@@ -44,9 +44,11 @@ One orchestrator, many adapters — not nine separate integration projects.
 - [x] Shell strictness on shipped scripts; `run-once.sh` python fallback
 - [x] `preflight.sh` AERL_ROOT sanity; registry documents `TRAINER_BASE_URL`
 - [x] `docs/guides/deploy-overview.md` — T1 as active target
-- [ ] Git tag `v0.2.0-skills` on release (manual after review)
+- [x] Git tag `v0.2.0-skills` on release
 
-**Exit:** `bash scripts/install-skill-pack.sh . --with-mock` succeeds on a clean machine with bash + python.
+**Exit:** `bash scripts/install-skill-pack.sh . --with-mock` succeeds on a clean machine with bash + python. Verified 2026-05-29 (Git Bash + Python; `jq` required for AERL pipelines).
+
+**Next focus:** M2 + integration Phase 0–1 (see [`integration-plan.md`](integration-plan.md)).
 
 ### M1 — Orchestrator + dry loop (pipeline Phase 1) ✓
 

@@ -136,10 +136,6 @@ Hooks in `references/hooks-setup.md` are **illustrative** (JSON + shell); adapt 
 
 For **AERL** pipelines, configure env from `self-coaching-training/services/example.env`, then from repo root either use `scripts/run-pipeline.sh` or invoke `self-coaching-training/pipelines/<id>/run.sh` with `LOG_FILE` set (see `docs/guides/runbook.md` and `SKILL.md`).
 
-## Maintainers (two-repo workflow)
-
-Public `main` stays lean. Full tests, integration snapshots, and internal tracking live in a **private** companion repo (`self-coaching-dev`). Use `bash scripts/setup-dev-remote.sh` once, then `bash scripts/promote-to-public.sh --push` to sync allowlisted paths to public `main`. Details are in `scripts/DEV_WORKFLOW.md` on the private dev tree (not published on public `main`).
-
 ## Scope
 
 - Training runs are automated within guardrails; **merge to the trainer repo `main`** and **external promotion** require explicit user approval.

@@ -30,7 +30,7 @@ for arg in "$@"; do
     --push) DO_PUSH=true ;;
     --dry-run) ;;
     -h|--help)
-      sed -n '2,18p' "$0"
+      sed -n '2,11p' "$0"
       exit 0
       ;;
     *) echo "Unknown arg: $arg" >&2; exit 2 ;;

@@ -3,22 +3,23 @@
 #
 # Prerequisites:
 #   - Local branch `dev` has the full tree (tests, docs/integration/, …)
-#   - You run this from a clone with both branches
+#   - Run from repo root (Git Bash on Windows)
 #
 # Usage:
-#   bash scripts/promote-to-main.sh              # dry-run (show diff, no commit)
-#   bash scripts/promote-to-main.sh --push       # commit on main and push origin
+#   bash .cursor/skills/promote-dev-main/promote-to-main.sh
+#   bash .cursor/skills/promote-dev-main/promote-to-main.sh --push
 #
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "${SKILL_DIR}/../../.." && pwd)"
 cd "${ROOT}"
 
 SOURCE_BRANCH="${PROMOTE_SOURCE_BRANCH:-dev}"
 TARGET_BRANCH="${PROMOTE_TARGET_BRANCH:-main}"
 REMOTE="${PROMOTE_REMOTE:-origin}"
-ALLOWLIST="${ROOT}/scripts/promote-allowlist.txt"
-DENYLIST="${ROOT}/scripts/promote-denylist.txt"
+ALLOWLIST="${SKILL_DIR}/promote-allowlist.txt"
+DENYLIST="${SKILL_DIR}/promote-denylist.txt"
 DO_PUSH=false
 
 for arg in "$@"; do
@@ -82,6 +83,12 @@ if [[ -f "${DENYLIST}" ]]; then
     [[ -z "${path}" ]] && continue
     git rm -rf --ignore-unmatch "${path}" 2>/dev/null || true
   done < <(read_paths "${DENYLIST}")
+fi
+
+if [[ -f "${SKILL_DIR}/gitignore.main" ]]; then
+  echo "==> Apply main .gitignore template"
+  cp "${SKILL_DIR}/gitignore.main" "${ROOT}/.gitignore"
+  git add .gitignore
 fi
 
 if git diff --quiet && git diff --cached --quiet; then

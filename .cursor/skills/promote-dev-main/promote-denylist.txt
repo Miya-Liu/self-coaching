@@ -1,11 +1,15 @@
 # Removed from `main` on each promote (dev branch keeps these).
+.cursor/
 docs/integration/
 docs/project/integration-plan.md
 docs/project/progress.md
 tests/
 
-# Dev-only workflow (not for public main)
+# Legacy promote paths under scripts/ (moved to .cursor/skills/promote-dev-main/)
 scripts/DEV_WORKFLOW.md
 scripts/gitignore.dev
-scripts/setup-dev-remote.sh
+scripts/promote-to-main.sh
+scripts/promote-allowlist.txt
+scripts/promote-denylist.txt
 scripts/promote-to-public.sh
+scripts/setup-dev-remote.sh

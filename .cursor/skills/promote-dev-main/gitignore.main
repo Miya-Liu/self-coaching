@@ -1,5 +1,4 @@
-# Dev-branch .gitignore template (tests/ are tracked on dev).
-# Copy over .gitignore on dev when needed: cp scripts/gitignore.dev .gitignore
+# Public `main` .gitignore (tests/ not published). Applied by promote-to-main.sh.
 logs/
 worktrees/
 upstream/*
@@ -16,3 +15,8 @@ mock-services/ci-*/
 references/superpowers-skills/
 self-coaching-training/services/.env
 uv.lock
+tests/
+
+# Entire .cursor/ stays dev-only (including promote skill)
+.cursor/
+.cursor/

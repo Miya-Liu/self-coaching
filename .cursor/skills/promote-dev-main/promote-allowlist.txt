@@ -1,5 +1,6 @@
 # Paths copied from branch `dev` → `main` (one path per line).
-# Comments and blank lines are ignored. Run: bash scripts/promote-to-main.sh
+# Comments and blank lines are ignored.
+# Run: bash .cursor/skills/promote-dev-main/promote-to-main.sh
 
 # Repo identity
 SKILL.md
@@ -7,7 +8,6 @@ SKILL_PACK_VERSION
 DESCRIPTION.md
 LICENSE
 README.md
-.gitignore
 
 # CI and packaging
 .github/
@@ -26,7 +26,7 @@ upstream/README.md
 mock-services/
 services/
 
-# Operator scripts (promote tooling excluded via promote-denylist.txt)
+# Operator scripts (self-coaching runtime; not Cursor dev workflow)
 scripts/
 
 # Public-facing docs (integration + internal tracking stay on dev)

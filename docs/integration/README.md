@@ -1,13 +1,13 @@
 # Integration artifacts
 
-**Phase 0** of the [integration plan](../project/integration-plan.md).
+Operational artifacts for adapter development. **Design docs:** [design/integrations/](../design/integrations/). **Execution plan:** [integration-plan.md](../project/integration-plan.md).
 
 | Path | Purpose | Status |
 |------|---------|--------|
-| `api-snapshots/agent-openapi.json` | Production agent API (`GET /openapi.json`) | **Captured** 2026-05-29 from `http://10.110.158.146:8000` |
-| `api-snapshots/agentevals-openapi.json` | AgentEvals API (`GET /openapi.json`) | **Pending** — export when `AGENTEVALS_BASE_URL` (default `:8080`) is up |
-| `mapping.md` | Field-level `RunDetail.metrics` → `EvalMetrics` | **Draft** — see fixture `tests/fixtures/agentevals/run_detail_succeeded.json` |
-| `services/adapters/` | AgentEvals eval client + orchestrator wiring | **Phase 1** — `ORCHESTRATOR_EVAL_BACKEND=agentevals` |
+| `api-snapshots/agent-openapi.json` | Production agent OpenAPI | **Captured** 2026-05-29 |
+| `api-snapshots/agentevals-openapi.json` | AgentEvals OpenAPI | **Pending** |
+| `mapping.md` | `RunDetail` → `EvalMetrics` field table | **Draft** — design in [agentevals.md](../design/integrations/agentevals.md) |
+| `services/adapters/` | AgentEvals eval client + orchestrator wiring | Phase 1 |
 
 ## Refresh snapshots
 
@@ -15,6 +15,4 @@
 bash scripts/export-integration-snapshots.sh
 ```
 
-Environment overrides: `AGENT_API_BASE_URL`, `AGENTEVALS_BASE_URL`.
-
-Commit snapshots here for adapter fixtures and optional CI OpenAPI diff.
+Environment: `AGENT_API_BASE_URL`, `AGENTEVALS_BASE_URL`.

@@ -1,6 +1,10 @@
 # AgentEvals → EvalMetrics mapping
 
-Phase 0 deliverable for the [integration plan](../project/integration-plan.md). Confirmed against fixture `tests/fixtures/agentevals/run_detail_succeeded.json` until a live `GET /api/runs/{id}` capture replaces it.
+Operational field mapping for adapter fixtures and smoke tests. **Design:** [design/integrations/agentevals.md](../design/integrations/agentevals.md). **Plan:** [integration-plan.md](../project/integration-plan.md).
+
+Confirmed against fixture `tests/fixtures/agentevals/run_detail_succeeded.json` until a live `GET /api/runs/{id}` capture replaces it.
+
+**Coach mode:** each **subject agent** has a **coaching root**; `record-eval` appends to `{coaching_root}/.self-coaching/metrics/eval_metrics.jsonl`. See [coach_mode.md](../design/coach_mode.md).
 
 ## API surface (AgentEvals)
 
@@ -29,7 +33,7 @@ Phase 0 deliverable for the [integration plan](../project/integration-plan.md). 
 
 ## Mock-compatible report (adapter internal)
 
-`services/adapters/eval_adapter.py` builds a report shaped like the mock coaching API so `normalize_from_mock_eval()` can be reused when `ORCHESTRATOR_EVAL_BACKEND=agentevals` and the adapter sets `_eval_backend: agentevals` on the summary. Prefer `normalize_from_agentevals()` in the orchestrator when the backend flag is `agentevals`.
+`services/adapters/eval_adapter.py` builds a report shaped like the mock Coaching API so `normalize_from_mock_eval()` can be reused when `ORCHESTRATOR_EVAL_BACKEND=agentevals`. Prefer `normalize_from_agentevals()` in the orchestrator when the backend flag is `agentevals`.
 
 ## Configuration IDs (staging — fill when services are up)
 
@@ -38,16 +42,13 @@ Phase 0 deliverable for the [integration plan](../project/integration-plan.md). 
 | `AGENT_ID` | Production agent UUID | `550e8400-e29b-41d4-a716-446655440000` |
 | `AGENTEVALS_SUITE_ID` | Canary / `record-eval` | from `GET /api/suites` |
 | `AGENTEVALS_SUITE_ID_HOLDOUT` | Candidate gate in `run` | separate suite |
-| `--candidate` / `--baseline` | Maps to `agent_config.version_id` / `baseline_version_id` | version ids, not mock strings |
+| `--candidate` / `--baseline` | Maps to `agent_config.version_id` | version ids, not mock strings |
 
 ## Smoke checklist
 
 ```bash
-# AgentEvals (when :8080 is up)
 curl -s http://localhost:8080/health
 curl -s http://localhost:8080/api/suites
 bash scripts/export-integration-snapshots.sh
-
-# Capture fixture: GET /api/runs/{id} after status succeeded →
-#   tests/fixtures/agentevals/run_detail_succeeded.json
+# Capture: GET /api/runs/{id} succeeded → tests/fixtures/agentevals/run_detail_succeeded.json
 ```

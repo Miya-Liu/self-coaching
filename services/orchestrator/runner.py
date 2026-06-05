@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Improvement run orchestration (pipeline.md Phase 1, dry deploy)."""
+"""Evolution engine improvement runs (pipelines.md Phase 1, dry deploy)."""
 
 from __future__ import annotations
 

@@ -240,7 +240,7 @@ def _score_case(case: dict, candidate: str) -> dict:
         "score": 1.0 if passed else 0.0,
         "final_response": final_response,
         "failures": failures,
-        "route": "none" if passed else "self-coaching-self-learning",
+        "route": "none" if passed else "self-learning",
     }
 
 

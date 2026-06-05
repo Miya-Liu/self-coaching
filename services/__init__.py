@@ -1,2 +1,2 @@
 # SPDX-License-Identifier: MIT
-"""Deployable services (orchestrator, future adapters)."""
+"""Deployable services: evolution engine (T3), adapters. Coach shell: modes/coach/."""

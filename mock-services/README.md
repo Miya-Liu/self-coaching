@@ -1,6 +1,6 @@
-# Mock Self-Coaching Services
+# Mock Coaching API (T2)
 
-This folder contains local mock interfaces for testing the full self-coaching loop without a real LLM, trainer, evaluator, or external API.
+Local mock implementation of the **Coaching API** contract for testing the full evolution-engine loop without a real LLM, trainer, evaluator, or external API. Shared by Skill mode (optional) and Coach mode. Design: [`docs/design/integrations/coaching_api.md`](../docs/design/integrations/coaching_api.md).
 
 It provides three interface styles:
 

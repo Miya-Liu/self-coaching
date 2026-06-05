@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Drop detection on EvalMetrics (pipeline.md trigger policy)."""
+"""Drop detection on EvalMetrics (evaluators.md trigger policy)."""
 
 from __future__ import annotations
 

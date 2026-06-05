@@ -65,7 +65,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Self-improving pipeline orchestrator (M1)")
+    parser = argparse.ArgumentParser(description="Evolution engine (T3): record-eval, check-drop, run (M1)")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("record-eval", help="Run eval and append EvalMetrics to the metrics store")

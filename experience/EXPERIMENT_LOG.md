@@ -1,6 +1,6 @@
 # Experiment log (Experience)
 
-**Experience** — persistent record of training experiment **outcomes**. See `SKILL.md`.
+**Experience** — persistent record of training experiment **outcomes**. See `modes/skill/SKILL.md`.
 
 **Purpose**: Per-run / per-attempt **outcomes** and metrics. Primary results log for the coaching loop.
 

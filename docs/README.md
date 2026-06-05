@@ -1,53 +1,32 @@
 # Documentation
 
-Index for the self-coaching repository. Start with the **active** T1 path, then use design/project docs when adopting T2/T3.
+**Self-coaching** helps agents evolve through **self-learning**, **self-play**, **self-evaluation**, and **self-tuning**, with gates and human approval. Two modes — **skill** (host evolves itself) and **coach** (supervise external agents) — share the same evolution engine and integrations.
 
-## Start here (T1 — skill pack)
+Naming: [design/README.md](design/README.md#canonical-naming). Start: [design/architecture.md](design/architecture.md).
 
-| Doc | Description |
-|-----|-------------|
-| [guides/deploy-skill-pack.md](guides/deploy-skill-pack.md) | **Active deploy target** — install, verify, upgrade |
-| [guides/runbook.md](guides/runbook.md) | Day-to-day commands (worktrees, training, experience) |
-| [design/architecture.md](design/architecture.md) | Control boundaries and data flow |
+## Design
 
-## Deployment (T1 / T2 / T3)
+| Doc | Topic |
+|-----|--------|
+| [design/architecture.md](design/architecture.md) | Purpose, gates, data flow, two modes |
+| [design/skill_mode.md](design/skill_mode.md) | mode: skill |
+| [design/coach_mode.md](design/coach_mode.md) | mode: coach |
+| [design/pipelines.md](design/pipelines.md) | Evolution engine + submodules |
+| [design/evaluators.md](design/evaluators.md) | Metrics and promotion |
+| [design/integrations/](design/integrations/) | AgentEvals, agent API, AERL |
 
-| Doc | Description |
-|-----|-------------|
-| [guides/deploy-overview.md](guides/deploy-overview.md) | Index: skill pack, coaching API, orchestrator |
-| [guides/deploy-skill-pack.md](guides/deploy-skill-pack.md) | T1 detail |
-| [guides/deploy-overview.md#t2--coaching-api](guides/deploy-overview.md#t2--coaching-api) | T2 — HTTP mock / future adapters |
-| [guides/deploy-overview.md#t3--self-improving-pipeline](guides/deploy-overview.md#t3--self-improving-pipeline) | T3 — orchestrator CLI |
+## Guides
 
-## Design and pipeline
+| Doc | Topic |
+|-----|--------|
+| [guides/deploy-skill-pack.md](guides/deploy-skill-pack.md) | T1 — `modes/skill/` |
+| [guides/deploy-overview.md](guides/deploy-overview.md) | T1 / T2 / T3 |
+| [guides/runbook.md](guides/runbook.md) | Day-to-day commands |
 
-| Doc | Description |
-|-----|-------------|
-| [design/pipeline.md](design/pipeline.md) | Self-improving loop (eval → drop → improve → gates → deploy) |
-| [design/architecture.md](design/architecture.md) | Repo structure and gates |
+## Project
 
-## Project tracking
-
-| Doc | Description |
-|-----|-------------|
-| [project/roadmap.md](project/roadmap.md) | Milestones M0–M4, deploy targets T1–T3 |
-| [project/progress.md](project/progress.md) | Component status vs roadmap |
-| [project/integration-plan.md](project/integration-plan.md) | Production agent + AgentEvals adapters |
-| [project/changelog-skills.md](project/changelog-skills.md) | Skill pack version history |
-
-## Integration (planned artifacts)
-
-| Path | Description |
-|------|-------------|
-| [integration/README.md](integration/README.md) | OpenAPI snapshots and field mapping (Phase 0) |
-| [integration/api-snapshots/](integration/api-snapshots/) | Exported OpenAPI JSON (when captured) |
-
-## Repo root (outside `docs/`)
-
-| Path | Description |
-|------|-------------|
-| `upstream/README.md` | Clone autoresearch externally (`AUTORESEARCH_ROOT`) |
-| `SKILL.md` | Full orchestration policy |
-| `DESCRIPTION.md` | Atomic skills index |
-| `mock-services/contracts/openapi.yaml` | Coaching HTTP contract |
-| `services/orchestrator/` | Improvement orchestrator (M1) |
+| Doc | Topic |
+|-----|--------|
+| [project/roadmap.md](project/roadmap.md) | Milestones |
+| [project/integration-plan.md](project/integration-plan.md) | Adapters (AgentEvals, agent API) |
+| [project/progress.md](project/progress.md) | Status |

@@ -1,6 +1,6 @@
-# Hook setup (self-coaching)
+# Hook setup (Skill mode)
 
-Hooks are **optional** reminders and context injectors. They are **not** part of the core `SKILL.md` contract; your host (IDE, extension, or custom runner) may use different event names or no hooks at all.
+Hooks are **optional** reminders and context injectors for **Skill mode** (host agent self-evolution). They are **not** part of the core `SKILL.md` contract; your host (IDE, extension, or custom runner) may use different event names or no hooks at all. **Coach mode** uses scheduled evolution-engine runs instead — see [`docs/design/coach_mode.md`](../docs/design/coach_mode.md).
 
 Use **command** hooks that print short, bounded text. Training output must always go to `logs/*.log` files, never into the hook’s stdout at full volume.
 

@@ -1,6 +1,6 @@
+# Dev-branch .gitignore (private repo). Same as public main except tests/ are tracked.
 logs/
 worktrees/
-# Optional local trainer clone (autoresearch); see upstream/README.md
 upstream/*
 !upstream/README.md
 **/__pycache__/
@@ -12,15 +12,8 @@ runs/
 .tmp-agent-openapi.json
 mock-services/demo-run*/
 mock-services/ci-*/
-
-# Optional local vendor clone (large); see docs if you pull superpowers-skills separately
 references/superpowers-skills/
-
-# Local secrets for AERL / OpenAI-compatible service endpoints
 self-coaching-training/services/.env
-
-# Local uv lock without root pyproject.toml
 uv.lock
 
-# Local development tests (not published)
-tests/
+# tests/ intentionally NOT ignored — full suite lives on the private dev repo

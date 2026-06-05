@@ -10,7 +10,7 @@ Status of [`pipeline.md`](../design/pipeline.md) components against the [deploym
 |-----------|-----------|--------|-------------|------------------|
 | **Production agent** | — | Out of scope | `client.py` consumers | Trajectory ingest SDK (agent-side) |
 | **Trajectory store** | M3 | Not wired | `.self-coaching/events/*.jsonl` | `POST /trajectories` or extended learn payload |
-| **Auto-evaluation** | M1–M2 | Partial | Mock eval + **`EvalMetrics`** (`record-eval` CLI) | AgentEvals adapter → same schema |
+| **Auto-evaluation** | M1–M2 | Partial | Mock eval + **`EvalMetrics`**; AgentEvals adapter (`services/adapters/`, `ORCHESTRATOR_EVAL_BACKEND`) | Live smoke + `agentevals-openapi.json` snapshot |
 | **Drop detector** | M1 | **Done** | `python -m services.orchestrator check-drop` | Wire to scheduler/cron |
 | **Improvement orchestrator** | M1 | **Done** | `services/orchestrator`, `scripts/run-orchestrator.sh` | Real `pipeline.yaml` shell hooks (M2+) |
 | **Curation** | M3 | Stub | Mock self-play only | `scripts/curate_data.py` + PII flags |

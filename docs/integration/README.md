@@ -6,7 +6,8 @@
 |------|---------|--------|
 | `api-snapshots/agent-openapi.json` | Production agent API (`GET /openapi.json`) | **Captured** 2026-05-29 from `http://10.110.158.146:8000` |
 | `api-snapshots/agentevals-openapi.json` | AgentEvals API (`GET /openapi.json`) | **Pending** — export when `AGENTEVALS_BASE_URL` (default `:8080`) is up |
-| `mapping.md` (planned) | Field-level `RunDetail.metrics` → `EvalMetrics` | Not started |
+| `mapping.md` | Field-level `RunDetail.metrics` → `EvalMetrics` | **Draft** — see fixture `tests/fixtures/agentevals/run_detail_succeeded.json` |
+| `services/adapters/` | AgentEvals eval client + orchestrator wiring | **Phase 1** — `ORCHESTRATOR_EVAL_BACKEND=agentevals` |
 
 ## Refresh snapshots
 

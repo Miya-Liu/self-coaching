@@ -329,11 +329,11 @@ Aligns with roadmap: **M1 done** → **M2 adapters** → **M3 curation/gates** �
 
 - [x] Export production agent OpenAPI → `docs/integration/api-snapshots/agent-openapi.json` (2026-05-29)
 - [ ] Export AgentEvals OpenAPI → `api-snapshots/agentevals-openapi.json` (requires service on `:8080`; use `scripts/export-integration-snapshots.sh`)
-- [ ] Run Phase 0 smoke; record one succeeded `RunDetail`
+- [ ] Run Phase 0 smoke; replace fixture with live succeeded `RunDetail`
 - [ ] Choose `agent_id`, canary/holdout `suite_id`, baseline/candidate `version_id`
-- [ ] Implement Phase 1.1–1.3 behind `ORCHESTRATOR_EVAL_BACKEND`
-- [ ] Add `tests/test_agentevals_adapter.py`
-- [ ] Update [`progress.md`](progress.md) row for Auto-evaluation when Phase 1 exits
+- [x] Implement Phase 1.1–1.3 behind `ORCHESTRATOR_EVAL_BACKEND` (`services/adapters/`, `mapping.md`)
+- [x] Add `tests/test_agentevals_adapter.py`
+- [ ] Update [`progress.md`](progress.md) row for Auto-evaluation when Phase 1 exits (live staging)
 
 ---
 

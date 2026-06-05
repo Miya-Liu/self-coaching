@@ -3,7 +3,7 @@
 #
 # Prerequisites:
 #   - Local branch `dev` has the full tree (tests, docs/integration/, …)
-#   - Run from repo root (Git Bash on Windows)
+#   - Run from repo root while on `dev` (Git Bash on Windows)
 #
 # Usage:
 #   bash .cursor/skills/promote-dev-main/promote-to-main.sh
@@ -11,15 +11,18 @@
 #
 set -euo pipefail
 
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "${SKILL_DIR}/../../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 cd "${ROOT}"
+
+SKILL_REL=".cursor/skills/promote-dev-main"
+ALLOWLIST_REL="${SKILL_REL}/promote-allowlist.txt"
+DENYLIST_REL="${SKILL_REL}/promote-denylist.txt"
+GITIGNORE_MAIN_REL="${SKILL_REL}/gitignore.main"
 
 SOURCE_BRANCH="${PROMOTE_SOURCE_BRANCH:-dev}"
 TARGET_BRANCH="${PROMOTE_TARGET_BRANCH:-main}"
 REMOTE="${PROMOTE_REMOTE:-origin}"
-ALLOWLIST="${SKILL_DIR}/promote-allowlist.txt"
-DENYLIST="${SKILL_DIR}/promote-denylist.txt"
 DO_PUSH=false
 
 for arg in "$@"; do
@@ -40,14 +43,14 @@ if ! git rev-parse --verify "${SOURCE_BRANCH}" >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ ! -f "${ALLOWLIST}" ]]; then
-  echo "ERROR: missing ${ALLOWLIST}" >&2
+if ! git cat-file -e "${SOURCE_BRANCH}:${ALLOWLIST_REL}" 2>/dev/null; then
+  echo "ERROR: missing ${ALLOWLIST_REL} on branch '${SOURCE_BRANCH}'." >&2
   exit 1
 fi
 
-read_paths() {
-  local file="$1"
-  grep -v '^\s*#' "${file}" | grep -v '^\s*$' || true
+read_paths_from_source() {
+  local rel="$1"
+  git show "${SOURCE_BRANCH}:${rel}" | grep -v '^\s*#' | grep -v '^\s*$' || true
 }
 
 CURRENT_BRANCH="$(git branch --show-current)"
@@ -75,19 +78,19 @@ while IFS= read -r path; do
   else
     echo "    skip (not on ${SOURCE_BRANCH}): ${path}"
   fi
-done < <(read_paths "${ALLOWLIST}")
+done < <(read_paths_from_source "${ALLOWLIST_REL}")
 
-if [[ -f "${DENYLIST}" ]]; then
+if git cat-file -e "${SOURCE_BRANCH}:${DENYLIST_REL}" 2>/dev/null; then
   echo "==> Remove denylisted paths from ${TARGET_BRANCH}"
   while IFS= read -r path; do
     [[ -z "${path}" ]] && continue
     git rm -rf --ignore-unmatch "${path}" 2>/dev/null || true
-  done < <(read_paths "${DENYLIST}")
+  done < <(read_paths_from_source "${DENYLIST_REL}")
 fi
 
-if [[ -f "${SKILL_DIR}/gitignore.main" ]]; then
+if git cat-file -e "${SOURCE_BRANCH}:${GITIGNORE_MAIN_REL}" 2>/dev/null; then
   echo "==> Apply main .gitignore template"
-  cp "${SKILL_DIR}/gitignore.main" "${ROOT}/.gitignore"
+  git show "${SOURCE_BRANCH}:${GITIGNORE_MAIN_REL}" > "${ROOT}/.gitignore"
   git add .gitignore
 fi
 

@@ -1,5 +1,5 @@
-# Paths synced from private dev branch → public main (one path per line).
-# Comments and blank lines are ignored. Run: bash scripts/promote-to-public.sh
+# Paths copied from branch `dev` → `main` (one path per line).
+# Comments and blank lines are ignored. Run: bash scripts/promote-to-main.sh
 
 # Repo identity
 SKILL.md
@@ -26,10 +26,10 @@ upstream/README.md
 mock-services/
 services/
 
-# Operator scripts (includes promote + export tooling)
+# Operator scripts (promote tooling excluded via promote-denylist.txt)
 scripts/
 
-# Public-facing docs only (integration + internal tracking stay on dev)
+# Public-facing docs (integration + internal tracking stay on dev)
 docs/README.md
 docs/design/
 docs/guides/

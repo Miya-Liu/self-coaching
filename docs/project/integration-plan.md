@@ -1,6 +1,8 @@
-# Integration plan: mock coaching API, production agent, and AgentEvals
+# Integration plan: AgentEvals, production agent API, and Coaching API
 
-This document is the step-wise plan for wiring **real** production systems into the self-coaching repo without breaking the existing mock spine. It follows the architecture in [`pipeline.md`](../design/pipeline.md), milestones in [`roadmap.md`](roadmap.md), and status in [`progress.md`](progress.md).
+Step-wise plan for wiring **real** production systems into the shared **evolution engine** without breaking the mock spine. Applies primarily to **Coach mode** (supervise external agents); Skill mode can use the same eval/train adapters when automating locally.
+
+Design: [architecture.md](../design/architecture.md), [coach_mode.md](../design/coach_mode.md), [integrations/](../design/integrations/). Milestones: [roadmap.md](roadmap.md). Status: [progress.md](progress.md).
 
 **External API references (FastAPI / OpenAPI):**
 
@@ -8,9 +10,21 @@ This document is the step-wise plan for wiring **real** production systems into 
 |--------|----------|------------------|
 | **Production agent** | `http://10.110.158.146:8000/docs` | Serving agent: trajectories, versions, skills, deploy/rollback |
 | **AgentEvals** | `http://localhost:8080/docs` | Benchmark suites, async eval runs, metrics for drop detection |
-| **Mock coaching API** | `mock-services/contracts/openapi.yaml` | Contract spine: learn, self-play, eval, train |
+| **Coaching API (T2)** | `mock-services/contracts/openapi.yaml` | Contract spine: learn, self-play, eval, train |
 
-**Rule:** one orchestrator, one `SelfCoachingClient` surface, many **adapters** — do not add parallel integration APIs per component.
+**Rule:** one evolution engine, one `SelfCoachingClient` surface, many **adapters** — do not add parallel integration APIs per component.
+
+## Coach mode context
+
+In **Coach mode**, each **subject agent** (external) has its own **coaching root**:
+
+```text
+/var/lib/coach/agents/<agent_id>/
+  experience/
+  .self-coaching/metrics/eval_metrics.jsonl
+```
+
+Orchestrator commands take `--coaching-root` and `--agent-id` for that subject. Deploy and trajectory adapters use `AGENT_ID` and version ids from the production agent API. Scored evaluation uses **AgentEvals** — not the optional LLM proxy (observation only; see M5 in [roadmap.md](roadmap.md)).
 
 ---
 
@@ -23,7 +37,7 @@ This document is the step-wise plan for wiring **real** production systems into 
 | Coaching contract | `mock-services/contracts/openapi.yaml` | Source of truth for HTTP |
 | Mock implementation | `mock-services/mock_self_coaching.py` | Deterministic learn → self-play → eval → train |
 | Client | `mock-services/client.py` | `ModuleClient`, `CLIClient`, `HTTPClient` |
-| Orchestrator (T3 / M1) | `services/orchestrator/` | `record-eval`, `check-drop`, `run` (dry deploy) |
+| Evolution engine (T3 / M1) | `services/orchestrator/` | `record-eval`, `check-drop`, `run` (dry deploy) |
 | Metrics contract | `services/orchestrator/eval_metrics.py` | `EvalMetrics` + `normalize_from_mock_eval()` |
 | CI | `.github/workflows/ci.yml` | Mock-only orchestrator smoke |
 
@@ -33,7 +47,8 @@ T1 (skill pack) is the **active** deploy target. T2/T3 are optional until adapte
 
 ```text
                     ┌─────────────────────────────────────┐
-                    │  services/orchestrator (T3)         │
+                    │  Evolution engine (T3)              │
+                    │  services/orchestrator              │
                     │  record-eval │ check-drop │ run     │
                     └─────────────────┬───────────────────┘
                                       │
@@ -99,7 +114,7 @@ The production agent API is a **large** platform (agents, tasks, versions, skill
 
 | Mock endpoint | Real backend (later) |
 |---------------|----------------------|
-| `POST /training/runs` | AERL HTTP (`TRAINER_BASE_URL` in `self-coaching-training/services/example.env`) |
+| `POST /training/runs` | AERL HTTP (`TRAINER_BASE_URL` in `modes/skill/self-tuning/services/example.env`) |
 | `POST /self-play/generate` | Remote generator or mock through M3 |
 | `POST /learning/events` | Orchestrator + trajectory exporter (same JSONL shape) |
 
@@ -203,7 +218,7 @@ curl -s -H "Authorization: Bearer $AGENT_API_TOKEN" \
 |------|--------|
 | 5.1 | Async `POST /training/runs` against AERL; poll status |
 | 5.2 | Wire `CompositeClient.train()`; map `candidate` to checkpoint / version id |
-| 5.3 | Reuse `self-coaching-training/pipelines/` env (`TRAINER_BASE_URL`, `AERL_ROOT`) |
+| 5.3 | Reuse `modes/skill/self-tuning/pipelines/` env (`TRAINER_BASE_URL`, `AERL_ROOT`) |
 
 **Exit:** Orchestrator `improvement_path: model` triggers real training on staging.
 
@@ -340,9 +355,11 @@ Aligns with roadmap: **M1 done** → **M2 adapters** → **M3 curation/gates** �
 ## Related documents
 
 - [Documentation index](../README.md)
-- [`pipeline.md`](../design/pipeline.md) — loop design and trigger policy  
-- [`roadmap.md`](roadmap.md) — M0–M4 milestones  
-- [`progress.md`](progress.md) — component matrix  
-- [`deploy-overview.md`](../guides/deploy-overview.md) — T1 / T2 / T3 deployment  
-- [`runbook.md`](../guides/runbook.md) — day-to-day operator commands  
-- `mock-services/contracts/openapi.yaml` — coaching HTTP contract  
+- [design/integrations/](../design/integrations/) — adapter design per system
+- [evaluators.md](../design/evaluators.md) — metrics and trigger policy
+- [pipelines.md](../design/pipelines.md) — evolution engine loop
+- [roadmap.md](roadmap.md) — M0–M5 milestones
+- [progress.md](progress.md) — component matrix
+- [deploy-overview.md](../guides/deploy-overview.md) — T1 / T2 / T3 + Coach mode
+- [runbook.md](../guides/runbook.md) — day-to-day operator commands
+- `mock-services/contracts/openapi.yaml` — Coaching API (T2) contract

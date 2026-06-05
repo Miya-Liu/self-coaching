@@ -1,6 +1,11 @@
 # Skill pack changelog
 
-Version is tracked in [`SKILL_PACK_VERSION`](../SKILL_PACK_VERSION) at the repo root.
+Version is tracked in [`modes/skill/SKILL_PACK_VERSION`](../../modes/skill/SKILL_PACK_VERSION).
+
+## Unreleased (docs)
+
+- Canonical naming: repo **self-coaching**; modes **skill** / **coach**; submodules **self-learning**, **self-play**, **self-evaluation**, **self-tuning**
+- Coach mode design: per-agent coaching roots, supervision registry, optional LLM proxy (M5)
 
 ## 0.2.0
 

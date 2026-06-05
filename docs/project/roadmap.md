@@ -1,38 +1,48 @@
 # Self-coaching deployment roadmap
 
-This document is the execution plan for taking the repository from **skill demo + mock API** to a **deployable self-improving loop** aligned with [`pipeline.md`](../design/pipeline.md).
+Execution plan from **skill demo + Coaching API mock** to a **deployable evolution platform**. Design: [`architecture.md`](../design/architecture.md), [`pipelines.md`](../design/pipelines.md).
 
-## Deploy targets (decision)
+## Deployment modes
 
-We ship three targets in order. Each has a clear audience and exit criterion.
+| Mode | Executor | Subject | Primary deploy |
+|------|----------|---------|----------------|
+| **Skill mode** | Host agent | Host agent | **T1** |
+| **Coach mode** | Coach service / scheduler | External agents | **T2 + T3** |
 
-| Target | What gets deployed | Audience | Status |
-|--------|-------------------|----------|--------|
-| **T1 — Skill pack** | Markdown skills + `scripts/` + `experience/` layout | Humans and agents following `SKILL.md` | **Active — ship now** |
-| **T2 — Coaching API** | `mock_self_coaching.py serve` → later real eval/train adapters | Integrators calling `client.HTTPClient` | **Deferred**; mock ready when needed |
-| **T3 — Self-improving pipeline** | `services/orchestrator` + metrics store + drop detector | Operators running closed-loop improvement | **Built (M1)**; optional until T2 adapters |
+Both modes share the **evolution engine**, pipeline stages, and adapters. See [architecture.md](../design/architecture.md).
 
-**Primary focus:** **T1 / M0** — skill pack install, doctor, and onboarding. See [`deploy-skill-pack.md`](../guides/deploy-skill-pack.md).
+## Deploy targets (artifacts)
+
+We ship three deploy targets in order. Each has a clear audience and exit criterion.
+
+| Target | What gets deployed | Mode | Status |
+|--------|-------------------|------|--------|
+| **T1 — Skill pack** | Markdown skills + `scripts/` + `experience/` layout | Skill | **Active — ship now** |
+| **T2 — Coaching API** | `mock_self_coaching.py serve` → real eval/train adapters | Coach (+ Skill optional) | **Deferred**; mock ready |
+| **T3 — Evolution engine** | `services/orchestrator/` + metrics + drop detector | Coach (+ Skill optional) | **Built (M1)** |
+
+**Primary focus:** **T1 / M0** — Skill mode install. See [`deploy-skill-pack.md`](../guides/deploy-skill-pack.md).
 
 ```text
-[T1 skills]          agent reads SKILL.md, runs bash locally
-[T2 coaching API]    HTTP/CLI/module  ← contract spine (OpenAPI)
-[T3 orchestrator]    drop → run_dir → improve → gate → dry deploy
+[T1 skill pack]      Skill mode — host reads modes/skill/SKILL.md
+[T2 Coaching API]    HTTP/CLI/module — contract spine (OpenAPI)
+[T3 evolution engine] record-eval → check-drop → run → gate → deploy
                               │
                               └── calls T2 via ModuleClient or HTTPClient
 ```
 
 ## Architecture spine
 
-One orchestrator, many adapters — not nine separate integration projects.
+One evolution engine, one `SelfCoachingClient`, many adapters.
 
 | Layer | Repo path | Role |
 |-------|-----------|------|
-| Policy | `SKILL.md`, `self-coaching-*/` | How an agent should behave |
-| Contract | `mock-services/contracts/openapi.yaml` | HTTP surface for learn / self-play / eval / train |
+| Policy | `modes/skill/SKILL.md` + submodules | How an executor agent should behave |
+| Contract | `mock-services/contracts/openapi.yaml` | T2 HTTP: learn / self-play / eval / train |
 | Client | `mock-services/client.py` | Module, CLI, HTTP transports |
-| Orchestrator | `services/orchestrator/` | `pipeline.md` loop, metrics, drop detection |
-| Adapters (later) | `services/adapters/` (planned) | AgentEvals, AERL, trajectory DB |
+| Evolution engine | `services/orchestrator/` | T3: [pipelines.md](../design/pipelines.md) loop |
+| Adapters | `services/adapters/` | AgentEvals, production agent API, AERL |
+| Coach shell | `modes/coach/` | Supervision registry, optional LLM proxy (M5) |
 
 ## Milestones
 
@@ -40,30 +50,30 @@ One orchestrator, many adapters — not nine separate integration projects.
 
 - [x] CI: doctor, shellcheck, pytest, mock smoke `run-all`
 - [x] `scripts/install-skill-pack.sh` + `docs/guides/deploy-skill-pack.md`
-- [x] `SKILL_PACK_VERSION` + `project/changelog-skills.md`
+- [x] `modes/skill/SKILL_PACK_VERSION` + `project/changelog-skills.md`
 - [x] Shell strictness on shipped scripts; `run-once.sh` python fallback
 - [x] `preflight.sh` AERL_ROOT sanity; registry documents `TRAINER_BASE_URL`
 - [x] `docs/guides/deploy-overview.md` — T1 as active target
 - [x] Git tag `v0.2.0-skills` on release
 
-**Exit:** `bash scripts/install-skill-pack.sh . --with-mock` succeeds on a clean machine with bash + python. Verified 2026-05-29 (Git Bash + Python; `jq` required for AERL pipelines).
+**Exit:** `bash scripts/install-skill-pack.sh . --with-mock` succeeds on a clean machine with bash + python.
 
 **Next focus:** M2 + integration Phase 0–1 (see [`integration-plan.md`](integration-plan.md)).
 
-### M1 — Orchestrator + dry loop (pipeline Phase 1) ✓
+### M1 — Evolution engine + dry loop (pipeline Phase 1) ✓
 
 - [x] `EvalMetrics` schema + normalization from mock eval
 - [x] `thresholds.json` + drop detector CLI
 - [x] Improvement run directory layout + manifest
-- [x] Orchestrator calling `client.build_client("module", ...)`
+- [x] Evolution engine calling `client.build_client("module", ...)`
 - [x] Dry-run deploy (`deploy_manifest.json` only)
 - [x] pytest + CI for fake drop → improvement run
 
 **Exit:** Synthetic or real eval drop creates `{run_dir}/` with `current_eval.json`, `candidate_eval.json`, `decision.json`, and `deploy_manifest.json`.
 
-**Next focus:** M2 (deployable coaching API).
+**Next focus:** M2 (deployable Coaching API) + Coach mode adapters.
 
-### M2 — Deployable coaching API
+### M2 — Deployable Coaching API
 
 - [ ] Dockerfile / process model for `serve`
 - [ ] sqlite persistence (runs, idempotency, events)
@@ -87,28 +97,40 @@ One orchestrator, many adapters — not nine separate integration projects.
 ### M4 — Safe production rollout
 
 - [ ] Canary deploy + rollback pointer
-- [ ] Human approval in orchestrator
+- [ ] Human approval in evolution engine
 - [ ] Live metric watch + auto-rollback
 - [ ] Version registry query by `agent_id`
 
+**Exit:** Staging subject agent promoted and rolled back via production agent API.
+
+### M5 — Coach mode shell
+
+- [ ] Supervision registry (`modes/coach/agents.yaml` schema + loader)
+- [ ] Per-agent coaching root convention documented and validated
+- [ ] Scheduler examples (cron/systemd) for multi-agent `record-eval` / `check-drop` / `run`
+- [ ] Optional LLM proxy spike (trajectory capture only; eval remains AgentEvals)
+
+**Exit:** Two or more external agents supervised from one coach deployment with isolated coaching roots.
+
 ## EvalMetrics contract
 
-Single JSON shape for auto-eval, drop detection, and promotion gates. Stored as JSONL under a metrics directory (default: `{coaching_root}/.self-coaching/metrics/eval_metrics.jsonl`).
+Single JSON shape for auto-eval, drop detection, and promotion gates. Stored as JSONL under `{coaching_root}/.self-coaching/metrics/eval_metrics.jsonl`.
 
 See `services/orchestrator/eval_metrics.py` for the schema and `normalize_from_mock_eval()` for the mock mapping.
 
 ## What we are not building yet
 
-- Hosted “remote agent API” (agents push trajectories; they are not served from this repo)
-- LLM proxy as trajectory store
+- Hosted “remote agent API” (subject agents push trajectories; they are not served from this repo)
 - A second 24/7 service that only collects evals (scheduling ≠ drop detection)
 - Full MLOps platform
 - Postgres / multi-node until sqlite is insufficient
+- LLM proxy as a **replacement** for AgentEvals (proxy is observation-only; see M5)
 
 ## Related docs
 
-- [Documentation index](../README.md)
-- [`integration-plan.md`](integration-plan.md) — production agent + AgentEvals integration (phases, testing)
-- [`pipeline.md`](../design/pipeline.md) — product architecture and phases
-- [`progress.md`](progress.md) — component status vs milestones
-- [`deploy-overview.md`](../guides/deploy-overview.md) — how to deploy T1 / T2 / T3
+- [design/README.md](../design/README.md) — design index
+- [skill_mode.md](../design/skill_mode.md) · [coach_mode.md](../design/coach_mode.md)
+- [integration-plan.md](integration-plan.md) — adapter implementation
+- [pipelines.md](../design/pipelines.md) — evolution engine
+- [progress.md](progress.md) — component status
+- [deploy-overview.md](../guides/deploy-overview.md) — T1 / T2 / T3 how-to

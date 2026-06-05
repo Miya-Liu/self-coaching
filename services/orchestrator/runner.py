@@ -17,6 +17,7 @@ from .eval_metrics import (
     EvalMetrics,
     append_metrics,
     metrics_store_path,
+    normalize_from_agentevals,
     normalize_from_mock_eval,
     write_json,
 )
@@ -34,6 +35,10 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _eval_backend() -> str:
+    return os.environ.get("ORCHESTRATOR_EVAL_BACKEND", "mock").lower()
+
+
 def _build_client(coaching_root: Path) -> Any:
     mock_services = _repo_root() / "mock-services"
     if str(mock_services) not in sys.path:
@@ -42,12 +47,52 @@ def _build_client(coaching_root: Path) -> Any:
 
     transport = os.environ.get("ORCHESTRATOR_TRANSPORT", "module").lower()
     if transport == "http":
-        return client_mod.build_client(
+        inner = client_mod.build_client(
             "http",
             base_url=os.environ.get("ORCHESTRATOR_BASE_URL", "http://127.0.0.1:8765"),
             api_key=os.environ.get("MOCK_SERVICE_TOKEN"),
         )
-    return client_mod.build_client("module", root=coaching_root)
+    else:
+        inner = client_mod.build_client("module", root=coaching_root)
+
+    if _eval_backend() == "agentevals":
+        from services.adapters import with_agentevals_eval  # noqa: E402
+
+        return with_agentevals_eval(inner)
+    return inner
+
+
+def _normalize_eval(
+    *,
+    agent_id: str,
+    eval_summary: dict[str, Any],
+    report: dict[str, Any],
+    baseline_score: float | None,
+    skill_bundle_version: str,
+    model_checkpoint_id: str,
+    split: str,
+) -> EvalMetrics:
+    if _eval_backend() == "agentevals":
+        run_detail = report.get("run_detail")
+        if not isinstance(run_detail, dict):
+            run_detail = report
+        return normalize_from_agentevals(
+            agent_id=agent_id,
+            run_detail=run_detail,
+            baseline_score=baseline_score,
+            skill_bundle_version=skill_bundle_version,
+            model_checkpoint_id=model_checkpoint_id,
+            split=split,
+        )
+    return normalize_from_mock_eval(
+        agent_id=agent_id,
+        eval_summary=eval_summary,
+        report=report,
+        baseline_score=baseline_score,
+        skill_bundle_version=skill_bundle_version,
+        model_checkpoint_id=model_checkpoint_id,
+        split=split,
+    )
 
 
 def record_eval(
@@ -64,7 +109,7 @@ def record_eval(
     client = _build_client(coaching_root)
     summary = client.evaluate(candidate=candidate, baseline=baseline)
     report = client.eval_report(summary["run_id"])
-    metrics = normalize_from_mock_eval(
+    metrics = _normalize_eval(
         agent_id=agent_id,
         eval_summary=summary,
         report=report,
@@ -123,7 +168,7 @@ def run_improvement(
     # Baseline eval at run start (current production).
     current_summary = client.evaluate(candidate=production_candidate, baseline=production_baseline)
     current_report = client.eval_report(current_summary["run_id"])
-    current_metrics = normalize_from_mock_eval(
+    current_metrics = _normalize_eval(
         agent_id=agent_id,
         eval_summary=current_summary,
         report=current_report,
@@ -169,9 +214,18 @@ def run_improvement(
         candidate_ref = str(train_result.get("candidate", production_candidate))
         write_json(run_dir / "training.json", train_result)
 
-    candidate_summary = client.evaluate(candidate=candidate_ref, baseline=production_baseline)
-    candidate_report = client.eval_report(candidate_summary["run_id"])
-    candidate_metrics = normalize_from_mock_eval(
+    prev_split = os.environ.get("ORCHESTRATOR_EVAL_SPLIT")
+    if _eval_backend() == "agentevals":
+        os.environ["ORCHESTRATOR_EVAL_SPLIT"] = "holdout"
+    try:
+        candidate_summary = client.evaluate(candidate=candidate_ref, baseline=production_baseline)
+        candidate_report = client.eval_report(candidate_summary["run_id"])
+    finally:
+        if prev_split is None:
+            os.environ.pop("ORCHESTRATOR_EVAL_SPLIT", None)
+        else:
+            os.environ["ORCHESTRATOR_EVAL_SPLIT"] = prev_split
+    candidate_metrics = _normalize_eval(
         agent_id=agent_id,
         eval_summary=candidate_summary,
         report=candidate_report,

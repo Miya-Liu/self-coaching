@@ -78,6 +78,68 @@ def normalize_from_mock_eval(
     )
 
 
+_RESERVED_METRIC_KEYS = frozenset(
+    {"overall", "pass_rate", "safety", "cost_usd", "latency_p95_ms", "score"}
+)
+
+
+def _score_from_agentevals_metrics(metrics: dict[str, Any]) -> float:
+    for key in ("overall", "pass_rate", "score"):
+        val = metrics.get(key)
+        if isinstance(val, (int, float)):
+            return float(val)
+    nums = [float(v) for v in metrics.values() if isinstance(v, (int, float))]
+    return sum(nums) / len(nums) if nums else 0.0
+
+
+def normalize_from_agentevals(
+    *,
+    agent_id: str,
+    run_detail: dict[str, Any],
+    baseline_score: float | None = None,
+    skill_bundle_version: str = "unknown",
+    model_checkpoint_id: str | None = None,
+    split: str = "canary",
+) -> EvalMetrics:
+    """Map AgentEvals RunDetail into EvalMetrics."""
+    metrics = run_detail.get("metrics") or {}
+    if not isinstance(metrics, dict):
+        metrics = {}
+    score = _score_from_agentevals_metrics(metrics)
+    task_scores = {
+        k: float(v)
+        for k, v in metrics.items()
+        if k not in _RESERVED_METRIC_KEYS and isinstance(v, (int, float))
+    }
+    agent_cfg = run_detail.get("agent_config") or {}
+    if not isinstance(agent_cfg, dict):
+        agent_cfg = {}
+    resolved_agent = str(agent_cfg.get("agent_id") or agent_id)
+    candidate = str(agent_cfg.get("version_id") or model_checkpoint_id or "unknown")
+    baseline_ref = str(agent_cfg.get("baseline_version_id") or "unknown")
+    if baseline_score is None:
+        baseline_score = score
+
+    trials = int(run_detail.get("num_trials") or 1) or 1
+    cost_usd = float(metrics.get("cost_usd", 0.0))
+    p95_ms = float(metrics.get("latency_p95_ms", 0.0))
+
+    return EvalMetrics(
+        run_id=str(run_detail.get("id", run_detail.get("run_id", "eval-unknown"))),
+        agent_id=resolved_agent,
+        skill_bundle_version=skill_bundle_version,
+        model_checkpoint_id=model_checkpoint_id or candidate,
+        score=score,
+        baseline_score=float(baseline_score),
+        cost_per_task=cost_usd / trials,
+        latency_p95_ms=p95_ms,
+        safety_pass_rate=float(metrics.get("safety", 1.0)),
+        task_scores=task_scores,
+        split=split,
+        raw={"run_detail": run_detail, "baseline_ref": baseline_ref},
+    )
+
+
 def metrics_store_path(coaching_root: Path) -> Path:
     return coaching_root / ".self-coaching" / "metrics" / "eval_metrics.jsonl"
 

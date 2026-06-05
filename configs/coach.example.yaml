@@ -1,0 +1,9 @@
+# mode: coach — see docs/design/coach_mode.md
+# uses same submodules via evolution engine (self-learning, self-play, self-evaluation, self-tuning)
+
+# agents:
+#   - id: example-agent
+#     coaching_root: /var/lib/coach/agents/example-agent
+#     eval:
+#       suite_id_canary: ...
+#       interval: "0 2 * * *"

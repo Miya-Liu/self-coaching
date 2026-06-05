@@ -1,0 +1,6 @@
+# mode: skill — see docs/design/skill_mode.md
+# submodules: self-learning, self-play, self-evaluation, self-tuning
+
+# skill_root: path to modes/skill/ after install
+# coaching_root: where experience/, logs/, worktrees/ live (often repo root)
+# orchestrator_eval_backend: mock | agentevals

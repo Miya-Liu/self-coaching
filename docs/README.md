@@ -1,6 +1,6 @@
 # Documentation
 
-**Self-coaching** helps agents evolve through **self-learning**, **self-play**, **self-evaluation**, and **self-tuning**, with gates and human approval. Two modes — **skill** (host evolves itself) and **coach** (supervise external agents) — share the same evolution engine and integrations.
+**Self-coaching** helps agents evolve through **self-learning**, **self-play**, **self-evaluation**, and **self-tuning**, with gates and human approval. Two modes — **self-coaching** (host evolves itself) and **coach** (supervise external agents) — share the same evolution engine and integrations.
 
 Naming: [design/README.md](design/README.md#canonical-naming). Start: [design/architecture.md](design/architecture.md).
 
@@ -9,7 +9,7 @@ Naming: [design/README.md](design/README.md#canonical-naming). Start: [design/ar
 | Doc | Topic |
 |-----|--------|
 | [design/architecture.md](design/architecture.md) | Purpose, gates, data flow, two modes |
-| [design/skill_mode.md](design/skill_mode.md) | mode: skill |
+| [design/self_coaching_mode.md](design/self_coaching_mode.md) | mode: self-coaching |
 | [design/coach_mode.md](design/coach_mode.md) | mode: coach |
 | [design/pipelines.md](design/pipelines.md) | Evolution engine + submodules |
 | [design/evaluators.md](design/evaluators.md) | Metrics and promotion |
@@ -19,7 +19,7 @@ Naming: [design/README.md](design/README.md#canonical-naming). Start: [design/ar
 
 | Doc | Topic |
 |-----|--------|
-| [guides/deploy-skill-pack.md](guides/deploy-skill-pack.md) | T1 — `modes/skill/` |
+| [guides/deploy-skill-pack.md](guides/deploy-skill-pack.md) | T1 — `modes/self-coaching/` |
 | [guides/deploy-overview.md](guides/deploy-overview.md) | T1 / T2 / T3 |
 | [guides/runbook.md](guides/runbook.md) | Day-to-day commands |
 

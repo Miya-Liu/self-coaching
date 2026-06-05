@@ -1,6 +1,6 @@
 # Coaching API integration (T2)
 
-The **Coaching API** is the HTTP contract spine for pipeline stages: learn, self-play, eval, train. It is the primary HTTP front door for **coach mode** and optional remote execution in **skill mode**.
+The **Coaching API** is the HTTP contract spine for pipeline stages: learn, self-play, eval, train. It is the primary HTTP front door for **coach mode** and optional remote execution in **self-coaching mode**.
 
 ## Contract
 
@@ -26,7 +26,7 @@ The **Coaching API** is the HTTP contract spine for pipeline stages: learn, self
 
 | Transport | Use |
 |-----------|-----|
-| `module` | In-process; default for skill mode + local T3 |
+| `module` | In-process; default for self-coaching mode + local T3 |
 | `http` | Remote T2; default for coach mode |
 | `cli` | Subprocess to `mock_self_coaching.py` |
 

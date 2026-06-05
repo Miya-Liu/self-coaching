@@ -1,6 +1,6 @@
 # coach mode
 
-A **coach service** runs the shared **evolution engine** on **one or more external agents** — periodic evaluation, triggered improvement, and platform deploy. Same **submodules** and adapters as skill mode; different executor and per-agent coaching roots.
+A **coach service** runs the shared **evolution engine** on **one or more external agents** — periodic evaluation, triggered improvement, and platform deploy. Same **submodules** and adapters as self-coaching mode; different executor and per-agent coaching roots.
 
 Overview: [architecture.md](architecture.md). Shell: `modes/coach/` (planned).
 
@@ -13,7 +13,7 @@ Operate self-coaching as a **supervisor**: register external agents, schedule **
 | Aspect | Typical setup |
 |--------|----------------|
 | Primary deploy | T2 Coaching API + T3 evolution engine |
-| Optional | T1 `modes/skill/` for coach policy in dev |
+| Optional | T1 `modes/self-coaching/` for coach policy in dev |
 | Coaching root | **One per subject agent** |
 | Observation | AgentEvals (scored), agent API (trajectories), optional LLM proxy |
 | Deploy | Agent API skills/versions after deploy gate |
@@ -57,12 +57,12 @@ Typical env: `ORCHESTRATOR_EVAL_BACKEND=agentevals`, `AGENTEVALS_*`, `AGENT_API_
 
 After [evaluators.md](evaluators.md) gates: skill path → agent API skills; model path → version + activate with rollback pointer. [integrations/production_agent.md](integrations/production_agent.md), [integration-plan.md](../project/integration-plan.md).
 
-## Combined with skill mode
+## Combined with self-coaching mode
 
-Teams often use **coach** in production and **skill** in dev workspaces — same `modes/skill/` pack, same evolution engine, same AgentEvals/AERL integrations.
+Teams often use **coach** in production and **self-coaching** in dev workspaces — same `modes/self-coaching/` pack, same evolution engine, same AgentEvals/AERL integrations.
 
 ## Related
 
-- [skill_mode.md](skill_mode.md)
+- [self_coaching_mode.md](self_coaching_mode.md)
 - [deploy-overview.md#coach-mode](../guides/deploy-overview.md#coach-mode)
 - [pipelines.md](pipelines.md)

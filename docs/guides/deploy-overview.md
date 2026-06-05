@@ -1,10 +1,10 @@
 # Production deployment guide
 
-Design: [architecture.md](../design/architecture.md) · [skill_mode.md](../design/skill_mode.md) · [coach_mode.md](../design/coach_mode.md).
+Design: [architecture.md](../design/architecture.md) · [self_coaching_mode.md](../design/self_coaching_mode.md) · [coach_mode.md](../design/coach_mode.md).
 
-## Active deploy target: **T1 — Skill pack** (Skill mode)
+## Active deploy target: **T1 — Self-coaching pack** (Self-coaching mode)
 
-This repository ships and supports **Skill mode** as a portable skill pack (markdown + Bash). T2 (Coaching API) and T3 (evolution engine) are optional add-ons for automation and coach mode — see [roadmap.md](../project/roadmap.md).
+This repository ships and supports **Self-coaching mode** as a portable skill pack (markdown + Bash). T2 (Coaching API) and T3 (evolution engine) are optional add-ons for automation and coach mode — see [roadmap.md](../project/roadmap.md).
 
 **Canonical T1 guide:** [`deploy-skill-pack.md`](deploy-skill-pack.md)
 
@@ -18,7 +18,7 @@ bash scripts/install-skill-pack.sh . --with-mock
 
 | Mode | Executor | Subject | Primary deploy |
 |------|----------|---------|----------------|
-| **Skill mode** | Host agent | Same host agent | **T1** |
+| **Self-coaching mode** | Host agent | Same host agent | **T1** |
 | **Coach mode** | Coach service / scheduler | External registered agents | **T2 + T3** |
 
 Both modes share the **evolution engine**, pipeline stages, adapters (AgentEvals, agent API, AERL), and artifact contracts. Only executor, subject, and coaching-root layout differ.
@@ -29,17 +29,17 @@ Both modes share the **evolution engine**, pipeline stages, adapters (AgentEvals
 
 | If you need… | Deploy | Mode | Start here |
 |--------------|--------|------|------------|
-| Installable skills and local experiment workflow | **T1 — Skill pack** ✓ **active** | Skill | [deploy-skill-pack.md](deploy-skill-pack.md) |
-| Stable HTTP API for learn / eval / train | **T2 — Coaching API** | Coach (also Skill optional) | [Coaching API](#t2--coaching-api) |
-| Automated improve-on-eval-drop with gates | **T3 — Evolution engine** | Coach (also Skill optional) | [Evolution engine](#t3--evolution-engine) |
+| Installable skills and local experiment workflow | **T1 — Self-coaching pack** ✓ **active** | Self-coaching | [deploy-skill-pack.md](deploy-skill-pack.md) |
+| Stable HTTP API for learn / eval / train | **T2 — Coaching API** | Coach (also self-coaching optional) | [Coaching API](#t2--coaching-api) |
+| Automated improve-on-eval-drop with gates | **T3 — Evolution engine** | Coach (also self-coaching optional) | [Evolution engine](#t3--evolution-engine) |
 
 Adopt T2/T3 when you need HTTP integration or coach-mode supervision; T1 remains valid without them.
 
 ---
 
-## T1 — Skill pack (Skill mode)
+## T1 — Self-coaching pack (Self-coaching mode)
 
-**Artifacts:** `modes/skill/` (or full repo clone). Version: `modes/skill/SKILL_PACK_VERSION`.
+**Artifacts:** `modes/self-coaching/` (or full repo clone). Version: `modes/self-coaching/SKILL_PACK_VERSION`.
 
 **Runtime:** None required (Bash + optional Python for mock dry-run).
 
@@ -47,15 +47,15 @@ Adopt T2/T3 when you need HTTP integration or coach-mode supervision; T1 remains
 
 **Coaching root:** Project or skill install directory (`experience/` + `.self-coaching/` after init).
 
-**Secrets:** Never commit `modes/skill/self-tuning/services/.env`.
+**Secrets:** Never commit `modes/self-coaching/self-tuning/services/.env`.
 
-**Upgrade:** Pull tree → compare `modes/skill/SKILL_PACK_VERSION` → re-run install script; see [changelog-skills.md](../project/changelog-skills.md).
+**Upgrade:** Pull tree → compare `modes/self-coaching/SKILL_PACK_VERSION` → re-run install script; see [changelog-skills.md](../project/changelog-skills.md).
 
 ---
 
 ## T2 — Coaching API
 
-HTTP **contract spine** for pipeline stages (learn, self-play, eval, train). Used as the coach-mode front door; skill mode can call it when pipelines run remotely.
+HTTP **contract spine** for pipeline stages (learn, self-play, eval, train). Used as the coach-mode front door; self-coaching mode can call it when pipelines run remotely.
 
 **Artifacts:** Python process `mock_self_coaching.py serve` (mock) or real adapters behind the same OpenAPI contract.
 
@@ -202,7 +202,7 @@ The LLM proxy is an **observation adapter** only — scored evaluation stays on 
 
 ## Environment matrix
 
-| Concern | T1 (Skill) | T2 | T3 |
+| Concern | T1 (self-coaching) | T2 | T3 |
 |---------|------------|----|----|
 | Python | 3.11+ for mocks/tests | 3.11+ server | 3.11+ evolution engine |
 | Network | None | Inbound HTTP | Optional HTTP to T2; AgentEvals / agent API in coach mode |

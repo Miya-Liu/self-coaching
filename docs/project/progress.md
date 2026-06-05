@@ -2,7 +2,7 @@
 
 Status of **evolution engine** components against [roadmap.md](roadmap.md). Design: [pipelines.md](../design/pipelines.md), [architecture.md](../design/architecture.md).
 
-**Active deploy target:** **T1 — Skill pack** (Skill mode, M0). T2/T3 support Coach mode and optional Skill-mode automation.
+**Active deploy target:** **T1 — Self-coaching pack** (Self-coaching mode, M0). T2/T3 support Coach mode and optional Self-coaching-mode automation.
 
 ## Component status
 
@@ -27,9 +27,9 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 
 | Target | Mode | Ready? | Notes |
 |--------|------|--------|-------|
-| **T1 — Skill pack** | Skill | **Active** | `install-skill-pack.sh`, `modes/skill/SKILL_PACK_VERSION` 0.2.0 |
+| **T1 — Self-coaching pack** | Self-coaching | **Active** | `install-skill-pack.sh`, `modes/self-coaching/SKILL_PACK_VERSION` 0.2.0 |
 | **T2 — Coaching API** | Coach | Deferred | Mock ready; adopt for coach mode |
-| **T3 — Evolution engine** | Coach (+ Skill optional) | M1 done | Not required for T1-only Skill mode |
+| **T3 — Evolution engine** | Coach (+ self-coaching optional) | M1 done | Not required for T1-only Self-coaching mode |
 
 ## Completed (integration layer)
 
@@ -38,7 +38,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 - HTTP: bearer auth, idempotency, body size cap
 - Client: `api_key`, headers, `AuthError`, CLI JSON parsing
 - CI: contract sync, evolution engine smoke, mock `run-all`
-- Docs: `design/` restructure (architecture, skill_mode, coach_mode, pipelines, evaluators, integrations)
+- Docs: `design/` restructure (architecture, self_coaching_mode, coach_mode, pipelines, evaluators, integrations)
 
 ## Architecture rule
 

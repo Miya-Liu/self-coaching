@@ -1,6 +1,6 @@
-# skill mode
+# self-coaching mode
 
-The **host agent** is both **executor** and **subject**: it loads `modes/skill/`, runs experiments locally, and evolves itself using the gated loop in root `README.md` (Loading Gate → Deploy Gate → Experience).
+The **host agent** is both **executor** and **subject**: it loads `modes/self-coaching/`, runs experiments locally, and evolves itself using the gated loop in root `README.md` (Loading Gate → Deploy Gate → Experience).
 
 Overview: [architecture.md](architecture.md). Naming: [README.md](README.md#canonical-naming).
 
@@ -17,18 +17,18 @@ Coach the agent on *how* to learn from real work: encode durable memory and skil
 | **self-evaluation** | `self-evaluation/SKILL.md` | Run evals, interpret reports, promotion gates |
 | **self-tuning** | `self-tuning/SKILL.md` | AERL SFT/GRPO after curation and eval discipline |
 
-Load umbrella `modes/skill/SKILL.md` first. Pipeline order and evolution-engine automation: [pipelines.md](pipelines.md).
+Load umbrella `modes/self-coaching/SKILL.md` first. Pipeline order and evolution-engine automation: [pipelines.md](pipelines.md).
 
 ## Deploy profile
 
 | Aspect | Typical setup |
 |--------|----------------|
-| Primary target | T1 — `modes/skill/` (+ repo `scripts/` when cloned whole) |
+| Primary target | T1 — `modes/self-coaching/` (+ repo `scripts/` when cloned whole) |
 | Coaching root | Repo or project root (`experience/`, `.self-coaching/`) |
 | Observation | Hooks, user corrections, local logs, optional orchestrator |
 | Deploy improvements | Merge into host repo; user approval in session |
-| Config template | `configs/skill.example.yaml` |
-| Host adapters | `modes/skill/adapters/` |
+| Config template | `configs/self-coaching.example.yaml` |
+| Host adapters | `modes/self-coaching/adapters/` |
 
 ## How it runs
 

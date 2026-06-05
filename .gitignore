@@ -1,4 +1,5 @@
-# Dev branch: tests/ tracked. Template: .cursor/skills/promote-dev-main/gitignore.dev
+# Dev-branch .gitignore (tests/ are tracked on dev).
+# Apply: cp .cursor/skills/promote-dev-main/gitignore.dev .gitignore
 logs/
 worktrees/
 upstream/*

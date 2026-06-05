@@ -1,6 +1,6 @@
 # Integration plan: AgentEvals, production agent API, and Coaching API
 
-Step-wise plan for wiring **real** production systems into the shared **evolution engine** without breaking the mock spine. Applies primarily to **Coach mode** (supervise external agents); Skill mode can use the same eval/train adapters when automating locally.
+Step-wise plan for wiring **real** production systems into the shared **evolution engine** without breaking the mock spine. Applies primarily to **Coach mode** (supervise external agents); Self-coaching mode can use the same eval/train adapters when automating locally.
 
 Design: [architecture.md](../design/architecture.md), [coach_mode.md](../design/coach_mode.md), [integrations/](../design/integrations/). Milestones: [roadmap.md](roadmap.md). Status: [progress.md](progress.md).
 
@@ -41,7 +41,7 @@ Orchestrator commands take `--coaching-root` and `--agent-id` for that subject. 
 | Metrics contract | `services/orchestrator/eval_metrics.py` | `EvalMetrics` + `normalize_from_mock_eval()` |
 | CI | `.github/workflows/ci.yml` | Mock-only orchestrator smoke |
 
-T1 (skill pack) is the **active** deploy target. T2/T3 are optional until adapters land; see [`deploy-overview.md`](../guides/deploy-overview.md).
+T1 (self-coaching pack) is the **active** deploy target. T2/T3 are optional until adapters land; see [`deploy-overview.md`](../guides/deploy-overview.md).
 
 ### 1.2 Target architecture
 
@@ -114,7 +114,7 @@ The production agent API is a **large** platform (agents, tasks, versions, skill
 
 | Mock endpoint | Real backend (later) |
 |---------------|----------------------|
-| `POST /training/runs` | AERL HTTP (`TRAINER_BASE_URL` in `modes/skill/self-tuning/services/example.env`) |
+| `POST /training/runs` | AERL HTTP (`TRAINER_BASE_URL` in `modes/self-coaching/self-tuning/services/example.env`) |
 | `POST /self-play/generate` | Remote generator or mock through M3 |
 | `POST /learning/events` | Orchestrator + trajectory exporter (same JSONL shape) |
 
@@ -218,7 +218,7 @@ curl -s -H "Authorization: Bearer $AGENT_API_TOKEN" \
 |------|--------|
 | 5.1 | Async `POST /training/runs` against AERL; poll status |
 | 5.2 | Wire `CompositeClient.train()`; map `candidate` to checkpoint / version id |
-| 5.3 | Reuse `modes/skill/self-tuning/pipelines/` env (`TRAINER_BASE_URL`, `AERL_ROOT`) |
+| 5.3 | Reuse `modes/self-coaching/self-tuning/pipelines/` env (`TRAINER_BASE_URL`, `AERL_ROOT`) |
 
 **Exit:** Orchestrator `improvement_path: model` triggers real training on staging.
 

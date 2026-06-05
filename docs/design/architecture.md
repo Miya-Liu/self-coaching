@@ -2,16 +2,16 @@
 
 ## Role
 
-**Self-coaching** is a **portable, agent-agnostic** package (not tied to one IDE): the **policy** in `modes/skill/SKILL.md` and **Experience** on disk are the contract. A **subject agent** evolves skills and optionally a **model** in a **git** repo by passing a **Loading Gate**, using a **Data Pool** and **Local Model**, running an experiment loop behind a **Deploy Gate** (worktree + approval), and writing **Results** to `experience/` while full train output goes to `logs/`.
+**Self-coaching** is a **portable, agent-agnostic** package (not tied to one IDE): the **policy** in `modes/self-coaching/SKILL.md` and **Experience** on disk are the contract. A **subject agent** evolves skills and optionally a **model** in a **git** repo by passing a **Loading Gate**, using a **Data Pool** and **Local Model**, running an experiment loop behind a **Deploy Gate** (worktree + approval), and writing **Results** to `experience/` while full train output goes to `logs/`.
 
 The same **submodules** and **evolution engine** deploy in two **modes** - only executor, subject, and coaching-root layout differ:
 
 | Mode | Executor | Subject | Path |
 |------|----------|---------|------|
-| **skill** | Host agent | Host agent | `modes/skill/` |
+| **self-coaching** | Host agent | Host agent | `modes/self-coaching/` |
 | **coach** | Coach service / scheduler | External agents | `modes/coach/` + T2/T3 |
 
-Detail: [skill_mode.md](skill_mode.md), [coach_mode.md](coach_mode.md). Naming: [README.md](README.md#canonical-naming).
+Detail: [self_coaching_mode.md](self_coaching_mode.md), [coach_mode.md](coach_mode.md). Naming: [README.md](README.md#canonical-naming).
 
 The canonical end-to-end sequence is the Mermaid block in root `README.md` (Loading Gate, Performance, Data Pool, Local Model, Deploy Gate, Trainer, Results).
 
@@ -20,7 +20,7 @@ The canonical end-to-end sequence is the Mermaid block in root `README.md` (Load
 ```text
 self-coaching/
 +-- modes/
-|   +-- skill/                    # mode: skill (T1)
+|   +-- self-coaching/                    # mode: self-coaching (T1)
 |   |   +-- SKILL.md              # umbrella (name: self-coaching)
 |   |   +-- self-learning/
 |   |   +-- self-play/
@@ -40,16 +40,16 @@ self-coaching/
 
 ## Components
 
-1. **Policy** - `modes/skill/SKILL.md` (worktree workflow, when to train/stop, merge gate, Experience paths).
-2. **Submodules** - `self-learning`, `self-play`, `self-evaluation`, `self-tuning` under `modes/skill/`.
+1. **Policy** - `modes/self-coaching/SKILL.md` (worktree workflow, when to train/stop, merge gate, Experience paths).
+2. **Submodules** - `self-learning`, `self-play`, `self-evaluation`, `self-tuning` under `modes/self-coaching/`.
 3. **Evolution engine** - `services/orchestrator/` (T3): `record-eval`, `check-drop`, `run`; calls `SelfCoachingClient` and adapters.
 4. **Target repo** - default: external [autoresearch](https://github.com/karpathy/autoresearch) clone (`AUTORESEARCH_ROOT`); `main` is integration line.
 5. **Experiment line** - `worktrees/<id>/`, branch `experiment/<id>`.
 6. **Execution logs** - `logs/<id>.log` (full train stdout/stderr; parse in small chunks).
-7. **AERL pipelines** - `modes/skill/self-tuning/pipelines/` + `services/.env` (`TRAINER_BASE_URL`, optional `AERL_ROOT`).
+7. **AERL pipelines** - `modes/self-coaching/self-tuning/pipelines/` + `services/.env` (`TRAINER_BASE_URL`, optional `AERL_ROOT`).
 8. **Experience** - `experience/EXPERIMENT_LOG.md`, `ERROR.md`, `LEARNINGS.md`; optional `RUN_SUMMARY.json`.
 9. **Coaching root** - `{root}/experience/` + `{root}/.self-coaching/` (metrics, curated data, eval reports).
-10. **Hooks** - `scripts/hook-*.sh` + `references/hooks-setup.md` (skill mode).
+10. **Hooks** - `scripts/hook-*.sh` + `references/hooks-setup.md` (self-coaching mode).
 11. **Coach shell** (planned) - `modes/coach/` supervision registry, scheduler, optional LLM proxy.
 
 ## Shared core (both modes)
@@ -62,13 +62,13 @@ self-coaching/
                                        |
               ┌------------------------+------------------------┐
               |                        |                        |
-     Submodules (modes/skill/*)  Coaching API (T2)      Adapters (integrations/)
+     Submodules (modes/self-coaching/*)  Coaching API (T2)      Adapters (integrations/)
               |                        |                        |
               └------------------------+------------------------┘
                                        |
               ┌------------------------+------------------------┐
               |                                                 |
-         mode: skill                                      mode: coach
+         mode: self-coaching                                      mode: coach
 ```
 
 | Submodule | Purpose | T2 HTTP |
@@ -152,11 +152,11 @@ Observe -> evaluate ([evaluators.md](evaluators.md)) -> drop detect -> route (**
 ## Combined deployments
 
 - **coach** supervises production external agents (scheduled eval, central improvement runs).
-- **skill** installs `modes/skill/` in dev workspaces for local iteration before coach promotes.
+- **self-coaching** installs `modes/self-coaching/` in dev workspaces for local iteration before coach promotes.
 
 Same submodules, `SKILL_PACK_VERSION`, OpenAPI contract, and evolution engine.
 
 ## Related
 
-- [skill_mode.md](skill_mode.md) | [coach_mode.md](coach_mode.md)
+- [self_coaching_mode.md](self_coaching_mode.md) | [coach_mode.md](coach_mode.md)
 - [pipelines.md](pipelines.md) | [evaluators.md](evaluators.md) | [integrations/](integrations/)

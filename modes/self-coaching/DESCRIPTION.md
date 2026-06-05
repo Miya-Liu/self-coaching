@@ -2,7 +2,7 @@
 description: "Installable self-coaching skill: umbrella policy plus submodules self-learning, self-play, self-evaluation, self-tuning for host agent self-evolution."
 ---
 
-# self-coaching (skill pack)
+# self-coaching mode
 
 A **portable skill** for coaching a host agent through a gated loop: observe experience, improve via **self-learning** and **self-play**, measure with **self-evaluation**, optionally **self-tuning**, record **Experience**, and merge only after human approval.
 

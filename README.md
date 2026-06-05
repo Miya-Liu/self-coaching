@@ -1,19 +1,19 @@
 # self-coaching
 
-A **portable, agent-agnostic evolution platform** for coaching any LLM or coding **agent** that can follow markdown skills and run Bash. The contract is **`modes/skill/SKILL.md`** (orchestration policy) plus on-disk **Experience** — not tied to a single IDE or product.
+A **portable, agent-agnostic evolution platform** for coaching any LLM or coding **agent** that can follow markdown skills and run Bash. The contract is **`modes/self-coaching/SKILL.md`** (orchestration policy) plus on-disk **Experience** — not tied to a single IDE or product.
 
 **Purpose:** a gated loop from **observation** through **self-learning** (memory/skills), **self-play** data, **self-evaluation**, optional **self-tuning** (AERL SFT/GRPO), and **user-authorized** merge or promotion. The same submodules and evolution engine serve two **modes**:
 
 | Mode | Who evolves | Typical deploy |
 |------|-------------|----------------|
-| **skill** | The **host agent** evolves itself | **T1** — `modes/skill/` |
+| **self-coaching** | The **host agent** evolves itself | **T1** — `modes/self-coaching/` |
 | **coach** | A **coach service** supervises **external agents** | **T2** Coaching API + **T3** evolution engine |
 
-**Submodules** (under `modes/skill/`): **self-learning**, **self-play**, **self-evaluation**, **self-tuning**. Naming reference: [`docs/design/README.md`](docs/design/README.md#canonical-naming). Architecture: [`docs/design/architecture.md`](docs/design/architecture.md).
+**Submodules** (under `modes/self-coaching/`): **self-learning**, **self-play**, **self-evaluation**, **self-tuning**. Naming reference: [`docs/design/README.md`](docs/design/README.md#canonical-naming). Architecture: [`docs/design/architecture.md`](docs/design/architecture.md).
 
-Load **`modes/skill/SKILL.md`** for the full loop, or one submodule when executing a single phase. See **`modes/skill/DESCRIPTION.md`**. Repo-root **`scripts/`** (`mock-run-all.sh`, `run-pipeline.sh`, …) and **`mock-services/`** (CLI, HTTP, contract JSON) support deterministic dry runs.
+Load **`modes/self-coaching/SKILL.md`** for the full loop, or one submodule when executing a single phase. See **`modes/self-coaching/DESCRIPTION.md`**. Repo-root **`scripts/`** (`mock-run-all.sh`, `run-pipeline.sh`, …) and **`mock-services/`** (CLI, HTTP, contract JSON) support deterministic dry runs.
 
-**skill** mode: install or clone; point the agent at `modes/skill/SKILL.md`. **coach** mode: schedule eval and improvement for external agents — [`docs/guides/deploy-overview.md`](docs/guides/deploy-overview.md#coach-mode), `modes/coach/`.
+**self-coaching** mode: install or clone; point the agent at `modes/self-coaching/SKILL.md`. **coach** mode: schedule eval and improvement for external agents — [`docs/guides/deploy-overview.md`](docs/guides/deploy-overview.md#coach-mode), `modes/coach/`.
 
 The default **target git tree** for the autoresearch-style trainer loop is an **external clone** of [karpathy/autoresearch](https://github.com/karpathy/autoresearch) (set `AUTORESEARCH_ROOT`; see [`upstream/README.md`](upstream/README.md)).
 
@@ -71,14 +71,14 @@ sequenceDiagram
 
 | Concept | Typical implementation |
 |---------|-------------------------|
-| **Loading Gate** | Dependencies, `prepare.py`, cache readiness, configured checkpoint paths (see `modes/skill/SKILL.md`). |
+| **Loading Gate** | Dependencies, `prepare.py`, cache readiness, configured checkpoint paths (see `modes/self-coaching/SKILL.md`). |
 | **Performance** | Primary metric from `logs/<id>.log` (e.g. `val_bpb`) vs best; guardrails. |
 | **Data Pool** | Training/val data (e.g. under `~/.cache/autoresearch/`) plus curated or **self-play** artifacts. |
-| **Local Model** | Admin-chosen baseline checkpoint before the run (`modes/skill/SKILL.md` **Local Model configuration**). |
+| **Local Model** | Admin-chosen baseline checkpoint before the run (`modes/self-coaching/SKILL.md` **Local Model configuration**). |
 | **Deploy Gate** | Isolation (`experiment/<id>` + `worktrees/...`) and **human approval** before merge or weight swap. |
-| **Trainer** | `uv run train.py` in worktree (`scripts/run-once.sh`); or **AERL** via `modes/skill/self-tuning/pipelines/` + `scripts/run-pipeline.sh`. |
+| **Trainer** | `uv run train.py` in worktree (`scripts/run-once.sh`); or **AERL** via `modes/self-coaching/self-tuning/pipelines/` + `scripts/run-pipeline.sh`. |
 | **Trainer feedback** | Outcomes to the agent; full stdout/stderr in `logs/<id>.log` only. |
-| **Results** | `experience/` summaries; durable artifacts per `modes/skill/SKILL.md` (memory, skills, eval cases, curated data). |
+| **Results** | `experience/` summaries; durable artifacts per `modes/self-coaching/SKILL.md` (memory, skills, eval cases, curated data). |
 
 The experiment loop runs autonomously inside the **Deploy Gate**; **Replace local model** / **Update data** after approval are the only steps that change the canonical integration line.
 
@@ -91,22 +91,22 @@ The experiment loop runs autonomously inside the **Deploy Gate**; **Replace loca
 - **Orchestrate** how an agent learns from tasks, generates stress data, evaluates, trains, and records outcomes — without flooding context with full `train` logs.
 - **Focus the model** when self-tuning: architecture, `train.py`, metrics like `val_bpb`.
 - **Experience** = durable logs under `experience/` (`EXPERIMENT_LOG.md`, `ERROR.md`, `LEARNINGS.md`).
-- **Submodules** under `modes/skill/` for phase-specific execution (see `modes/skill/DESCRIPTION.md`).
+- **Submodules** under `modes/self-coaching/` for phase-specific execution (see `modes/self-coaching/DESCRIPTION.md`).
 - **Coach mode** (optional): same evolution engine supervises external agents via AgentEvals, agent API, scheduled `record-eval` / `check-drop` / `run`.
 
 ## Layout
 
 | Path | Role |
 |------|------|
-| **`modes/skill/`** | **skill** mode — T1 skill pack |
-| `modes/skill/SKILL.md` | Umbrella orchestration (`name: self-coaching`) |
-| `modes/skill/self-learning/` | Submodule: memory, skills, eval cases |
-| `modes/skill/self-play/` | Submodule: tasks and trajectories |
-| `modes/skill/self-evaluation/` | Submodule: eval runners and gates |
-| `modes/skill/self-tuning/` | Submodule: SFT/GRPO pipelines + `services/example.env` |
-| `modes/skill/adapters/` | Install into external agent hosts |
+| **`modes/self-coaching/`** | **self-coaching** mode — T1 self-coaching pack |
+| `modes/self-coaching/SKILL.md` | Umbrella orchestration (`name: self-coaching`) |
+| `modes/self-coaching/self-learning/` | Submodule: memory, skills, eval cases |
+| `modes/self-coaching/self-play/` | Submodule: tasks and trajectories |
+| `modes/self-coaching/self-evaluation/` | Submodule: eval runners and gates |
+| `modes/self-coaching/self-tuning/` | Submodule: SFT/GRPO pipelines + `services/example.env` |
+| `modes/self-coaching/adapters/` | Install into external agent hosts |
 | **`modes/coach/`** | **coach** mode shell (planned: registry, scheduler, proxy) |
-| **`configs/`** | Example YAML (`skill.example.yaml`, `coach.example.yaml`) |
+| **`configs/`** | Example YAML (`self-coaching.example.yaml`, `coach.example.yaml`) |
 | **`services/orchestrator/`** | Evolution engine (T3) |
 | `services/adapters/` | AgentEvals, production agent API, AERL |
 | `docs/` | Design and guides — [`docs/design/README.md`](docs/design/README.md) |
@@ -114,28 +114,28 @@ The experiment loop runs autonomously inside the **Deploy Gate**; **Replace loca
 | `mock-services/` | Coaching API mock (T2) |
 | `experience/` | Experience templates |
 | `upstream/README.md` | External autoresearch (`AUTORESEARCH_ROOT`) |
-| `references/hooks-setup.md` | Skill-mode hooks (optional) |
+| `references/hooks-setup.md` | Self-coaching-mode hooks (optional) |
 | `logs/` / `worktrees/` | Runtime (see `.gitignore`) |
 
 ## Installation paths
 
 | Where | Example |
 |--------|---------|
-| Full repo clone | Agent loads `modes/skill/SKILL.md`; scripts at repo root |
-| Skill copy | `~/skills/self-coaching/` ← contents of `modes/skill/` |
+| Full repo clone | Agent loads `modes/self-coaching/SKILL.md`; scripts at repo root |
+| Pack copy | `~/skills/self-coaching/` ← contents of `modes/self-coaching/` |
 | Cursor | `~/.cursor/skills/self-coaching/` |
 
 Hooks: `references/hooks-setup.md` (illustrative; map events to your host).
 
 ## Quick start
 
-### skill mode (T1)
+### self-coaching mode (T1)
 
-1. Clone this repository (or copy `modes/skill/` into your skill path).
+1. Clone this repository (or copy `modes/self-coaching/` into your skill path).
 2. `bash scripts/install-skill-pack.sh . --with-mock`
-3. Read [`docs/design/architecture.md`](docs/design/architecture.md), `modes/skill/DESCRIPTION.md`, [`docs/guides/deploy-skill-pack.md`](docs/guides/deploy-skill-pack.md), [`docs/guides/runbook.md`](docs/guides/runbook.md), then **`modes/skill/SKILL.md`**.
+3. Read [`docs/design/architecture.md`](docs/design/architecture.md), `modes/self-coaching/DESCRIPTION.md`, [`docs/guides/deploy-skill-pack.md`](docs/guides/deploy-skill-pack.md), [`docs/guides/runbook.md`](docs/guides/runbook.md), then **`modes/self-coaching/SKILL.md`**.
 4. Load one submodule (`self-learning`, `self-play`, `self-evaluation`, `self-tuning`) when executing a single phase.
-5. Optional: hooks; AERL from `modes/skill/self-tuning/services/example.env`.
+5. Optional: hooks; AERL from `modes/self-coaching/self-tuning/services/example.env`.
 6. Optional: T2/T3 — [`docs/guides/deploy-overview.md`](docs/guides/deploy-overview.md).
 
 ### coach mode (T2 + T3)

@@ -111,8 +111,8 @@ section "Script syntax (bash -n)"
 shopt -s nullglob
 script_files=(
   "${ROOT}"/scripts/*.sh
-  "${ROOT}"/modes/skill/self-tuning/pipelines/*/run.sh
-  "${ROOT}"/modes/skill/self-tuning/pipelines/_lib.sh
+  "${ROOT}"/modes/self-coaching/self-tuning/pipelines/*/run.sh
+  "${ROOT}"/modes/self-coaching/self-tuning/pipelines/_lib.sh
 )
 shopt -u nullglob
 
@@ -130,13 +130,13 @@ section "Gitignore"
 
 # .env must be ignored. Use git check-ignore if we are inside a git work tree.
 if git -C "${ROOT}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  if git -C "${ROOT}" check-ignore -q modes/skill/self-tuning/services/.env; then
-    emit PASS "gitignore.env" "modes/skill/self-tuning/services/.env is ignored"
+  if git -C "${ROOT}" check-ignore -q modes/self-coaching/self-tuning/services/.env; then
+    emit PASS "gitignore.env" "modes/self-coaching/self-tuning/services/.env is ignored"
   else
-    emit FAIL "gitignore.env" "modes/skill/self-tuning/services/.env is NOT ignored — credential leak risk"
+    emit FAIL "gitignore.env" "modes/self-coaching/self-tuning/services/.env is NOT ignored — credential leak risk"
   fi
   # Sanity-check: example.env must NOT be ignored (it's the template users copy).
-  if git -C "${ROOT}" check-ignore -q modes/skill/self-tuning/services/example.env; then
+  if git -C "${ROOT}" check-ignore -q modes/self-coaching/self-tuning/services/example.env; then
     emit FAIL "gitignore.example_env" "example.env is ignored — users won't see the template"
   else
     emit PASS "gitignore.example_env" "example.env is tracked"
@@ -149,23 +149,23 @@ section "Skill structure"
 
 # Required top-level files for a working install.
 required_files=(
-  "modes/skill/SKILL.md"
-  "modes/skill/SKILL_PACK_VERSION"
-  "modes/skill/DESCRIPTION.md"
+  "modes/self-coaching/SKILL.md"
+  "modes/self-coaching/SKILL_PACK_VERSION"
+  "modes/self-coaching/DESCRIPTION.md"
   "README.md"
   "LICENSE"
   "scripts/install-skill-pack.sh"
   "docs/guides/deploy-skill-pack.md"
   "scripts/run-pipeline.sh"
-  "modes/skill/self-tuning/services/example.env"
-  "modes/skill/self-tuning/pipelines/registry.yaml"
-  "modes/skill/self-tuning/pipelines/_lib.sh"
-  "modes/skill/self-tuning/pipelines/sft/run.sh"
-  "modes/skill/self-tuning/pipelines/grpo/run.sh"
-  "modes/skill/self-learning/SKILL.md"
-  "modes/skill/self-play/SKILL.md"
-  "modes/skill/self-evaluation/SKILL.md"
-  "modes/skill/self-tuning/SKILL.md"
+  "modes/self-coaching/self-tuning/services/example.env"
+  "modes/self-coaching/self-tuning/pipelines/registry.yaml"
+  "modes/self-coaching/self-tuning/pipelines/_lib.sh"
+  "modes/self-coaching/self-tuning/pipelines/sft/run.sh"
+  "modes/self-coaching/self-tuning/pipelines/grpo/run.sh"
+  "modes/self-coaching/self-learning/SKILL.md"
+  "modes/self-coaching/self-play/SKILL.md"
+  "modes/self-coaching/self-evaluation/SKILL.md"
+  "modes/self-coaching/self-tuning/SKILL.md"
   "modes/coach/README.md"
   "mock-services/mock_self_coaching.py"
 )
@@ -251,11 +251,11 @@ fi
 
 section "Skill pack (T1)"
 
-if [[ -f "${ROOT}/modes/skill/SKILL_PACK_VERSION" ]]; then
-  ver="$(tr -d '\r\n' < "${ROOT}/modes/skill/SKILL_PACK_VERSION")"
+if [[ -f "${ROOT}/modes/self-coaching/SKILL_PACK_VERSION" ]]; then
+  ver="$(tr -d '\r\n' < "${ROOT}/modes/self-coaching/SKILL_PACK_VERSION")"
   emit PASS "skill_pack.version" "SKILL_PACK_VERSION=${ver}"
 else
-  emit FAIL "skill_pack.version" "modes/skill/SKILL_PACK_VERSION missing"
+  emit FAIL "skill_pack.version" "modes/self-coaching/SKILL_PACK_VERSION missing"
 fi
 
 if [[ -x "${ROOT}/scripts/install-skill-pack.sh" ]] || [[ -f "${ROOT}/scripts/install-skill-pack.sh" ]]; then

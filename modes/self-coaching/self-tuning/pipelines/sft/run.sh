@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # AERL
-# Usage: LOG_FILE=/path/to.log bash modes/skill/self-tuning/pipelines/sft/run.sh [extra argv]
+# Usage: LOG_FILE=/path/to.log bash modes/self-coaching/self-tuning/pipelines/sft/run.sh [extra argv]
 set -euo pipefail
 
 # shellcheck source=../_lib.sh

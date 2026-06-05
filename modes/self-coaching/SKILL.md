@@ -67,7 +67,7 @@ Classify the signal into one or more durable artifacts:
 |---|---|---|
 | Stable user preference | Memory | "User prefers concise terminal-friendly answers." |
 | Stable environment fact | Memory | "This Windows host runs terminal commands through git-bash, not PowerShell." |
-| Reusable workflow | Skill | "How to debug Hermes TUI slash commands." |
+| Reusable workflow | Self-coaching | "How to debug Hermes TUI slash commands." |
 | Missing steps in an existing workflow | Skill patch | Add pitfall or verification step. |
 | Code defect | Bug fix + regression test | Tool fails on Windows path handling. |
 | Weak agent behavior | Eval case | Agent forgets to verify file writes. |

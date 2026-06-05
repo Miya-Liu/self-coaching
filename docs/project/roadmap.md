@@ -6,7 +6,7 @@ Execution plan from **skill demo + Coaching API mock** to a **deployable evoluti
 
 | Mode | Executor | Subject | Primary deploy |
 |------|----------|---------|----------------|
-| **Skill mode** | Host agent | Host agent | **T1** |
+| **Self-coaching mode** | Host agent | Host agent | **T1** |
 | **Coach mode** | Coach service / scheduler | External agents | **T2 + T3** |
 
 Both modes share the **evolution engine**, pipeline stages, and adapters. See [architecture.md](../design/architecture.md).
@@ -17,14 +17,14 @@ We ship three deploy targets in order. Each has a clear audience and exit criter
 
 | Target | What gets deployed | Mode | Status |
 |--------|-------------------|------|--------|
-| **T1 — Skill pack** | Markdown skills + `scripts/` + `experience/` layout | Skill | **Active — ship now** |
-| **T2 — Coaching API** | `mock_self_coaching.py serve` → real eval/train adapters | Coach (+ Skill optional) | **Deferred**; mock ready |
-| **T3 — Evolution engine** | `services/orchestrator/` + metrics + drop detector | Coach (+ Skill optional) | **Built (M1)** |
+| **T1 — Self-coaching pack** | Markdown skills + `scripts/` + `experience/` layout | Self-coaching | **Active — ship now** |
+| **T2 — Coaching API** | `mock_self_coaching.py serve` → real eval/train adapters | Coach (+ self-coaching optional) | **Deferred**; mock ready |
+| **T3 — Evolution engine** | `services/orchestrator/` + metrics + drop detector | Coach (+ self-coaching optional) | **Built (M1)** |
 
-**Primary focus:** **T1 / M0** — Skill mode install. See [`deploy-skill-pack.md`](../guides/deploy-skill-pack.md).
+**Primary focus:** **T1 / M0** — Self-coaching mode install. See [`deploy-skill-pack.md`](../guides/deploy-skill-pack.md).
 
 ```text
-[T1 skill pack]      Skill mode — host reads modes/skill/SKILL.md
+[T1 self-coaching pack]      Self-coaching mode — host reads modes/self-coaching/SKILL.md
 [T2 Coaching API]    HTTP/CLI/module — contract spine (OpenAPI)
 [T3 evolution engine] record-eval → check-drop → run → gate → deploy
                               │
@@ -37,7 +37,7 @@ One evolution engine, one `SelfCoachingClient`, many adapters.
 
 | Layer | Repo path | Role |
 |-------|-----------|------|
-| Policy | `modes/skill/SKILL.md` + submodules | How an executor agent should behave |
+| Policy | `modes/self-coaching/SKILL.md` + submodules | How an executor agent should behave |
 | Contract | `mock-services/contracts/openapi.yaml` | T2 HTTP: learn / self-play / eval / train |
 | Client | `mock-services/client.py` | Module, CLI, HTTP transports |
 | Evolution engine | `services/orchestrator/` | T3: [pipelines.md](../design/pipelines.md) loop |
@@ -50,7 +50,7 @@ One evolution engine, one `SelfCoachingClient`, many adapters.
 
 - [x] CI: doctor, shellcheck, pytest, mock smoke `run-all`
 - [x] `scripts/install-skill-pack.sh` + `docs/guides/deploy-skill-pack.md`
-- [x] `modes/skill/SKILL_PACK_VERSION` + `project/changelog-skills.md`
+- [x] `modes/self-coaching/SKILL_PACK_VERSION` + `project/changelog-skills.md`
 - [x] Shell strictness on shipped scripts; `run-once.sh` python fallback
 - [x] `preflight.sh` AERL_ROOT sanity; registry documents `TRAINER_BASE_URL`
 - [x] `docs/guides/deploy-overview.md` — T1 as active target
@@ -129,7 +129,7 @@ See `services/orchestrator/eval_metrics.py` for the schema and `normalize_from_m
 ## Related docs
 
 - [design/README.md](../design/README.md) — design index
-- [skill_mode.md](../design/skill_mode.md) · [coach_mode.md](../design/coach_mode.md)
+- [self_coaching_mode.md](../design/self_coaching_mode.md) · [coach_mode.md](../design/coach_mode.md)
 - [integration-plan.md](integration-plan.md) — adapter implementation
 - [pipelines.md](../design/pipelines.md) — evolution engine
 - [progress.md](progress.md) — component status

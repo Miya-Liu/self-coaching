@@ -43,7 +43,7 @@ jobs:
           # SC1091 = "can't follow non-constant source" (sourcing .env at runtime is fine)
           # SC2155 = "declare and assign separately" (style only)
           # Recurse over every .sh we ship; ignore the vendored superpowers-skills clone.
-          mapfile -d '' files < <(find scripts modes/skill/self-tuning/pipelines -type f -name '*.sh' -print0)
+          mapfile -d '' files < <(find scripts modes/self-coaching/self-tuning/pipelines -type f -name '*.sh' -print0)
           shellcheck --exclude=SC1091,SC2155 --severity=warning "${files[@]}"
 
   python-checks:

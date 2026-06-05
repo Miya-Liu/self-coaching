@@ -1,6 +1,6 @@
 # Pipelines
 
-The **evolution engine** loop and **pipeline stages** (learn → self-play → eval → train). Shared by [skill mode](skill_mode.md) and [coach mode](coach_mode.md).
+The **evolution engine** loop and **pipeline stages** (learn → self-play → eval → train). Shared by [self-coaching mode](self_coaching_mode.md) and [coach mode](coach_mode.md).
 
 Evaluators and gates: [evaluators.md](evaluators.md). Adapters: [integrations/](integrations/).
 
@@ -32,14 +32,14 @@ Evaluators and gates: [evaluators.md](evaluators.md). Adapters: [integrations/](
 
 | Stage | Repo | T2 HTTP | Output |
 |-------|------|---------|--------|
-| **self-learning** | `modes/skill/self-learning/` | `POST /learning/events` | Memory, skill patches, eval cases |
-| **self-play** | `modes/skill/self-play/` | `POST /self-play/generate` | Curated candidates, trajectories |
-| **self-evaluation** | `modes/skill/self-evaluation/` | `POST /eval/runs` | Reports under `.self-coaching/reports/` |
-| **self-tuning** | `modes/skill/self-tuning/` | `POST /training/runs` | Checkpoints, manifests, `logs/` |
+| **self-learning** | `modes/self-coaching/self-learning/` | `POST /learning/events` | Memory, skill patches, eval cases |
+| **self-play** | `modes/self-coaching/self-play/` | `POST /self-play/generate` | Curated candidates, trajectories |
+| **self-evaluation** | `modes/self-coaching/self-evaluation/` | `POST /eval/runs` | Reports under `.self-coaching/reports/` |
+| **self-tuning** | `modes/self-coaching/self-tuning/` | `POST /training/runs` | Checkpoints, manifests, `logs/` |
 
 Stages are invoked by:
 
-- **Skill mode:** host agent following `modes/skill/SKILL.md` / phase skills, or `bash scripts/mock-run-all.sh`.
+- **Self-coaching mode:** host agent following `modes/self-coaching/SKILL.md` / phase skills, or `bash scripts/mock-run-all.sh`.
 - **Coach mode / T3:** `SelfCoachingClient` from `services/orchestrator/run`.
 
 OpenAPI contract: [integrations/coaching_api.md](integrations/coaching_api.md).

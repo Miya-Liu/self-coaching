@@ -1,6 +1,6 @@
 # Evaluators
 
-How self-coaching **measures subject agent performance**, detects regressions, and gates promotion. Evaluators feed the **evolution engine** ([pipelines.md](pipelines.md)); both [skill mode](skill_mode.md) and [coach mode](coach_mode.md) use the same contracts.
+How self-coaching **measures subject agent performance**, detects regressions, and gates promotion. Evaluators feed the **evolution engine** ([pipelines.md](pipelines.md)); both [self-coaching mode](self_coaching_mode.md) and [coach mode](coach_mode.md) use the same contracts.
 
 ## Evaluator roles
 
@@ -116,7 +116,7 @@ Coach mode: one `eval_metrics.jsonl` per subject coaching root. See [coach_mode.
 
 ## Phase skill
 
-Runtime policy for building and interpreting eval runs: `modes/skill/self-evaluation/SKILL.md`.
+Runtime policy for building and interpreting eval runs: `modes/self-coaching/self-evaluation/SKILL.md`.
 
 ## External integrations
 

@@ -43,11 +43,12 @@ if [[ -f "${ROOT}/scripts/gitignore.dev" ]]; then
 fi
 
 echo "==> Stage dev-only paths (force-add ignored files)"
-git add -f tests/ 2>/dev/null || true
+git add -f tests/*.py tests/conftest.py tests/fixtures/ 2>/dev/null || true
 git add -f docs/integration/ 2>/dev/null || true
 git add -f docs/project/integration-plan.md docs/project/progress.md 2>/dev/null || true
-git add -f scripts/DEV_WORKFLOW.md scripts/gitignore.dev 2>/dev/null || true
-git add -A
+git add -f scripts/DEV_WORKFLOW.md 2>/dev/null || true
+# Stage any other tracked edits on dev (avoid git add -A — skips __pycache__ via .gitignore)
+git add -u
 
 if git diff --cached --quiet; then
   echo "==> No new changes on ${DEV_BRANCH}."

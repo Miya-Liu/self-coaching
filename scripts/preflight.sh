@@ -29,6 +29,6 @@ uv --directory "${TRAINER_REPO}" sync
 echo "Done."
 echo "If data/tokenizer cache is missing, run once:"
 echo "  uv --directory \"${TRAINER_REPO}\" run prepare.py"
-echo "Create a worktree (see SKILL.md), then:"
+echo "Create a worktree (see modes/skill/SKILL.md), then:"
 echo "  bash \"${ROOT}/scripts/run-once.sh\" <worktree-path> [log]"
-echo "AERL HTTP pipelines: set TRAINER_BASE_URL in self-coaching-training/services/.env (default port 8004)."
+echo "AERL HTTP pipelines: set TRAINER_BASE_URL in modes/skill/self-tuning/services/.env (default port 8004)."

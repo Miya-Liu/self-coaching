@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the self-improving pipeline orchestrator from repo root.
+# Run the evolution engine (T3) from repo root. See docs/design/pipelines.md.
 # Usage:
 #   bash scripts/run-orchestrator.sh record-eval [coaching-root]
 #   bash scripts/run-orchestrator.sh check-drop [coaching-root]

@@ -35,7 +35,7 @@ for arg in "$@"; do
   esac
 done
 
-echo "==> Self-coaching skill pack $(tr -d '\r\n' < "${ROOT}/SKILL_PACK_VERSION" 2>/dev/null || echo unknown)"
+echo "==> Self-coaching skill pack $(tr -d '\r\n' < "${ROOT}/modes/skill/SKILL_PACK_VERSION" 2>/dev/null || echo unknown)"
 echo "    Source: ${ROOT}"
 echo "    Target: ${TARGET}"
 
@@ -71,9 +71,9 @@ cat <<EOF
 Skill pack ready at: ${TARGET}
 
 Next steps:
-  1. Point your agent at: ${TARGET}/SKILL.md
+  1. Point your agent at: ${ROOT}/modes/skill/SKILL.md
   2. Read: ${ROOT}/docs/guides/deploy-skill-pack.md
-  3. Optional AERL: cp self-coaching-training/services/example.env -> .env
+  3. Optional AERL: cp modes/skill/self-tuning/services/example.env -> modes/skill/self-tuning/services/.env
   4. Optional autoresearch: clone karpathy/autoresearch, export AUTORESEARCH_ROOT, see upstream/README.md
 
 EOF

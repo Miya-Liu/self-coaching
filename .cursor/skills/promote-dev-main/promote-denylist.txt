@@ -5,10 +5,9 @@ docs/project/integration-plan.md
 docs/project/progress.md
 tests/
 
-# Legacy skill pack layout (superseded by modes/)
-DESCRIPTION.md
-SKILL.md
-SKILL_PACK_VERSION
+# Legacy root skill pack files (superseded by modes/skill/; anchor to repo root only)
+/DESCRIPTION.md
+/SKILL.md
 self-coaching-evaluation/
 self-coaching-self-learning/
 self-coaching-self-play/

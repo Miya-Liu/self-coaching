@@ -13,10 +13,9 @@ runs/
 mock-services/demo-run*/
 mock-services/ci-*/
 references/superpowers-skills/
-self-coaching-training/services/.env
+modes/skill/self-tuning/services/.env
 uv.lock
 tests/
 
 # Entire .cursor/ stays dev-only (including promote skill)
-.cursor/
 .cursor/

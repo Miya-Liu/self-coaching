@@ -3,30 +3,22 @@
 # Run: bash .cursor/skills/promote-dev-main/promote-to-main.sh
 
 # Repo identity
-SKILL.md
-SKILL_PACK_VERSION
-DESCRIPTION.md
 LICENSE
 README.md
 
 # CI and packaging
 .github/
 
-# Skills and experience
-self-coaching-evaluation/
-self-coaching-learning/
-self-coaching-memory/
-self-coaching-self-play/
-self-coaching-training/
+# Modes (skill pack + coach shell)
+modes/
+configs/
+
+# Shared runtime
 experience/
 references/
 upstream/README.md
-
-# Mock spine + orchestrator
 mock-services/
 services/
-
-# Operator scripts (self-coaching runtime; not Cursor dev workflow)
 scripts/
 
 # Public-facing docs (integration + internal tracking stay on dev)

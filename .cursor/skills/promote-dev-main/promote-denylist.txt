@@ -5,6 +5,15 @@ docs/project/integration-plan.md
 docs/project/progress.md
 tests/
 
+# Legacy skill pack layout (superseded by modes/)
+DESCRIPTION.md
+SKILL.md
+SKILL_PACK_VERSION
+self-coaching-evaluation/
+self-coaching-self-learning/
+self-coaching-self-play/
+self-coaching-training/
+
 # Legacy promote paths under scripts/ (moved to .cursor/skills/promote-dev-main/)
 scripts/DEV_WORKFLOW.md
 scripts/gitignore.dev

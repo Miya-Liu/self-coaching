@@ -1,17 +1,23 @@
-# Deploy Target 1 — Skill pack
+# Deploy Target 1 — Skill pack (skill mode)
 
-**Active deploy target for this repository.** You ship markdown skills, Bash helpers, and an on-disk **Experience** layout. No HTTP service or orchestrator is required.
+**Active deploy target — [skill mode](../design/skill_mode.md).**
+
+Ship **`modes/skill/`**: a portable, agent-agnostic skill pack that coaches the **host agent** through a gated loop (observe → **self-learning** → **self-play** → **self-evaluation** → optional **self-tuning** → Experience → human-approved merge). Markdown + Bash; not tied to one IDE.
+
+When you clone the **full repository**, repo-root `scripts/`, `experience/`, and `mock-services/` are also available. Coaching API (T2) and evolution engine (T3) are optional.
 
 ## What you deploy
 
 | Artifact | Path | Role |
 |----------|------|------|
-| Orchestration policy | `SKILL.md` | Full self-coaching loop and gates |
-| Phase skills | `self-coaching-*/SKILL.md` | Atomic steps (learn, self-play, eval, train) |
-| Scripts | `scripts/*.sh` | init, doctor, training, mock dry-run |
-| Training pipelines | `self-coaching-training/pipelines/` | AERL SFT/GRPO helpers |
-| Experience templates | `experience/` | `EXPERIMENT_LOG.md`, `ERROR.md`, `LEARNINGS.md` |
-| Version marker | `SKILL_PACK_VERSION` | Track which pack revision is installed |
+| Orchestration policy | `modes/skill/SKILL.md` | Full self-coaching loop and gates |
+| Stage index | `modes/skill/DESCRIPTION.md` | When to load each phase |
+| Submodules | `modes/skill/{self-learning,self-play,self-evaluation,self-tuning}/SKILL.md` | Pipeline stages |
+| Training pipelines | `modes/skill/self-tuning/pipelines/` | AERL SFT/GRPO helpers |
+| Host adapters | `modes/skill/adapters/` | Install into Hermes, OpenClaw, etc. |
+| Experience templates | `experience/` (repo root) | `EXPERIMENT_LOG.md`, `ERROR.md`, `LEARNINGS.md` |
+| Version marker | `modes/skill/SKILL_PACK_VERSION` | Pack revision |
+| Example config | `configs/skill.example.yaml` | Template (optional) |
 
 Optional (not required for T1): `mock-services/`, `services/orchestrator/` (T2/T3).
 
@@ -21,76 +27,63 @@ Optional (not required for T1): `mock-services/`, `services/orchestrator/` (T2/T
 |------|-----------|---------|
 | **bash** | Yes | All helpers |
 | **git** | Yes | Worktree experiment flow |
-| **python** | Recommended | Mock dry-run; some pipeline helpers |
+| **python** | Recommended | Mock dry-run |
 | **jq**, **curl** | For AERL HTTP pipelines | `run-pipeline.sh` |
-| **uv** | For external autoresearch `train.py` | `AUTORESEARCH_ROOT` + `preflight.sh` + `run-once.sh`; optional if you use AERL HTTP only |
+| **uv** | For autoresearch `train.py` | `AUTORESEARCH_ROOT` path |
 
 ## Install (recommended)
 
-From the repository root:
+From **repository root** (full clone):
 
 ```bash
 bash scripts/install-skill-pack.sh . --with-mock
 ```
 
+Or copy **`modes/skill/`** into your agent's skill directory and point hooks at repo-root `scripts/` with absolute paths if needed.
+
 Arguments:
 
 - `[target-root]` — where `experience/`, `logs/`, `worktrees/` are created (default: repo root).
-- `--with-mock` — runs `mock-run-all.sh` to prove the artifact layout.
+- `--with-mock` — runs `mock-run-all.sh`.
 - `--with-trainer` — runs `preflight.sh` (needs `uv` + `AUTORESEARCH_ROOT`).
-
-Or step by step:
-
-```bash
-bash scripts/init-experience.sh .
-bash scripts/doctor.sh
-bash scripts/mock-run-all.sh    # optional; needs python
-```
 
 ## Install paths (agents)
 
-Copy or clone this repo to one of:
-
 | Location | Example |
 |----------|---------|
-| Project-local | `my-repo/skills/self-coaching/` |
-| User global | `~/skills/self-coaching/` |
+| Full repo | Clone repo; agent loads `modes/skill/SKILL.md` |
+| Skill copy | `~/skills/self-coaching/` ← contents of `modes/skill/` |
 | Cursor | `~/.cursor/skills/self-coaching/` |
-
-Configure your agent to load **`SKILL.md`** at the pack root (or a phase skill under `self-coaching-*/`).
 
 ## AERL training (optional)
 
-1. `cp self-coaching-training/services/example.env self-coaching-training/services/.env`
-2. Set `TRAINER_BASE_URL` (overrides default `http://localhost:8004` from `registry.yaml`).
-3. For local trainer source: `PIPELINE_MODE=local` and `AERL_ROOT=/path/to/AERL` (must contain `train.py`).
-4. Run: `bash scripts/run-pipeline.sh sft logs/my-run.log`
+1. `cp modes/skill/self-tuning/services/example.env modes/skill/self-tuning/services/.env`
+2. Set `TRAINER_BASE_URL`.
+3. `PIPELINE_MODE=local` + `AERL_ROOT` for local trainer source.
+4. `bash scripts/run-pipeline.sh sft logs/my-run.log`
 
 Never commit `.env`.
 
 ## Verification
 
 ```bash
-bash scripts/doctor.sh          # must exit 0
-bash scripts/doctor.sh --json   # machine-readable
+bash scripts/doctor.sh
+bash scripts/doctor.sh --json
 ```
-
-CI runs the same checks on every push to `main`.
 
 ## Upgrade
 
-1. Replace or `git pull` the skill tree.
-2. Compare `SKILL_PACK_VERSION` before/after.
+1. Pull or replace the tree.
+2. Compare `modes/skill/SKILL_PACK_VERSION` before/after.
 3. Re-run `bash scripts/install-skill-pack.sh <root>`.
-4. Re-read `SKILL.md` if the minor version changed.
+4. Re-read `modes/skill/SKILL.md` if minor version changed.
 
 ## Out of scope for T1
 
-- Hosting `mock_self_coaching.py serve` → see [deploy-overview.md](deploy-overview.md) T2.
-- Automatic improve-on-eval-drop → see T3 / `services/orchestrator/`.
+- Hosting `mock_self_coaching.py serve` → [deploy-overview.md](deploy-overview.md) T2.
+- Automated evolution engine → [deploy-overview.md](deploy-overview.md) T3.
 
 ## Related
 
-- [runbook.md](runbook.md) — day-to-day commands
-- [architecture.md](../design/architecture.md) — control boundaries
-- [roadmap.md](../project/roadmap.md) — when to adopt T2/T3
+- [skill_mode.md](../design/skill_mode.md) · [coach_mode.md](../design/coach_mode.md)
+- [runbook.md](runbook.md) · [architecture.md](../design/architecture.md)

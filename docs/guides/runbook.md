@@ -1,68 +1,35 @@
 # Runbook
 
-From the skill repository root (directory containing `SKILL.md`). The runbook is **agent-agnostic**: Bash is required; **uv** is only needed for the external autoresearch training path.
+From the **repository root** (directory containing `modes/`, `scripts/`, `services/`). Bash required; **uv** only for external autoresearch training.
 
-**T1 install:** see [`deploy-skill-pack.md`](deploy-skill-pack.md) or run `bash scripts/install-skill-pack.sh . --with-mock`.
+**Skill mode (T1):** [deploy-skill-pack.md](deploy-skill-pack.md) or `bash scripts/install-skill-pack.sh . --with-mock`. **Coach mode:** [deploy-overview.md#coach-mode](deploy-overview.md#coach-mode). Design: [architecture.md](../design/architecture.md).
 
 ## One-time: dependencies and data
 
-1. `bash scripts/install-skill-pack.sh .` (or `init-experience.sh` + `doctor.sh` manually).
-2. **If using autoresearch worktrees:** clone the trainer repo and set `AUTORESEARCH_ROOT` (see [`upstream/README.md`](../../upstream/README.md)), install [uv](https://docs.astral.sh/uv/), then `bash scripts/preflight.sh`.
-3. If needed: `uv --directory "$AUTORESEARCH_ROOT" run prepare.py` (cache per autoresearch docs).
-
-Example:
-
-```bash
-git clone https://github.com/karpathy/autoresearch.git ~/src/autoresearch
-export AUTORESEARCH_ROOT=~/src/autoresearch
-bash scripts/preflight.sh
-```
-
-## One-time: git in the trainer repo (if not a repo)
-
-See `SKILL.md` — `git init` in your `AUTORESEARCH_ROOT` checkout, first commit on `main`.
+1. `bash scripts/install-skill-pack.sh .` (or `init-experience.sh` + `doctor.sh`).
+2. **Autoresearch worktrees:** set `AUTORESEARCH_ROOT` ([upstream/README.md](../../upstream/README.md)), install [uv](https://docs.astral.sh/uv/), then `bash scripts/preflight.sh`.
+3. If needed: `uv --directory "$AUTORESEARCH_ROOT" run prepare.py`.
 
 ## Per experiment: worktree
 
-See `SKILL.md` — `git worktree add` into `worktrees/<id>/` under the skill root.
+See `modes/skill/SKILL.md` — `git worktree add` into `worktrees/<id>/` under the coaching root.
 
 ## Run training (log to file)
-
-See `SKILL.md`, or:
 
 ```bash
 bash scripts/run-once.sh "worktrees/<id>" "logs/<id>.log"
 ```
 
-## Training pipelines (SFT / GRPO, **AERL** trainer HTTP API)
+## Training pipelines (SFT / GRPO, AERL)
 
-1. Copy `self-coaching-training/services/example.env` to `self-coaching-training/services/.env` and set `TRAINER_BASE_URL` (default **AERL** `http://localhost:8004` in `self-coaching-training/pipelines/registry.yaml` `service.url`) and keys as needed.
-2. On your **AERL** trainer, implement `POST /v1/pipelines/{sft|grpo}/run`, or set `PIPELINE_MODE=local` (or `aerl`) and `AERL_ROOT` to a local **AERL** trainer source tree that provides the `examples/math/…` scripts (see `self-coaching-training/pipelines/_lib.sh`).
-3. From skill root:
+1. Copy `modes/skill/self-tuning/services/example.env` to `modes/skill/self-tuning/services/.env`; set `TRAINER_BASE_URL` (default `http://localhost:8004` in `registry.yaml`).
+2. Implement `POST /v1/pipelines/{sft|grpo}/run` on your trainer, or `PIPELINE_MODE=local` + `AERL_ROOT` (see `modes/skill/self-tuning/pipelines/_lib.sh`).
+3. `bash scripts/run-pipeline.sh grpo logs/exp-01-grpo.log`
 
-```bash
-bash scripts/run-pipeline.sh grpo "logs/<id>-grpo.log" scheduler.type=local
-bash scripts/run-pipeline.sh sft "logs/<id>-sft.log"
-```
+## Experience logs
 
-## Experience (log files)
+Summaries in `experience/`; full train output in `logs/<id>.log` only.
 
-Experience files:
+## Merge after approval
 
-```bash
-bash scripts/init-experience.sh
-```
-
-This ensures `experience/EXPERIMENT_LOG.md`, `experience/ERROR.md`, and `experience/LEARNINGS.md` exist.
-During runs:
-- outcomes go to `experience/EXPERIMENT_LOG.md`
-- failures go to `experience/ERROR.md`
-- optimization lessons go to `experience/LEARNINGS.md`
-
-## Merge (only after user authorizes)
-
-See `SKILL.md` (`git checkout main`, `git merge`, optional `worktree remove`).
-
-## Hooks
-
-`references/hooks-setup.md` — experiment command, learnings inject, error inject.
+See `modes/skill/SKILL.md` (`git checkout main`, `git merge`, optional `worktree remove`).

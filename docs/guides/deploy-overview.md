@@ -1,8 +1,10 @@
 # Production deployment guide
 
-## Active deploy target: **T1 — Skill pack**
+Design: [architecture.md](../design/architecture.md) · [skill_mode.md](../design/skill_mode.md) · [coach_mode.md](../design/coach_mode.md).
 
-This repository is currently shipped and supported as a **portable skill pack** (markdown + Bash). T2 (HTTP API) and T3 (orchestrator) are optional add-ons — see [roadmap.md](../project/roadmap.md).
+## Active deploy target: **T1 — Skill pack** (Skill mode)
+
+This repository ships and supports **Skill mode** as a portable skill pack (markdown + Bash). T2 (Coaching API) and T3 (evolution engine) are optional add-ons for automation and coach mode — see [roadmap.md](../project/roadmap.md).
 
 **Canonical T1 guide:** [`deploy-skill-pack.md`](deploy-skill-pack.md)
 
@@ -12,35 +14,50 @@ bash scripts/install-skill-pack.sh . --with-mock
 
 ---
 
-## All deploy targets
+## Deployment modes
 
-| If you need… | Deploy | Start here |
-|--------------|--------|------------|
-| Agents to follow coaching **policy** (skills, experience logs, manual training) | **T1 — Skill pack** ✓ **active** | [deploy-skill-pack.md](deploy-skill-pack.md) |
-| A **stable HTTP API** for learn / eval / train from your agent platform | **T2 — Coaching API** | [Coaching API](#t2--coaching-api) |
-| **Automatic** improve-on-eval-drop with artifacts and gates | **T3 — Pipeline** | [Self-improving pipeline](#t3--self-improving-pipeline) |
+| Mode | Executor | Subject | Primary deploy |
+|------|----------|---------|----------------|
+| **Skill mode** | Host agent | Same host agent | **T1** |
+| **Coach mode** | Coach service / scheduler | External registered agents | **T2 + T3** |
 
-Adopt T2/T3 when you outgrow file-based skills; T1 remains valid without them.
+Both modes share the **evolution engine**, pipeline stages, adapters (AgentEvals, agent API, AERL), and artifact contracts. Only executor, subject, and coaching-root layout differ.
 
 ---
 
-## T1 — Skill pack (summary)
+## Deploy targets (T1 / T2 / T3)
 
-**Artifacts:** Clone/copy repo → agent skill path. Version: `SKILL_PACK_VERSION`.
+| If you need… | Deploy | Mode | Start here |
+|--------------|--------|------|------------|
+| Installable skills and local experiment workflow | **T1 — Skill pack** ✓ **active** | Skill | [deploy-skill-pack.md](deploy-skill-pack.md) |
+| Stable HTTP API for learn / eval / train | **T2 — Coaching API** | Coach (also Skill optional) | [Coaching API](#t2--coaching-api) |
+| Automated improve-on-eval-drop with gates | **T3 — Evolution engine** | Coach (also Skill optional) | [Evolution engine](#t3--evolution-engine) |
+
+Adopt T2/T3 when you need HTTP integration or coach-mode supervision; T1 remains valid without them.
+
+---
+
+## T1 — Skill pack (Skill mode)
+
+**Artifacts:** `modes/skill/` (or full repo clone). Version: `modes/skill/SKILL_PACK_VERSION`.
 
 **Runtime:** None required (Bash + optional Python for mock dry-run).
 
 **One-command install:** `bash scripts/install-skill-pack.sh [root] [--with-mock]`
 
-**Secrets:** Never commit `self-coaching-training/services/.env`.
+**Coaching root:** Project or skill install directory (`experience/` + `.self-coaching/` after init).
 
-**Upgrade:** Pull tree → compare `SKILL_PACK_VERSION` → re-run install script; see [changelog-skills.md](../project/changelog-skills.md).
+**Secrets:** Never commit `modes/skill/self-tuning/services/.env`.
+
+**Upgrade:** Pull tree → compare `modes/skill/SKILL_PACK_VERSION` → re-run install script; see [changelog-skills.md](../project/changelog-skills.md).
 
 ---
 
 ## T2 — Coaching API
 
-**Artifacts:** Python process `mock_self_coaching.py serve` (mock) or a future real implementation behind the same OpenAPI contract.
+HTTP **contract spine** for pipeline stages (learn, self-play, eval, train). Used as the coach-mode front door; skill mode can call it when pipelines run remotely.
+
+**Artifacts:** Python process `mock_self_coaching.py serve` (mock) or real adapters behind the same OpenAPI contract.
 
 **Runtime:** One long-lived HTTP listener per environment.
 
@@ -67,21 +84,23 @@ c.learn(event="verification missed", capability="tool_use")
 | `MOCK_SERVICE_TOKEN` | When set, requires `Authorization: Bearer <token>` (except `GET /health`) |
 | `MOCK_MAX_BODY_BYTES` | Max POST body (default 1 MiB) |
 
-**Production (M2, planned):** container image, sqlite volume, async training endpoints, AERL/AgentEvals adapters — see [`roadmap.md`](../project/roadmap.md) M2.
+**Production (M2, planned):** container image, sqlite volume, async training endpoints, AERL/AgentEvals adapters — see [roadmap.md](../project/roadmap.md) M2.
 
 ---
 
-## T3 — Self-improving pipeline
+## T3 — Evolution engine
 
-**Artifacts:** Orchestrator CLI + per-run directories under a coaching root.
+Automated loop: `record-eval` → `check-drop` → `run` (learn / self-play / train / candidate eval / deploy gate).
+
+**Artifacts:** `services/orchestrator/` CLI + per-run directories under a coaching root.
 
 **Runtime:** Cron, systemd timer, or manual invocation after eval metrics are recorded.
 
-**Coaching root:** Directory containing `experience/` and `.self-coaching/` (same layout as mock `run-all`).
+**Coaching root:** Directory containing `experience/` and `.self-coaching/` (same layout as mock `run-all`). In coach mode, **one root per supervised agent**.
 
-### Record production metrics
+### Record metrics
 
-After an eval (mock or real), append normalized metrics:
+After an eval (mock or AgentEvals), append normalized `EvalMetrics`:
 
 ```bash
 python -m services.orchestrator record-eval \
@@ -120,24 +139,73 @@ python -m services.orchestrator run \
 | `decision.json` | promote / reject / dry_run_only |
 | `deploy_manifest.json` | Dry-run deploy record (no live traffic change) |
 
-**Transport:** Default `module` (in-process mock). For a remote API:
+**Transport:** Default `module` (in-process mock). For T2 HTTP:
 
 ```bash
 export ORCHESTRATOR_TRANSPORT=http
 export ORCHESTRATOR_BASE_URL=http://127.0.0.1:8765
 export MOCK_SERVICE_TOKEN=change-me
+export ORCHESTRATOR_EVAL_BACKEND=agentevals   # coach mode typical
 ```
 
-**Production (M3–M4, planned):** real curation, holdout gates, canary deploy script — see [`roadmap.md`](../project/roadmap.md).
+**Production (M3–M4, planned):** real curation, holdout gates, canary deploy — see [roadmap.md](../project/roadmap.md).
+
+---
+
+## Coach mode
+
+Supervise **external agents**: periodic evaluation (AgentEvals), drop detection, improvement runs, and platform deploy (production agent API).
+
+### Layout (multi-agent)
+
+```text
+/var/lib/coach/
+  agents/<agent_id>/          # coaching root per subject
+    experience/
+    .self-coaching/
+      metrics/eval_metrics.jsonl
+  runs/<improvement_run_id>/  # orchestrator output
+```
+
+### Scheduler (today)
+
+Per agent, on cron or interval:
+
+```bash
+ROOT=/var/lib/coach/agents/support-bot-prod
+AGENT_ID=support-bot-prod
+
+python -m services.orchestrator record-eval \
+  --coaching-root "$ROOT" --agent-id "$AGENT_ID" \
+  --candidate <version_id> --baseline <version_id>
+
+python -m services.orchestrator check-drop \
+  --metrics-dir "$ROOT/.self-coaching/metrics" \
+  || python -m services.orchestrator run \
+       --coaching-root "$ROOT" \
+       --run-dir /var/lib/coach/runs/$(date +%Y%m%d-%H%M%S) \
+       --agent-id "$AGENT_ID"
+```
+
+Set `ORCHESTRATOR_EVAL_BACKEND=agentevals`, `AGENTEVALS_*`, and `AGENT_API_*` per [integration-plan.md](../project/integration-plan.md).
+
+### Planned coach shell (M5)
+
+| Component | Purpose | Path |
+|-----------|---------|------|
+| Supervision registry | External agent id, model, eval schedule, coaching root | `modes/coach/` (planned) |
+| LLM proxy | Optional trajectory capture for supervised agents | `modes/coach/proxy/` (planned) |
+
+The LLM proxy is an **observation adapter** only — scored evaluation stays on AgentEvals.
 
 ---
 
 ## Environment matrix
 
-| Concern | T1 | T2 | T3 |
-|---------|----|----|-----|
-| Python | 3.11+ for mocks/tests | 3.11+ server | 3.11+ orchestrator |
-| Network | None | Inbound HTTP | Optional HTTP to T2 |
+| Concern | T1 (Skill) | T2 | T3 |
+|---------|------------|----|----|
+| Python | 3.11+ for mocks/tests | 3.11+ server | 3.11+ evolution engine |
+| Network | None | Inbound HTTP | Optional HTTP to T2; AgentEvals / agent API in coach mode |
 | Persistent disk | `experience/`, `logs/` | Coaching root volume | Coaching root + `runs/` |
 | Auth | N/A | Bearer token | Inherits T2 if HTTP |
 
@@ -154,6 +222,9 @@ export MOCK_SERVICE_TOKEN=change-me
 
 ## See also
 
-- [`roadmap.md`](../project/roadmap.md) — milestones M0–M4
-- [`progress.md`](../project/progress.md) — component status table
-- [`pipeline.md`](../design/pipeline.md) — full loop design
+- [design/README.md](../design/README.md) — design index
+- [pipelines.md](../design/pipelines.md) — evolution engine
+- [evaluators.md](../design/evaluators.md) — metrics and gates
+- [integrations/](../design/integrations/) — external adapters
+- [roadmap.md](../project/roadmap.md) — milestones M0–M5
+- [integration-plan.md](../project/integration-plan.md) — implementation plan

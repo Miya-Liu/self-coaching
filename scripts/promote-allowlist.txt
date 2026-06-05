@@ -1,0 +1,37 @@
+# Paths synced from private dev branch → public main (one path per line).
+# Comments and blank lines are ignored. Run: bash scripts/promote-to-public.sh
+
+# Repo identity
+SKILL.md
+SKILL_PACK_VERSION
+DESCRIPTION.md
+LICENSE
+README.md
+.gitignore
+
+# CI and packaging
+.github/
+
+# Skills and experience
+self-coaching-evaluation/
+self-coaching-learning/
+self-coaching-memory/
+self-coaching-self-play/
+self-coaching-training/
+experience/
+references/
+upstream/README.md
+
+# Mock spine + orchestrator
+mock-services/
+services/
+
+# Operator scripts (includes promote + export tooling)
+scripts/
+
+# Public-facing docs only (integration + internal tracking stay on dev)
+docs/README.md
+docs/design/
+docs/guides/
+docs/project/roadmap.md
+docs/project/changelog-skills.md

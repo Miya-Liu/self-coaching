@@ -1,0 +1,19 @@
+# Dev-branch .gitignore (private repo). Same as public main except tests/ are tracked.
+logs/
+worktrees/
+upstream/*
+!upstream/README.md
+**/__pycache__/
+*.pyc
+.pytest_cache/
+run.log
+runs/
+.tmp-eval-openapi.json
+.tmp-agent-openapi.json
+mock-services/demo-run*/
+mock-services/ci-*/
+references/superpowers-skills/
+self-coaching-training/services/.env
+uv.lock
+
+# tests/ intentionally NOT ignored — full suite lives on the private dev repo

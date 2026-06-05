@@ -1,0 +1,5 @@
+# Removed from public main on each promote (if present). Dev branch keeps these.
+docs/integration/
+docs/project/integration-plan.md
+docs/project/progress.md
+tests/

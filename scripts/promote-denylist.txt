@@ -1,5 +1,11 @@
-# Removed from public main on each promote (if present). Dev branch keeps these.
+# Removed from `main` on each promote (dev branch keeps these).
 docs/integration/
 docs/project/integration-plan.md
 docs/project/progress.md
 tests/
+
+# Dev-only workflow (not for public main)
+scripts/DEV_WORKFLOW.md
+scripts/gitignore.dev
+scripts/setup-dev-remote.sh
+scripts/promote-to-public.sh

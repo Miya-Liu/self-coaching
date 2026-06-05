@@ -1,4 +1,5 @@
-# Dev-branch .gitignore (private repo). Same as public main except tests/ are tracked.
+# Dev-branch .gitignore template (tests/ are tracked on dev).
+# Copy over .gitignore on dev when needed: cp scripts/gitignore.dev .gitignore
 logs/
 worktrees/
 upstream/*
@@ -15,5 +16,3 @@ mock-services/ci-*/
 references/superpowers-skills/
 self-coaching-training/services/.env
 uv.lock
-
-# tests/ intentionally NOT ignored — full suite lives on the private dev repo

@@ -28,7 +28,7 @@ We ship three deploy targets in order. Each has a clear audience and exit criter
 [T2 Coaching API]    HTTP/CLI/module — contract spine (OpenAPI)
 [T3 evolution engine] record-eval → check-drop → run → gate → deploy
                               │
-                              └── calls T2 via ModuleClient or HTTPClient
+                              └─ calls T2 via ModuleClient or HTTPClient
 ```
 
 ## Architecture spine

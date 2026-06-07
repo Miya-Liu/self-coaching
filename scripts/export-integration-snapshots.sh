@@ -30,11 +30,16 @@ fetch() {
 
 fetch "${AGENT_URL}/openapi.json" "${OUT}/agent-openapi.json"
 
+AGENTEVALS_OK=0
 if curl -fsSL --connect-timeout 3 "${AGENTEVALS_URL}/health" >/dev/null 2>&1; then
   fetch "${AGENTEVALS_URL}/openapi.json" "${OUT}/agentevals-openapi.json"
+  AGENTEVALS_OK=1
 else
   echo "WARN: AgentEvals not reachable at ${AGENTEVALS_URL} — start service and re-run for agentevals-openapi.json"
-  exit 1
 fi
 
 echo "Snapshots written under ${OUT}/"
+if [[ "${AGENTEVALS_OK}" -eq 0 ]]; then
+  echo "Partial export: agent-openapi.json only (AgentEvals offline)."
+  exit 0
+fi

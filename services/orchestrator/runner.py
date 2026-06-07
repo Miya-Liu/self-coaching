@@ -55,11 +55,9 @@ def _build_client(coaching_root: Path) -> Any:
     else:
         inner = client_mod.build_client("module", root=coaching_root)
 
-    if _eval_backend() == "agentevals":
-        from services.adapters import with_agentevals_eval  # noqa: E402
+    from services.adapters import build_composite_client  # noqa: E402
 
-        return with_agentevals_eval(inner)
-    return inner
+    return build_composite_client(inner, eval_backend=_eval_backend())
 
 
 def _normalize_eval(

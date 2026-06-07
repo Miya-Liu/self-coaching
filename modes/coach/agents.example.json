@@ -1,0 +1,19 @@
+{
+  "agents": [
+    {
+      "id": "example-agent",
+      "coaching_root": "/var/lib/coach/agents/example-agent",
+      "model": "gpt-example",
+      "prefer_skill_first": true,
+      "eval": {
+        "suite_id_canary": "tool-use-canary",
+        "suite_id_holdout": "tool-use-holdout",
+        "interval": "0 2 * * *"
+      },
+      "improvement": {
+        "train_pipeline": "sft",
+        "min_cases_for_model_path": 100
+      }
+    }
+  ]
+}

@@ -15,11 +15,8 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from services.adapters.agentevals_client import AgentEvalsClient, AgentEvalsError
-from services.adapters.eval_adapter import (
-    AgentEvalsEvalAdapter,
-    run_detail_to_mock_report,
-    with_agentevals_eval,
-)
+from services.adapters.composite_client import with_agentevals_eval
+from services.adapters.eval_adapter import AgentEvalsEvalAdapter, run_detail_to_mock_report
 from services.orchestrator.eval_metrics import normalize_from_agentevals
 
 FIXTURE = REPO_ROOT / "tests" / "fixtures" / "agentevals" / "run_detail_succeeded.json"

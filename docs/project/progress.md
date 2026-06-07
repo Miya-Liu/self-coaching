@@ -13,14 +13,14 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 | **Auto-evaluation** | M1–M2 | Partial | Mock eval + **`EvalMetrics`**; AgentEvals adapter | Live smoke + `agentevals-openapi.json` snapshot |
 | **Drop detector** | M1 | **Done** | `python -m services.orchestrator check-drop` | Wire to coach scheduler (M5) |
 | **Evolution engine** | M1 | **Done** | `services/orchestrator/`, `scripts/run-orchestrator.sh` | Real `pipeline.yaml` shell hooks (M2+) |
-| **Curation** | M3 | Stub | Mock self-play only | `scripts/curate_data.py` + PII flags |
+| **Curation** | M3 | **Stub** | `scripts/curate_data.py` (splits + privacy filter) | Trajectory ingest + production export |
 | **Self-play** | M2 | Mock | `POST /self-play/generate` | Remote generator adapter |
 | **Skill learning** | M3 | Policy only | `learn()` + SKILLs | Git-tagged bundle in run manifest |
 | **Model training** | M2 | Partial | Shell + mock `train()` | AERL HTTP adapter + async runs |
 | **Candidate evaluation** | M1 | Partial | Holdout `candidate_eval.json` + promotion gates | Real holdout suite + cost/latency |
 | **Deployment** | M1 dry / M4 live | **Dry-run** | `deploy_manifest.json` (`canary_fraction: 0`) | Canary + rollback via agent API |
 | **Version management** | M1 | Partial | `improvement_run_manifest.json` | Registry query by `agent_id` |
-| **Coach mode shell** | M5 | Not started | `modes/coach/README.md` | Supervision registry + scheduler |
+| **Coach mode shell** | M5 | **Started** | `modes/coach/registry.py`, `agents.example.yaml` | Scheduler examples + validation CLI |
 | **LLM proxy** | M5 | Not started | — | Optional observation adapter |
 
 ## Deploy targets and modes
@@ -33,6 +33,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 
 ## Completed (integration layer)
 
+- **2026-06-07:** Integration Phase 2 stub — `CompositeClient` / `build_composite_client`; `scripts/curate_data.py`; coach registry loader (`modes/coach/registry.py`)
 - **2026-05-29:** M0 exit verified locally (`doctor.sh` + `install-skill-pack.sh . --with-mock`); production agent OpenAPI snapshot in `docs/integration/api-snapshots/agent-openapi.json`
 - Phase 1 mock fixes: `--host`, `ValueError` for bad pipelines
 - HTTP: bearer auth, idempotency, body size cap

@@ -173,8 +173,8 @@ curl -s -H "Authorization: Bearer $AGENT_API_TOKEN" \
 
 | Step | Action |
 |------|--------|
-| 2.1 | `CompositeClient` implementing `SelfCoachingClient` | `services/adapters/composite_client.py` |
-| 2.2 | Delegate `evaluate` / `eval_report` → AgentEvals; `learn` / `self_play` / `train` → mock (until M3/M2-train) |
+| 2.1 | `CompositeClient` implementing `SelfCoachingClient` | `services/adapters/composite_client.py` | ✓ |
+| 2.2 | Delegate `evaluate` / `eval_report` → AgentEvals; `learn` / `self_play` / `train` → mock (until M3/M2-train) | ✓ |
 | 2.3 | Optional gateway | `mock_self_coaching.py serve --eval-backend agentevals` for HTTP contract tests |
 
 **Exit:** `run --force` produces `current_eval.json` and `candidate_eval.json` from AgentEvals when backend flag set; existing mock CI unchanged.

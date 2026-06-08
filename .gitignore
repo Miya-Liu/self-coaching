@@ -12,6 +12,7 @@ runs/
 .tmp-eval-openapi.json
 .tmp-agent-openapi.json
 mock-services/demo-run*/
+mock-services/demo-stack/
 mock-services/ci-*/
 references/superpowers-skills/
 modes/skill/self-tuning/services/.env

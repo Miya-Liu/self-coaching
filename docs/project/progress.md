@@ -10,7 +10,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 |-----------|-----------|--------|-------------|------------------|
 | **Production agent** | M3–M4 | Adapter planned | `client.py` consumers | Trajectory + deploy adapter |
 | **Trajectory store** | M3 | Not wired | `.self-coaching/events/*.jsonl` | `POST /trajectories` or extended learn payload |
-| **Auto-evaluation** | M1–M2 | Partial | Mock eval + **`EvalMetrics`**; AgentEvals adapter | Live smoke + `agentevals-openapi.json` snapshot |
+| **Auto-evaluation** | M1–M2 | Partial | Mock eval + **`EvalMetrics`**; AgentEvals adapter; **mock AgentEvals service** (`mock_agentevals.py`) | Live staging smoke |
 | **Drop detector** | M1 | **Done** | `python -m services.orchestrator check-drop` | Wire to coach scheduler (M5) |
 | **Evolution engine** | M1 | **Done** | `services/orchestrator/`, `scripts/run-orchestrator.sh` | Real `pipeline.yaml` shell hooks (M2+) |
 | **Curation** | M3 | **Stub** | `scripts/curate_data.py` (splits + privacy filter) | Trajectory ingest + production export |
@@ -19,7 +19,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 | **Model training** | M2 | Partial | Shell + mock `train()` | AERL HTTP adapter + async runs |
 | **Candidate evaluation** | M1 | Partial | Holdout `candidate_eval.json` + promotion gates | Real holdout suite + cost/latency |
 | **Deployment** | M1 dry / M4 live | **Dry-run** | `deploy_manifest.json` (`canary_fraction: 0`) | Canary + rollback via agent API |
-| **Version management** | M1 | Partial | `improvement_run_manifest.json` | Registry query by `agent_id` |
+| **Version management** | M1 | **Mock stub** | `mock_agent_registry.py` | Production agent API adapter |
 | **Coach mode shell** | M5 | **Started** | `modes/coach/registry.py`, `agents.example.yaml` | Scheduler examples + validation CLI |
 | **LLM proxy** | M5 | Not started | — | Optional observation adapter |
 
@@ -33,6 +33,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 
 ## Completed (integration layer)
 
+- **2026-06-07:** Mock platform Phase 0 — `mock_agent_registry.py`, `mock_agentevals.py`, `scripts/mock-stack-up.sh`; design doc [`mock-platform-design.md`](mock-platform-design.md)
 - **2026-06-07:** Integration Phase 2 stub — `CompositeClient` / `build_composite_client`; `scripts/curate_data.py`; coach registry loader (`modes/coach/registry.py`)
 - **2026-05-29:** M0 exit verified locally (`doctor.sh` + `install-skill-pack.sh . --with-mock`); production agent OpenAPI snapshot in `docs/integration/api-snapshots/agent-openapi.json`
 - Phase 1 mock fixes: `--host`, `ValueError` for bad pipelines

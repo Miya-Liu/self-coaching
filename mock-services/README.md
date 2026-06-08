@@ -1,6 +1,36 @@
-# Mock Coaching API (T2)
+# Mock services (T2 + M1.5 mock platform)
 
-Local mock implementation of the **Coaching API** contract for testing the full evolution-engine loop without a real LLM, trainer, evaluator, or external API. Shared by Self-coaching mode (optional) and Coach mode. Design: [`docs/design/integrations/coaching_api.md`](../docs/design/integrations/coaching_api.md).
+Local mocks for the evolution loop without real LLM, trainer, evaluator, or external APIs.
+
+| Service | Port (default) | Module |
+|---------|----------------|--------|
+| **Coaching API** (learn / self-play / train) | 8765 | `mock_self_coaching.py` |
+| **AgentEvals** (suites + async runs) | 8080 | `mock_agentevals.py` |
+| **Agent registry** (version lineage) | 8768 (optional) | `mock_agent_registry.py` |
+
+Design: [`docs/project/mock-platform-design.md`](../docs/project/mock-platform-design.md) · [`coaching_api.md`](../docs/design/integrations/coaching_api.md).
+
+### Phase 0 quick start
+
+```bash
+bash scripts/mock-agentevals-smoke.sh
+bash scripts/mock-stack-up.sh mock-services/demo-stack --with-coaching
+```
+
+When `MOCK_AGENTEVALS_URL` or `AGENTEVALS_BASE_URL` is set, `mock_self_coaching.py evaluate` delegates to mock AgentEvals.
+
+```bash
+export AGENTEVALS_BASE_URL=http://127.0.0.1:8080
+export ORCHESTRATOR_EVAL_BACKEND=agentevals
+export AGENTEVALS_SUITE_ID=tool-use-canary
+python -m services.orchestrator record-eval --coaching-root mock-services/demo-stack --agent-id example-agent
+```
+
+---
+
+## Mock Coaching API (T2)
+
+Local mock implementation of the **Coaching API** contract for testing the full evolution-engine loop. Shared by Self-coaching mode (optional) and Coach mode.
 
 It provides three interface styles:
 

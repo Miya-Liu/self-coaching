@@ -21,6 +21,8 @@ Design context: [evaluators.md](../evaluators.md). Field mapping table: [integra
 | Poll / report | `GET /api/runs/{run_id}` — `queued` → `running` → `succeeded` \| `failed` |
 | Suite selection | `GET /api/suites` |
 
+**Mock (Phase 0):** `mock-services/mock_agentevals.py serve` implements the above plus mock-only `POST /api/suites` for customised suite registration. See [`mock-platform-design.md`](../../project/mock-platform-design.md).
+
 ## Adapter contract
 
 Implement same semantics as `SelfCoachingClient.evaluate()` and `eval_report()`:

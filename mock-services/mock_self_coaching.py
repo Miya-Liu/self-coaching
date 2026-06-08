@@ -244,8 +244,32 @@ def _score_case(case: dict, candidate: str) -> dict:
     }
 
 
+def _agentevals_base_url() -> str | None:
+    for key in ("MOCK_AGENTEVALS_URL", "AGENTEVALS_BASE_URL"):
+        value = os.environ.get(key, "").strip()
+        if value:
+            return value.rstrip("/")
+    return None
+
+
 def evaluate(root: Path, candidate: str = "mock-candidate-v1", baseline: str = "mock-baseline-v0") -> dict:
     init(root)
+    ae_url = _agentevals_base_url()
+    if ae_url:
+        try:
+            from mock_agentevals import evaluate_via_http
+        except ImportError:
+            from .mock_agentevals import evaluate_via_http
+        suite_id = os.environ.get("AGENTEVALS_SUITE_ID") or os.environ.get("MOCK_AGENTEVALS_SUITE_ID", "tool-use-canary")
+        agent_id = os.environ.get("AGENT_ID", "example-agent")
+        return evaluate_via_http(
+            ae_url,
+            coaching_root=root,
+            candidate=candidate,
+            baseline=baseline,
+            suite_id=suite_id,
+            agent_id=agent_id,
+        )
     p = paths(root)
     cases = read_jsonl(p["eval_cases"])
     if not cases:

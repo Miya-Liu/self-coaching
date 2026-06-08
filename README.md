@@ -57,7 +57,7 @@ sequenceDiagram
         D->>A: Improved version of local model
     end
     
-    U->>A: Request authorization
+    A->>U: Request authorization
     U->>A: Decision
     alt Approve
         A->>M: Replace local model

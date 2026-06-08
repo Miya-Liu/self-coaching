@@ -15,7 +15,7 @@ mock-services/demo-run*/
 mock-services/demo-stack/
 mock-services/ci-*/
 references/superpowers-skills/
-modes/skill/self-tuning/services/.env
+modes/self-coaching/self-tuning/services/.env
 uv.lock
 
 # Cursor local state (promote skill is tracked on dev)

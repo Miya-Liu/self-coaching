@@ -32,12 +32,13 @@ The **Coaching API** is the HTTP contract spine for pipeline stages: learn, self
 
 Orchestrator wiring: `ORCHESTRATOR_TRANSPORT=http`, `ORCHESTRATOR_BASE_URL`.
 
-## Composite client (planned / partial)
+## Composite client
 
 Delegate by capability:
 
 - `evaluate` / `eval_report` → AgentEvals when `ORCHESTRATOR_EVAL_BACKEND=agentevals`
-- `learn` / `self_play` / `train` → mock or AERL until adapters complete
+- `train` → AERL when `ORCHESTRATOR_TRAIN_BACKEND=aerl` (`TRAINER_BASE_URL`)
+- `learn` / `self_play` → mock services or remote URLs (`MOCK_SELF_LEARNING_URL`, `MOCK_SELF_PLAY_URL`)
 
 One `SelfCoachingClient` interface — see [integrations/README.md](README.md).
 

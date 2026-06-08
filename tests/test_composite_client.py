@@ -41,7 +41,7 @@ def test_composite_client_delegates_non_eval(tmp_path: Path, monkeypatch: pytest
     ae.wait_for_run.return_value = run_detail
     ae.health.return_value = {"status": "ok"}
 
-    client = CompositeClient(inner, AgentEvalsEvalAdapter(ae))
+    client = CompositeClient(inner, eval_adapter=AgentEvalsEvalAdapter(ae))
     learn = client.learn(event="evt", source="unit")
     assert isinstance(learn, dict)
     assert learn.get("event_id") or learn.get("id")

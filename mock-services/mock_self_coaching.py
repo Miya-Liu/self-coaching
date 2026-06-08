@@ -275,8 +275,31 @@ def evaluate(root: Path, candidate: str = "mock-candidate-v1", baseline: str = "
     return {"status": status, "run_id": run_id, "report": str(outdir / "report.json"), "recommendation": report["recommendation"]}
 
 
+def _aerl_base_url() -> str | None:
+    for key in ("MOCK_AERL_URL", "TRAINER_BASE_URL"):
+        value = os.environ.get(key, "").strip()
+        if value:
+            return value.rstrip("/")
+    return None
+
+
 def train(root: Path, pipeline: str = "sft", dataset: str | None = None, base_model: str = "mock-base") -> dict:
     init(root)
+    aerl_url = _aerl_base_url()
+    if aerl_url:
+        try:
+            from mock_aerl import train_via_http
+        except ImportError:
+            from .mock_aerl import train_via_http
+        agent_id = os.environ.get("AGENT_ID", "example-agent")
+        return train_via_http(
+            aerl_url,
+            coaching_root=root,
+            pipeline=pipeline,
+            dataset=dataset,
+            base_model=base_model,
+            agent_id=agent_id,
+        )
     p = paths(root)
     if pipeline not in {"sft", "grpo"}:
         raise ValueError(f"unsupported mock pipeline: {pipeline}")

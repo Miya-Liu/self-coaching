@@ -2,7 +2,7 @@
 # Start Phase 0 mock stack: AgentEvals (:8080) + optional Coaching API (:8765).
 #
 # Usage:
-#   bash scripts/mock-stack-up.sh [data-dir] [--with-coaching] [--with-learning] [--with-self-play]
+#   bash scripts/mock-stack-up.sh [data-dir] [--with-coaching] [--with-learning] [--with-self-play] [--with-aerl]
 #
 # Environment (for clients):
 #   export AGENTEVALS_BASE_URL=http://127.0.0.1:8080
@@ -18,10 +18,12 @@ DATA_DIR="${ROOT}/mock-services/demo-stack"
 WITH_COACHING=0
 WITH_LEARNING=0
 WITH_SELF_PLAY=0
+WITH_AERL=0
 AGENTEVALS_PORT="${MOCK_AGENTEVALS_PORT:-8080}"
 COACHING_PORT="${MOCK_COACHING_PORT:-8765}"
 LEARNING_PORT="${MOCK_SELF_LEARNING_PORT:-8766}"
 SELF_PLAY_PORT="${MOCK_SELF_PLAY_PORT:-8767}"
+AERL_PORT="${MOCK_AERL_PORT:-8004}"
 AGENT_ID="${AGENT_ID:-example-agent}"
 
 for arg in "$@"; do
@@ -29,6 +31,7 @@ for arg in "$@"; do
     --with-coaching) WITH_COACHING=1 ;;
     --with-learning) WITH_LEARNING=1 ;;
     --with-self-play) WITH_SELF_PLAY=1 ;;
+    --with-aerl) WITH_AERL=1 ;;
     --help|-h)
       sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
@@ -59,6 +62,9 @@ cleanup() {
   if [[ -n "${PID_SELF_PLAY:-}" ]]; then
     kill "${PID_SELF_PLAY}" 2>/dev/null || true
   fi
+  if [[ -n "${PID_AERL:-}" ]]; then
+    kill "${PID_AERL}" 2>/dev/null || true
+  fi
   if [[ -n "${PID_COACHING:-}" ]]; then
     kill "${PID_COACHING}" 2>/dev/null || true
   fi
@@ -80,6 +86,13 @@ if [[ "${WITH_SELF_PLAY}" -eq 1 ]]; then
   PID_SELF_PLAY=$!
 fi
 
+if [[ "${WITH_AERL}" -eq 1 ]]; then
+  echo "==> Starting mock AERL on :${AERL_PORT}"
+  python "${ROOT}/mock-services/mock_aerl.py" serve \
+    --data-dir "${DATA_DIR}" --host 127.0.0.1 --port "${AERL_PORT}" &
+  PID_AERL=$!
+fi
+
 if [[ "${WITH_COACHING}" -eq 1 ]]; then
   echo "==> Starting mock Coaching API on :${COACHING_PORT}"
   export MOCK_AGENTEVALS_URL="http://127.0.0.1:${AGENTEVALS_PORT}"
@@ -88,6 +101,10 @@ if [[ "${WITH_COACHING}" -eq 1 ]]; then
   fi
   if [[ "${WITH_SELF_PLAY}" -eq 1 ]]; then
     export MOCK_SELF_PLAY_URL="http://127.0.0.1:${SELF_PLAY_PORT}"
+  fi
+  if [[ "${WITH_AERL}" -eq 1 ]]; then
+    export MOCK_AERL_URL="http://127.0.0.1:${AERL_PORT}"
+    export TRAINER_BASE_URL="http://127.0.0.1:${AERL_PORT}"
   fi
   python "${ROOT}/mock-services/mock_self_coaching.py" serve \
     --root "${DATA_DIR}" --host 127.0.0.1 --port "${COACHING_PORT}" &
@@ -102,6 +119,9 @@ if [[ "${WITH_LEARNING}" -eq 1 ]]; then
 fi
 if [[ "${WITH_SELF_PLAY}" -eq 1 ]]; then
   echo "  Self-Play:      http://127.0.0.1:${SELF_PLAY_PORT}"
+fi
+if [[ "${WITH_AERL}" -eq 1 ]]; then
+  echo "  AERL:           http://127.0.0.1:${AERL_PORT}"
 fi
 if [[ "${WITH_COACHING}" -eq 1 ]]; then
   echo "  Coaching:       http://127.0.0.1:${COACHING_PORT}"

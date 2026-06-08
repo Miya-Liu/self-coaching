@@ -39,6 +39,18 @@ def _eval_backend() -> str:
     return os.environ.get("ORCHESTRATOR_EVAL_BACKEND", "mock").lower()
 
 
+def _train_backend() -> str:
+    return os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock").lower()
+
+
+def _self_play_n() -> int:
+    return int(os.environ.get("ORCHESTRATOR_SELF_PLAY_N", "4"))
+
+
+def _min_cases_for_model() -> int:
+    return int(os.environ.get("ORCHESTRATOR_MIN_CASES_FOR_MODEL", "100"))
+
+
 def _build_client(coaching_root: Path) -> Any:
     mock_services = _repo_root() / "mock-services"
     if str(mock_services) not in sys.path:
@@ -57,7 +69,11 @@ def _build_client(coaching_root: Path) -> Any:
 
     from services.adapters import build_composite_client  # noqa: E402
 
-    return build_composite_client(inner, eval_backend=_eval_backend())
+    return build_composite_client(
+        inner,
+        eval_backend=_eval_backend(),
+        train_backend=_train_backend(),
+    )
 
 
 def _normalize_eval(
@@ -183,7 +199,7 @@ def run_improvement(
         source="orchestrator",
         capability=capability,
     )
-    play = client.self_play(capability=capability, n=4)
+    play = client.self_play(capability=capability, n=_self_play_n())
     curation = play.get("curation") if isinstance(play.get("curation"), dict) else None
     curate_info: dict[str, Any] = {
         "status": "ok" if curation else "stub",
@@ -201,7 +217,7 @@ def run_improvement(
     write_json(run_dir / "data" / "curation.json", curate_info)
 
     n_cases = int(play.get("count", 0))
-    improvement_path = "skill" if n_cases < 100 else "model"
+    improvement_path = "skill" if n_cases < _min_cases_for_model() else "model"
 
     skill_version = hashlib.sha256(improvement_run_id.encode()).hexdigest()[:12]
     candidate_ref = production_candidate

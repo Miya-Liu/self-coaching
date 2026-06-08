@@ -24,7 +24,9 @@ Default trainer: `TRAINER_BASE_URL` (registry default `http://localhost:8004`).
 POST /v1/pipelines/{sft|grpo}/run
 ```
 
-Coaching API maps `POST /training/runs` → AERL adapter (M2).
+Coaching API maps `POST /training/runs` → AERL adapter (`ORCHESTRATOR_TRAIN_BACKEND=aerl`).
+
+Local mock: `mock-services/mock_aerl.py` on `:8004` (`MOCK_AERL_URL` / `TRAINER_BASE_URL`).
 
 ## Local fallback
 

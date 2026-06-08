@@ -16,7 +16,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 | **Curation** | M3 | **Mock wired** | `curate_data.py` via self-play + orchestrator | Trajectory ingest + production export |
 | **Self-play** | M2 | **Mock stub** | `mock_self_play.py` (`generate-suite` → AgentEvals) | Remote generator adapter |
 | **Skill learning** | M3 | **Mock stub** | `mock_self_learning.py` (classify + registry drafts) | Git-tagged bundle in run manifest |
-| **Model training** | M2 | Partial | Shell + mock `train()` | AERL HTTP adapter + async runs |
+| **Model training** | M2 | **Mock stub** | `mock_aerl.py` + `aerl_client.py` / `train_adapter.py` | Live AERL staging smoke |
 | **Candidate evaluation** | M1 | Partial | Holdout `candidate_eval.json` + promotion gates | Real holdout suite + cost/latency |
 | **Deployment** | M1 dry / M4 live | **Dry-run** | `deploy_manifest.json` (`canary_fraction: 0`) | Canary + rollback via agent API |
 | **Version management** | M1 | **Mock stub** | `mock_agent_registry.py` | Production agent API adapter |
@@ -33,6 +33,8 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 
 ## Completed (integration layer)
 
+- **2026-06-08:** Mock platform Phase 4 — `scripts/mock-coach-demo.sh` (two agents, drop loop, promote/reject); CI `integration-mock-stack`
+- **2026-06-08:** Mock platform Phase 3 — `mock_aerl.py` (async training runs, registry `model_id` drafts, pipeline argv); `aerl_client.py`, `train_adapter.py`, `ORCHESTRATOR_TRAIN_BACKEND=aerl`
 - **2026-06-08:** Mock platform Phase 2 — `mock_self_play.py` (generate-suite, AgentEvals registration, curation splits)
 - **2026-06-08:** Mock platform Phase 1 — `mock_self_learning.py` (classify, memory/skill/error routing, registry drafts)
 - **2026-06-07:** Mock platform Phase 0 — `mock_agent_registry.py`, `mock_agentevals.py`, `scripts/mock-stack-up.sh`; design doc [`mock-platform-design.md`](mock-platform-design.md)

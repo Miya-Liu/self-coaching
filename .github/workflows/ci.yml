@@ -64,7 +64,10 @@ jobs:
           python -m py_compile mock-services/mock_agentevals.py
           python -m py_compile mock-services/mock_self_learning.py
           python -m py_compile mock-services/mock_self_play.py
+          python -m py_compile mock-services/mock_aerl.py
           python -m py_compile mock-services/plugin_mock.py
+          python -m py_compile services/adapters/aerl_client.py
+          python -m py_compile services/adapters/train_adapter.py
 
       - name: Mock AgentEvals Phase 0 smoke
         run: bash scripts/mock-agentevals-smoke.sh
@@ -74,6 +77,9 @@ jobs:
 
       - name: Mock self-play Phase 2 smoke
         run: bash scripts/mock-self-play-smoke.sh
+
+      - name: Mock AERL Phase 3 smoke
+        run: bash scripts/mock-aerl-smoke.sh
 
       - name: Assert OpenAPI and compact contract stay in sync
         run: python mock-services/contracts/regenerate.py --check
@@ -92,6 +98,20 @@ jobs:
             --force-trigger
           test -f "$RUN_DIR/decision.json"
           test -f "$RUN_DIR/deploy_manifest.json"
+
+  integration-mock-stack:
+    name: integration mock stack (coach demo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Coach demo — two agents, drop loop, promote/reject
+        run: bash scripts/mock-coach-demo.sh
 
   mock-smoke:
     name: mock pipeline smoke test (run-all)

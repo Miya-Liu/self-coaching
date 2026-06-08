@@ -1,0 +1,25 @@
+# Coach demo registry (Phase 4) — used by scripts/mock-coach-demo.sh.
+# Paths are resolved relative to repo root when the demo script runs.
+
+agents:
+  - id: agent-promote
+    coaching_root: mock-services/ci-coach-demo/agents/agent-promote
+    model: mock-model-promote
+    prefer_skill_first: false
+    eval:
+      suite_id_canary: tool-use-canary
+      suite_id_holdout: tool-use-holdout
+    improvement:
+      train_pipeline: sft
+      min_cases_for_model_path: 2
+
+  - id: agent-reject
+    coaching_root: mock-services/ci-coach-demo/agents/agent-reject
+    model: mock-model-reject
+    prefer_skill_first: false
+    eval:
+      suite_id_canary: tool-use-canary
+      suite_id_holdout: tool-use-holdout
+    improvement:
+      train_pipeline: sft
+      min_cases_for_model_path: 2

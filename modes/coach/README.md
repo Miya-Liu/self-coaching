@@ -1,6 +1,8 @@
-# coach mode (planned shell)
+# coach mode
 
-**Status:** supervision registry loader started (M5); scheduler and proxy still planned — [roadmap.md](../../docs/project/roadmap.md).
+**Status:** supervision registry + mock coach demo (Phase 4); scheduler and proxy still planned — [roadmap.md](../../docs/project/roadmap.md).
+
+**Local demo (no external services):** `bash scripts/mock-coach-demo.sh` — uses `agents.demo.yaml`.
 
 Coach mode runs the shared **evolution engine** (`services/orchestrator/`) to supervise **external agents**. It does **not** duplicate submodules — it invokes the same **self-learning**, **self-play**, **self-evaluation**, and **self-tuning** pipelines via `SelfCoachingClient` and adapters.
 

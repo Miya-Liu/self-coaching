@@ -110,7 +110,27 @@ Endpoints:
 - `POST /self-play/generate` with `{"capability":"tool_use","n":4}`
 - `POST /eval/runs` with `{"candidate":"mock-candidate-v1","baseline":"mock-baseline-v0"}`
 - `GET /eval/runs/{run_id}/report`
-- `POST /training/runs` with `{"pipeline":"sft"}`
+- `POST /training/runs` with `{"pipeline":"sft"}` (delegates to mock AERL when `MOCK_AERL_URL` / `TRAINER_BASE_URL` set)
+
+### Mock AERL (`mock_aerl.py`, Phase 3)
+
+```bash
+python mock-services/mock_aerl.py serve --data-dir ./demo-stack --port 8004
+export MOCK_AERL_URL=http://127.0.0.1:8004
+export ORCHESTRATOR_TRAIN_BACKEND=aerl
+```
+
+- `POST /v1/training/runs` — async training (`queued` → `succeeded`, `candidate_model_id`)
+- `GET /v1/training/runs/{id}` — poll run status
+- `POST /v1/pipelines/{sft|grpo}/run` — argv endpoint for `run-pipeline.sh`
+
+### Coach demo (Phase 4)
+
+```bash
+bash scripts/mock-coach-demo.sh
+```
+
+Full mock stack, two supervised agents (`modes/coach/agents.demo.yaml`), drop-triggered improvement runs, promote vs reject with registry activation.
 - `POST /pipeline/run-all` with `{"capability":"tool_use","pipeline":"sft"}`
 
 Formal contract (including auth and idempotency): `contracts/openapi.yaml`.

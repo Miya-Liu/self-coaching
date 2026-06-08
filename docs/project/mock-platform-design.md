@@ -2,7 +2,7 @@
 
 Deterministic mock services for the full self-coaching / coach evolution loop **without** real AgentEvals, AERL, or production agent APIs.
 
-**Status:** Phase 0 implemented (registry + AgentEvals mock). Phases 1–4 planned.
+**Status:** Phases 0–4 implemented (full mock platform). Live staging smoke remains.
 
 Related: [roadmap.md](roadmap.md), [integration-plan.md](integration-plan.md), [mock-services/README.md](../../mock-services/README.md).
 
@@ -15,9 +15,9 @@ Related: [roadmap.md](roadmap.md), [integration-plan.md](integration-plan.md), [
 ```text
 Orchestrator → CompositeClient
                  ├── evaluate     → AgentEvals      (:8080)
-                 ├── learn        → Self-learning   (:8766, planned)
-                 ├── self_play    → Self-play       (:8767, planned)
-                 └── train        → AERL            (:8004, external)
+                 ├── learn        → Self-learning   (:8766)
+                 ├── self_play    → Self-play       (:8767)
+                 └── train        → AERL            (:8004)
 ```
 
 Coach mode and `ORCHESTRATOR_EVAL_BACKEND=agentevals` need a **separate AgentEvals-shaped** service and a **version registry** for `agent_config.version_id` lineage.
@@ -37,14 +37,13 @@ Coach mode and `ORCHESTRATOR_EVAL_BACKEND=agentevals` need a **separate AgentEva
      │                         │                         │
 ┌────▼─────────┐   ┌───────────▼──────────┐   ┌──────────▼─────────┐
 │ Mock         │   │ Mock Self-Learning   │   │ Mock Self-Play       │
-│ AgentEvals   │   │ :8766 (Phase 1)      │   │ :8767 (Phase 2)      │
+│ AgentEvals   │   │ :8766                │   │ :8767                │
 │ :8080        │   └──────────────────────┘   └──────────────────────┘
 └──────────────┘
                                │
                     ┌──────────▼──────────┐
                     │ Mock AERL           │
-                    │ :8004 (Phase 3,     │
-                    │  lives in AERL repo)│
+                    │ :8004               │
                     └─────────────────────┘
 ```
 
@@ -157,18 +156,35 @@ Draft versions are created for memory/skill_patch/training_candidate; activation
 
 ---
 
-## Phase 3 — AERL mock (planned, **AERL repo**)
+## Phase 3 — AERL mock ✓
 
-- `POST /v1/training/runs` + poll — returns `candidate_model_id`
-- Auto-upgrade: `services/adapters/aerl_client.py` + `CompositeClient.train()`
-- v1 argv endpoint retained for `run-pipeline.sh`
+| Deliverable | Path |
+|-------------|------|
+| AERL mock | `mock-services/mock_aerl.py` |
+| Async runs | `POST /v1/training/runs`, `GET /v1/training/runs/{id}` |
+| Pipeline argv | `POST /v1/pipelines/{sft\|grpo}/run` (for `run-pipeline.sh`) |
+| Registry drafts | New `model_id` draft version per run |
+| Adapters | `services/adapters/aerl_client.py`, `train_adapter.py` |
+| Composite | `ORCHESTRATOR_TRAIN_BACKEND=aerl` → `CompositeClient.train()` |
+| Facade | `mock_self_coaching.train()` → engine or `MOCK_AERL_URL` |
+| Smoke | `scripts/mock-aerl-smoke.sh` |
+
+Production AERL may live in an external repo; this mock ships in-repo for CI and coach demos.
 
 ---
 
-## Phase 4 — Coach demo pack (planned)
+## Phase 4 — Coach demo pack ✓
 
-- `scripts/mock-coach-demo.sh` — two agents, drop loop, promote/reject
-- CI job `integration-mock-stack`
+| Deliverable | Path |
+|-------------|------|
+| Coach demo | `scripts/mock-coach-demo.sh` |
+| Demo registry | `modes/coach/agents.demo.yaml` |
+| Two agents | `agent-promote` (registry activate) / `agent-reject` (draft left inactive) |
+| Full stack | AgentEvals + Self-Learning + Self-Play + AERL (+ Coaching API health) |
+| Orchestrator | `record-eval` → `check-drop` → `run` (model path via env) |
+| CI | `integration-mock-stack` job in `.github/workflows/ci.yml` |
+
+Uses `ORCHESTRATOR_TRANSPORT=module` so each agent keeps its own coaching root.
 
 ---
 
@@ -183,11 +199,11 @@ Draft versions are created for memory/skill_patch/training_candidate; activation
 
 ## Exit criteria (full mock platform)
 
-- [ ] Coach demo without external services
+- [x] Coach demo without external services (Phase 4)
 - [x] Phase 0: registry + AgentEvals mock + orchestrator `record-eval` against mock
 - [x] Self-play registers suites in AgentEvals (Phase 2)
 - [ ] Self-learning bumps `skill_bundle_version`
-- [ ] AERL mock returns new `model_id`
+- [x] AERL mock returns new `model_id` (Phase 3)
 - [ ] Production-readiness report PASS
 - [ ] Monolithic `run-all` still passes via facade
 
@@ -201,4 +217,4 @@ Draft versions are created for memory/skill_patch/training_candidate; activation
 | Registry separate from self-learning | Yes | Shared lineage store |
 | `POST /api/suites` | Mock-only extension | Documented here + AgentEvals mock |
 | SQLite persistence | Deferred | JSON files under `--data-dir` for now |
-| AERL location | External repo | Phase 3 |
+| AERL location | Mock in-repo; prod external | Phase 3 mock done |

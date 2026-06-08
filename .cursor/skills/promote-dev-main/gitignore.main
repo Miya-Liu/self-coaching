@@ -13,7 +13,7 @@ runs/
 mock-services/demo-run*/
 mock-services/ci-*/
 references/superpowers-skills/
-modes/skill/self-tuning/services/.env
+modes/self-coaching/self-tuning/services/.env
 uv.lock
 tests/
 

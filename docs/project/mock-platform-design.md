@@ -129,11 +129,18 @@ Or: `bash scripts/mock-stack-up.sh`
 
 ---
 
-## Phase 1 — Self-learning + versioning (planned)
+## Phase 1 — Self-learning + versioning ✓
 
-- `mock_self_learning.py` on `:8766`
-- `POST /learning/events` with classification → registry draft versions
-- Skill patches, memory append, ERROR.md routing per `self-learning/SKILL.md`
+| Deliverable | Path |
+|-------------|------|
+| Self-learning mock | `mock-services/mock_self_learning.py` |
+| Classify + route | `POST /learning/events`, `POST /learning/classify` |
+| Registry drafts | In-process `AgentRegistry` (shared `--data-dir`) |
+| Facade | `mock_self_coaching.learn()` → engine or `MOCK_SELF_LEARNING_URL` |
+| Smoke | `scripts/mock-self-learning-smoke.sh` |
+
+Classifications: `memory`, `skill_patch`, `eval_case_candidate`, `training_candidate`, `error_log`.
+Draft versions are created for memory/skill_patch/training_candidate; activation stays behind eval gate.
 
 ---
 

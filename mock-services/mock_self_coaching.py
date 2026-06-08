@@ -135,28 +135,40 @@ def init(root: Path) -> dict:
     return {"status": "initialized", "root": str(root), "manifest": str(p["manifests"] / "mock_service_manifest.json")}
 
 
+def _self_learning_base_url() -> str | None:
+    value = os.environ.get("MOCK_SELF_LEARNING_URL", "").strip()
+    return value.rstrip("/") if value else None
+
+
 def learn(root: Path, event: str, source: str = "manual", capability: str = "tool_use") -> dict:
     init(root)
-    p = paths(root)
-    record = {
-        "id": stable_id("learn", {"event": event, "source": source, "capability": capability}),
-        "timestamp": now(),
-        "source": source,
-        "capability": [capability],
-        "event": event,
-        "classification": "eval_case_candidate",
-        "privacy_checked": True,
-        "durable_artifact": "self_play_seed",
-        "notes": "Mock learning event. No secrets or raw transcript stored.",
-    }
-    append_jsonl(p["events"], record)
-    learn_md = p["experience"] / "LEARNINGS.md"
-    with learn_md.open("a", encoding="utf-8") as f:
-        f.write(f"\n## {record['timestamp']} {record['id']}\n")
-        f.write(f"- category: process\n- context: {source}\n- observation: {event}\n")
-        f.write("- reusable_lesson: require verification and route weak behavior into self-play/eval.\n")
-        f.write("- next_artifact: self_play_task\n")
-    return record
+    sl_url = _self_learning_base_url()
+    if sl_url:
+        try:
+            from mock_self_learning import learn_via_http
+        except ImportError:
+            from .mock_self_learning import learn_via_http
+        agent_id = os.environ.get("AGENT_ID", "example-agent")
+        return learn_via_http(
+            sl_url,
+            coaching_root=root,
+            event=event,
+            source=source,
+            capability=capability,
+            agent_id=agent_id,
+        )
+    try:
+        from mock_self_learning import MockSelfLearningEngine
+    except ImportError:
+        from .mock_self_learning import MockSelfLearningEngine
+    agent_id = os.environ.get("AGENT_ID", "example-agent")
+    return MockSelfLearningEngine(root).record_event(
+        coaching_root=root,
+        event=event,
+        source=source,
+        capability=capability,
+        agent_id=agent_id,
+    )
 
 
 def _make_case(seed_event: dict, index: int, capability: str) -> dict:

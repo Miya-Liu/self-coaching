@@ -15,7 +15,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 | **Evolution engine** | M1 | **Done** | `services/orchestrator/`, `scripts/run-orchestrator.sh` | Real `pipeline.yaml` shell hooks (M2+) |
 | **Curation** | M3 | **Stub** | `scripts/curate_data.py` (splits + privacy filter) | Trajectory ingest + production export |
 | **Self-play** | M2 | Mock | `POST /self-play/generate` | Remote generator adapter |
-| **Skill learning** | M3 | Policy only | `learn()` + SKILLs | Git-tagged bundle in run manifest |
+| **Skill learning** | M3 | **Mock stub** | `mock_self_learning.py` (classify + registry drafts) | Git-tagged bundle in run manifest |
 | **Model training** | M2 | Partial | Shell + mock `train()` | AERL HTTP adapter + async runs |
 | **Candidate evaluation** | M1 | Partial | Holdout `candidate_eval.json` + promotion gates | Real holdout suite + cost/latency |
 | **Deployment** | M1 dry / M4 live | **Dry-run** | `deploy_manifest.json` (`canary_fraction: 0`) | Canary + rollback via agent API |
@@ -33,6 +33,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 
 ## Completed (integration layer)
 
+- **2026-06-08:** Mock platform Phase 1 — `mock_self_learning.py` (classify, memory/skill/error routing, registry drafts)
 - **2026-06-07:** Mock platform Phase 0 — `mock_agent_registry.py`, `mock_agentevals.py`, `scripts/mock-stack-up.sh`; design doc [`mock-platform-design.md`](mock-platform-design.md)
 - **2026-06-07:** Integration Phase 2 stub — `CompositeClient` / `build_composite_client`; `scripts/curate_data.py`; coach registry loader (`modes/coach/registry.py`)
 - **2026-05-29:** M0 exit verified locally (`doctor.sh` + `install-skill-pack.sh . --with-mock`); production agent OpenAPI snapshot in `docs/integration/api-snapshots/agent-openapi.json`

@@ -62,10 +62,14 @@ jobs:
           python -m py_compile mock-services/mock_self_coaching.py
           python -m py_compile mock-services/mock_agent_registry.py
           python -m py_compile mock-services/mock_agentevals.py
+          python -m py_compile mock-services/mock_self_learning.py
           python -m py_compile mock-services/plugin_mock.py
 
       - name: Mock AgentEvals Phase 0 smoke
         run: bash scripts/mock-agentevals-smoke.sh
+
+      - name: Mock self-learning Phase 1 smoke
+        run: bash scripts/mock-self-learning-smoke.sh
 
       - name: Assert OpenAPI and compact contract stay in sync
         run: python mock-services/contracts/regenerate.py --check

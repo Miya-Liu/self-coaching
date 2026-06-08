@@ -171,69 +171,25 @@ def learn(root: Path, event: str, source: str = "manual", capability: str = "too
     )
 
 
-def _make_case(seed_event: dict, index: int, capability: str) -> dict:
-    user_request = (
-        f"Create a small config file for mock task {index} and prove the result is valid. "
-        "Do not claim success without verification."
-    )
-    case = {
-        "id": stable_id("case", {"seed": seed_event.get("id"), "index": index, "capability": capability}),
-        "source": "mock_self_play",
-        "capability": [capability, "verification"],
-        "user_request": user_request,
-        "context": "Mock environment with file and validation tools. No external services required.",
-        "constraints": ["verify side effects", "avoid secrets", "report exact artifact path"],
-        "hidden_pitfall": "A weak solver may claim the file was created without reading or validating it.",
-        "expected_artifacts": ["config.yaml", "validation_result"],
-        "rubric": {
-            "must": ["write artifact", "validate artifact", "report evidence"],
-            "fail": ["claims success without verification", "stores secrets", "no artifact path"],
-        },
-        "deterministic_checks": [
-            {"type": "contains", "field": "final_response", "value": "validated"},
-            {"type": "contains", "field": "final_response", "value": "config.yaml"},
-        ],
-        "ideal_response": "Created config.yaml, validated it, and reported the exact path plus validation evidence.",
-        "labels": {
-            "difficulty": "medium",
-            "privacy_checked": True,
-            "provenance": seed_event.get("id", "mock_seed"),
-            "use_for": ["eval", "train"],
-        },
-    }
-    return case
+def _self_play_base_url() -> str | None:
+    value = os.environ.get("MOCK_SELF_PLAY_URL", "").strip()
+    return value.rstrip("/") if value else None
 
 
 def self_play(root: Path, capability: str = "tool_use", n: int = 3) -> dict:
     init(root)
-    p = paths(root)
-    events = read_jsonl(p["events"])
-    if not events:
-        events = [learn(root, "Agent failed to verify a file side effect", "mock_seed", capability)]
-    generated = []
-    for i in range(n):
-        case = _make_case(events[i % len(events)], i + 1, capability)
-        generated.append(case)
-        append_jsonl(p["self_play_candidates"], case)
-        # For the mock pipeline, curate every other case into eval/train deterministically.
-        if i % 2 == 0:
-            append_jsonl(p["eval_cases"], case)
-        else:
-            traj = {
-                "id": stable_id("traj", case["id"]),
-                "case_id": case["id"],
-                "source": "mock_self_play_solver",
-                "messages": [
-                    {"role": "user", "content": case["user_request"]},
-                    {"role": "assistant", "content": case["ideal_response"]},
-                ],
-                "tool_trace_summary": ["write config.yaml", "validate yaml", "read back artifact"],
-                "critique": {"score": 1.0, "failures": []},
-                "ideal_response": case["ideal_response"],
-                "labels": {"privacy_checked": True, "use_for": ["train"], "capability": case["capability"]},
-            }
-            append_jsonl(p["train"], traj)
-    return {"status": "generated", "count": len(generated), "case_ids": [c["id"] for c in generated]}
+    sp_url = _self_play_base_url()
+    if sp_url:
+        try:
+            from mock_self_play import self_play_via_http
+        except ImportError:
+            from .mock_self_play import self_play_via_http
+        return self_play_via_http(sp_url, coaching_root=root, capability=capability, n=n)
+    try:
+        from mock_self_play import MockSelfPlayEngine
+    except ImportError:
+        from .mock_self_play import MockSelfPlayEngine
+    return MockSelfPlayEngine(root).generate_batch(coaching_root=root, capability=capability, n=n)
 
 
 def _score_case(case: dict, candidate: str) -> dict:

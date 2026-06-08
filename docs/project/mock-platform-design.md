@@ -144,12 +144,16 @@ Draft versions are created for memory/skill_patch/training_candidate; activation
 
 ---
 
-## Phase 2 — Self-play → suite registration (planned)
+## Phase 2 — Self-play → suite registration ✓
 
-- `mock_self_play.py` on `:8767`
-- `POST /self-play/generate-suite` — input: user query, trajectory, eval score
-- Output: `suite_id` via AgentEvals `POST /api/suites`
-- Wire `scripts/curate_data.py` into pipeline
+| Deliverable | Path |
+|-------------|------|
+| Self-play mock | `mock-services/mock_self_play.py` |
+| Suite registration | `POST /self-play/generate-suite` → AgentEvals `POST /api/suites` |
+| Legacy batch | `POST /self-play/generate` (Coaching API compatible) |
+| Curation | `scripts/curate_data.py` wired in engine + orchestrator `curation.json` |
+| Facade | `mock_self_coaching.self_play()` → engine or `MOCK_SELF_PLAY_URL` |
+| Smoke | `scripts/mock-self-play-smoke.sh` |
 
 ---
 
@@ -181,7 +185,7 @@ Draft versions are created for memory/skill_patch/training_candidate; activation
 
 - [ ] Coach demo without external services
 - [x] Phase 0: registry + AgentEvals mock + orchestrator `record-eval` against mock
-- [ ] Self-play registers suites in AgentEvals
+- [x] Self-play registers suites in AgentEvals (Phase 2)
 - [ ] Self-learning bumps `skill_bundle_version`
 - [ ] AERL mock returns new `model_id`
 - [ ] Production-readiness report PASS

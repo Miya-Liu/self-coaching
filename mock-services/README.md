@@ -8,6 +8,7 @@ Local mocks for the evolution loop without real LLM, trainer, evaluator, or exte
 | **AgentEvals** (suites + async runs) | 8080 | `mock_agentevals.py` |
 | **Agent registry** (version lineage) | 8768 (optional) | `mock_agent_registry.py` |
 | **Self-learning** (classify + version drafts) | 8766 | `mock_self_learning.py` |
+| **Self-play** (suite registration + curation) | 8767 | `mock_self_play.py` |
 
 Design: [`docs/project/mock-platform-design.md`](../docs/project/mock-platform-design.md) · [`coaching_api.md`](../docs/design/integrations/coaching_api.md).
 
@@ -21,6 +22,8 @@ bash scripts/mock-stack-up.sh mock-services/demo-stack --with-coaching
 When `MOCK_AGENTEVALS_URL` or `AGENTEVALS_BASE_URL` is set, `mock_self_coaching.py evaluate` delegates to mock AgentEvals.
 
 `learn()` uses `MockSelfLearningEngine` in-process by default (classification + registry drafts). Set `MOCK_SELF_LEARNING_URL` to call the HTTP service on `:8766`.
+
+`self_play()` uses `MockSelfPlayEngine` in-process (registers AgentEvals suites + runs `curate_data.py`). Set `MOCK_SELF_PLAY_URL` for HTTP on `:8767`. Phase 2 endpoint: `POST /self-play/generate-suite`.
 
 ```bash
 export AGENTEVALS_BASE_URL=http://127.0.0.1:8080

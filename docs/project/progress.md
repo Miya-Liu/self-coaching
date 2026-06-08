@@ -13,8 +13,8 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 | **Auto-evaluation** | M1–M2 | Partial | Mock eval + **`EvalMetrics`**; AgentEvals adapter; **mock AgentEvals service** (`mock_agentevals.py`) | Live staging smoke |
 | **Drop detector** | M1 | **Done** | `python -m services.orchestrator check-drop` | Wire to coach scheduler (M5) |
 | **Evolution engine** | M1 | **Done** | `services/orchestrator/`, `scripts/run-orchestrator.sh` | Real `pipeline.yaml` shell hooks (M2+) |
-| **Curation** | M3 | **Stub** | `scripts/curate_data.py` (splits + privacy filter) | Trajectory ingest + production export |
-| **Self-play** | M2 | Mock | `POST /self-play/generate` | Remote generator adapter |
+| **Curation** | M3 | **Mock wired** | `curate_data.py` via self-play + orchestrator | Trajectory ingest + production export |
+| **Self-play** | M2 | **Mock stub** | `mock_self_play.py` (`generate-suite` → AgentEvals) | Remote generator adapter |
 | **Skill learning** | M3 | **Mock stub** | `mock_self_learning.py` (classify + registry drafts) | Git-tagged bundle in run manifest |
 | **Model training** | M2 | Partial | Shell + mock `train()` | AERL HTTP adapter + async runs |
 | **Candidate evaluation** | M1 | Partial | Holdout `candidate_eval.json` + promotion gates | Real holdout suite + cost/latency |
@@ -33,6 +33,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 
 ## Completed (integration layer)
 
+- **2026-06-08:** Mock platform Phase 2 — `mock_self_play.py` (generate-suite, AgentEvals registration, curation splits)
 - **2026-06-08:** Mock platform Phase 1 — `mock_self_learning.py` (classify, memory/skill/error routing, registry drafts)
 - **2026-06-07:** Mock platform Phase 0 — `mock_agent_registry.py`, `mock_agentevals.py`, `scripts/mock-stack-up.sh`; design doc [`mock-platform-design.md`](mock-platform-design.md)
 - **2026-06-07:** Integration Phase 2 stub — `CompositeClient` / `build_composite_client`; `scripts/curate_data.py`; coach registry loader (`modes/coach/registry.py`)

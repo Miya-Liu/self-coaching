@@ -184,12 +184,20 @@ def run_improvement(
         capability=capability,
     )
     play = client.self_play(capability=capability, n=4)
-    curate_info = {
-        "status": "stub",
+    curation = play.get("curation") if isinstance(play.get("curation"), dict) else None
+    curate_info: dict[str, Any] = {
+        "status": "ok" if curation else "stub",
         "self_play": play,
         "train_split": str(coaching_root / ".self-coaching" / "curated" / "train.jsonl"),
-        "note": "M1 uses existing mock curated data; M3 adds real curation",
+        "validation_split": str(coaching_root / ".self-coaching" / "curated" / "validation.jsonl"),
+        "holdout_split": str(coaching_root / ".self-coaching" / "curated" / "holdout.jsonl"),
     }
+    if curation:
+        curate_info["curation"] = curation
+    if play.get("suite_id"):
+        curate_info["agentevals_suite_id"] = play["suite_id"]
+    else:
+        curate_info["note"] = "M1 stub when self-play returns no curation/suite_id"
     write_json(run_dir / "data" / "curation.json", curate_info)
 
     n_cases = int(play.get("count", 0))

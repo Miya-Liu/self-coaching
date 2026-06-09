@@ -4,12 +4,7 @@ Execution plan from **skill demo + Coaching API mock** to a **deployable evoluti
 
 ## Deployment modes
 
-| Mode | Executor | Subject | Primary deploy |
-|------|----------|---------|----------------|
-| **Self-coaching mode** | Host agent | Host agent | **T1** |
-| **Coach mode** | Coach service / scheduler | External agents | **T2 + T3** |
-
-Both modes share the **evolution engine**, pipeline stages, and adapters. See [architecture.md](../design/architecture.md).
+See [deploy-overview.md — Deployment modes](../guides/deploy-overview.md#deployment-modes).
 
 ## Deploy targets (artifacts)
 
@@ -18,7 +13,7 @@ We ship three deploy targets in order. Each has a clear audience and exit criter
 | Target | What gets deployed | Mode | Status |
 |--------|-------------------|------|--------|
 | **T1 — Self-coaching pack** | Markdown skills + `scripts/` + `experience/` layout | Self-coaching | **Active — ship now** |
-| **T2 — Coaching API** | `mock_self_coaching.py serve` → real eval/train adapters | Coach (+ self-coaching optional) | **Deferred**; mock ready |
+| **T2 — Coaching API** | `mock_self_coaching.py serve` → real eval/train adapters | Coach (+ self-coaching optional) | **Mock complete**; M2 production deploy deferred |
 | **T3 — Evolution engine** | `services/orchestrator/` + metrics + drop detector | Coach (+ self-coaching optional) | **Built (M1)** |
 
 **Primary focus:** **T1 / M0** — Self-coaching mode install. See [`deploy-skill-pack.md`](../guides/deploy-skill-pack.md).
@@ -27,8 +22,8 @@ We ship three deploy targets in order. Each has a clear audience and exit criter
 [T1 self-coaching pack]      Self-coaching mode — host reads modes/self-coaching/SKILL.md
 [T2 Coaching API]    HTTP/CLI/module — contract spine (OpenAPI)
 [T3 evolution engine] record-eval → check-drop → run → gate → deploy
-                              │
-                              └─ calls T2 via ModuleClient or HTTPClient
+                              |
+                              +-- calls T2 via ModuleClient or HTTPClient
 ```
 
 ## Architecture spine
@@ -58,7 +53,7 @@ One evolution engine, one `SelfCoachingClient`, many adapters.
 
 **Exit:** `bash scripts/install-skill-pack.sh . --with-mock` succeeds on a clean machine with bash + python.
 
-**Next focus:** M2 + integration Phase 0–1 (see [`integration-plan.md`](integration-plan.md)).
+**Next focus:** M1 — evolution engine + dry loop (done); M2 next (Phase 0 smoke is the first M2 gate).
 
 ### M1 — Evolution engine + dry loop (pipeline Phase 1) ✓
 
@@ -71,9 +66,13 @@ One evolution engine, one `SelfCoachingClient`, many adapters.
 
 **Exit:** Synthetic or real eval drop creates `{run_dir}/` with `current_eval.json`, `candidate_eval.json`, `decision.json`, and `deploy_manifest.json`.
 
+Phase-0 integration smoke (`mapping.md` confirmed against a live succeeded `RunDetail`) is an **M2 prerequisite**, not part of M1 exit.
+
 **Next focus:** M2 (deployable Coaching API) + Coach mode adapters.
 
 ### M2 — Deployable Coaching API
+
+**Prerequisite:** Phase 0 integration smoke (see [`integration-plan.md`](integration-plan.md) § Phase 0).
 
 - [ ] Dockerfile / process model for `serve`
 - [ ] sqlite persistence (runs, idempotency, events)

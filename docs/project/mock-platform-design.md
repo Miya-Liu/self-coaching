@@ -2,7 +2,7 @@
 
 Deterministic mock services for the full self-coaching / coach evolution loop **without** real AgentEvals, AERL, or production agent APIs.
 
-**Status:** Phases 0–4 implemented (full mock platform). Live staging smoke remains.
+**Status:** Phases 0–4 implemented (mock T2 stack — facade + split services). Production T2 (M2) deploy deferred. Live staging smoke remains.
 
 Related: [roadmap.md](roadmap.md), [integration-plan.md](integration-plan.md), [mock-services/README.md](../../mock-services/README.md).
 
@@ -13,11 +13,11 @@ Related: [roadmap.md](roadmap.md), [integration-plan.md](integration-plan.md), [
 `mock_self_coaching.py` bundles learn, self-play, eval, and train in one process (`:8765`). That suffices for T1 smoke tests but does not match the integration spine:
 
 ```text
-Orchestrator → CompositeClient
-                 ├── evaluate     → AgentEvals      (:8080)
-                 ├── learn        → Self-learning   (:8766)
-                 ├── self_play    → Self-play       (:8767)
-                 └── train        → AERL            (:8004)
+Orchestrator -> CompositeClient
+                 +-- evaluate     -> AgentEvals      (:8080)
+                 +-- learn        -> Self-learning   (:8766)
+                 +-- self_play    -> Self-play       (:8767)
+                 +-- train        -> AERL            (:8004)
 ```
 
 Coach mode and `ORCHESTRATOR_EVAL_BACKEND=agentevals` need a **separate AgentEvals-shaped** service and a **version registry** for `agent_config.version_id` lineage.
@@ -27,24 +27,24 @@ Coach mode and `ORCHESTRATOR_EVAL_BACKEND=agentevals` need a **separate AgentEva
 ## Target topology
 
 ```text
-                    ┌─────────────────────────────┐
-                    │   Mock Agent Registry       │
-                    │   skills / tools / memory / │
-                    │   model_id per version      │
-                    └──────────┬──────────────────┘
-                               │
-     ┌─────────────────────────┼─────────────────────────┐
-     │                         │                         │
-┌────▼─────────┐   ┌───────────▼──────────┐   ┌──────────▼─────────┐
-│ Mock         │   │ Mock Self-Learning   │   │ Mock Self-Play       │
-│ AgentEvals   │   │ :8766                │   │ :8767                │
-│ :8080        │   └──────────────────────┘   └──────────────────────┘
-└──────────────┘
-                               │
-                    ┌──────────▼──────────┐
-                    │ Mock AERL           │
-                    │ :8004               │
-                    └─────────────────────┘
+                    +-----------------------------+
+                    |   Mock Agent Registry       |
+                    |   skills / tools / memory / |
+                    |   model_id per version      |
+                    +-------------+---------------+
+                                  |
+     +----------------------------+----------------------------+
+     |                            |                            |
++----v----------+   +------------v-----------+   +----------v---------+
+| Mock          |   | Mock Self-Learning     |   | Mock Self-Play       |
+| AgentEvals    |   | :8766                  |   | :8767                |
+| :8080         |   +------------------------+   +----------------------+
++----------------+
+                                  |
+                    +-------------v-------------+
+                    | Mock AERL                 |
+                    | :8004                     |
+                    +---------------------------+
 ```
 
 `mock_self_coaching.py` remains a **compatibility facade** during migration (`run-all`, CI, `install-skill-pack.sh --with-mock`).
@@ -148,11 +148,21 @@ Draft versions are created for memory/skill_patch/training_candidate; activation
 | Deliverable | Path |
 |-------------|------|
 | Self-play mock | `mock-services/mock_self_play.py` |
-| Suite registration | `POST /self-play/generate-suite` → AgentEvals `POST /api/suites` |
-| Legacy batch | `POST /self-play/generate` (Coaching API compatible) |
+| Failure-conditioned suite | `POST /self-play/generate-suite` → `MockSelfPlayEngine.generate_suite()` |
+| Batch buffer fill | `POST /self-play/generate` → `MockSelfPlayEngine.generate_batch()` |
+| Suite registration | Both paths → AgentEvals `POST /api/suites` + `curate_data.py` |
 | Curation | `scripts/curate_data.py` wired in engine + orchestrator `curation.json` |
-| Facade | `mock_self_coaching.self_play()` → engine or `MOCK_SELF_PLAY_URL` |
+| Facade | `mock_self_coaching.self_play()` → **`generate_batch` only** (T-path / C07); E-path uses `generate-suite` directly |
 | Smoke | `scripts/mock-self-play-smoke.sh` |
+
+**Two endpoints, two jobs** (used by [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md) §3.3 vs §3.4):
+
+| Endpoint | Engine method | When | Key request params |
+|----------|---------------|------|-------------------|
+| `POST /self-play/generate-suite` | `generate_suite()` | E-path sparse augment (C06): `0 < \|Σ\| ≤ σ_play` | `user_query`, `trajectory`, `eval_score`, `mode` (default `adversarial`), `n_variants` |
+| `POST /self-play/generate` | `generate_batch()` | T-path buffer top-up (C07): idle and `\|B\| < β` | `capability`, `n` (= `β - \|B\|`) |
+
+`generate-suite` is a **mock extension** (failure-conditioned variants + suite register). `generate` matches the Coaching API contract in `openapi.yaml`. They are **not** one endpoint with a `mode` switch.
 
 ---
 
@@ -185,6 +195,12 @@ Production AERL may live in an external repo; this mock ships in-repo for CI and
 | CI | `integration-mock-stack` job in `.github/workflows/ci.yml` |
 
 Uses `ORCHESTRATOR_TRANSPORT=module` so each agent keeps its own coaching root.
+
+---
+
+## Facade lifecycle
+
+`mock_self_coaching.py` is **not** removed when production T2 (M2) lands. Kept through M2 for `install-skill-pack.sh --with-mock` parity; reviewed at M3 (retire, keep as shim, or freeze at v1).
 
 ---
 

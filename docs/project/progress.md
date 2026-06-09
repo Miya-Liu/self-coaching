@@ -28,7 +28,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 | Target | Mode | Ready? | Notes |
 |--------|------|--------|-------|
 | **T1 — Self-coaching pack** | Self-coaching | **Active** | `install-skill-pack.sh`, `modes/self-coaching/SKILL_PACK_VERSION` 0.2.0 |
-| **T2 — Coaching API** | Coach | Deferred | Mock ready; adopt for coach mode |
+| **T2 — Coaching API** | Coach | Mock complete | M2 production deploy deferred; adopt mock for coach mode |
 | **T3 — Evolution engine** | Coach (+ self-coaching optional) | M1 done | Not required for T1-only Self-coaching mode |
 
 ## Completed (integration layer)

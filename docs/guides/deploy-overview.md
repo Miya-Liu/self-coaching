@@ -4,7 +4,7 @@ Design: [architecture.md](../design/architecture.md) · [self_coaching_mode.md](
 
 ## Active deploy target: **T1 — Self-coaching pack** (Self-coaching mode)
 
-This repository ships and supports **Self-coaching mode** as a portable skill pack (markdown + Bash). T2 (Coaching API) and T3 (evolution engine) are optional add-ons for automation and coach mode — see [roadmap.md](../project/roadmap.md).
+This repository ships and supports **Self-coaching mode** as a portable skill pack (markdown + Bash). T2 (Coaching API) and T3 (evolution engine) are optional add-ons for automation and coach mode — mock T2 is complete; production M2 deploy is deferred. See [roadmap.md](../project/roadmap.md).
 
 **Canonical T1 guide:** [`deploy-skill-pack.md`](deploy-skill-pack.md)
 
@@ -55,6 +55,8 @@ Adopt T2/T3 when you need HTTP integration or coach-mode supervision; T1 remains
 
 ## T2 — Coaching API
 
+**Status:** T2 has a complete mock implementation (facade + split services) suitable for demos and CI — see [mock-platform-design.md](../project/mock-platform-design.md). Production T2 (M2: Docker, sqlite, async training, real adapters) is deferred.
+
 HTTP **contract spine** for pipeline stages (learn, self-play, eval, train). Used as the coach-mode front door; self-coaching mode can call it when pipelines run remotely.
 
 **Artifacts:** Python process `mock_self_coaching.py serve` (mock) or real adapters behind the same OpenAPI contract.
@@ -81,7 +83,7 @@ c.learn(event="verification missed", capability="tool_use")
 
 | Variable | Purpose |
 |----------|---------|
-| `MOCK_SERVICE_TOKEN` | When set, requires `Authorization: Bearer <token>` (except `GET /health`) |
+| `MOCK_SERVICE_TOKEN` | When set, requires `Authorization: Bearer ${MOCK_SERVICE_TOKEN}` (except `GET /health`) |
 | `MOCK_MAX_BODY_BYTES` | Max POST body (default 1 MiB) |
 
 **Production (M2, planned):** container image, sqlite volume, async training endpoints, AERL/AgentEvals adapters — see [roadmap.md](../project/roadmap.md) M2.

@@ -46,24 +46,25 @@ T1 (self-coaching pack) is the **active** deploy target. T2/T3 are optional unti
 ### 1.2 Target architecture
 
 ```text
-                    ┌─────────────────────────────────────┐
-                    │  Evolution engine (T3)              │
-                    │  services/orchestrator              │
-                    │  record-eval │ check-drop │ run     │
-                    └─────────────────┬───────────────────┘
-                                      │
-                    ┌─────────────────▼───────────────────┐
-                    │  SelfCoachingClient (composite)      │
-                    │  evaluate / eval_report / learn / …  │
-                    └──┬──────────────┬──────────────┬──────┘
-                       │              │              │
-              ┌────────▼────┐  ┌──────▼──────┐  ┌────▼─────────┐
-              │ AgentEvals  │  │ Mock / AERL │  │ Prod. agent  │
-              │ adapter     │  │ (train,     │  │ adapter      │
-              │ (eval)      │  │  self-play) │  │ (trajectory, │
-              └──────┬──────┘  └─────────────┘  │  deploy)     │
-                     │                          └──────┬───────┘
-              :8080 /api/runs                    :8000 /api/agents/…
+                    +-------------------------------------+
+                    |  Evolution engine (T3)              |
+                    |  services/orchestrator              |
+                    |  record-eval | check-drop | run     |
+                    +-----------------+-------------------+
+                                      |
+                    +-----------------v-------------------+
+                    |  SelfCoachingClient (composite)      |
+                    |  evaluate / eval_report / learn / ...  |
+                    +--+--------------+--------------+------+
+                       |              |              |
+              +--------v-----+  +-----v------+  +----v-----------+
+              | AgentEvals   |  | Mock / AERL |  | Prod. agent   |
+              | adapter      |  | (train,     |  | adapter       |
+              | (eval)       |  |  self-play) |  | (trajectory,  |
+              +------+-------+  +-------------+  |  deploy)     |
+                     |                            +-------+-------+
+              :8080 /api/runs                            |
+                                                    :8000 /api/agents/...
 ```
 
 ---
@@ -141,9 +142,9 @@ curl -s http://localhost:8080/health
 curl -s http://localhost:8080/api/suites
 
 # Production agent (set TOKEN)
-curl -s -H "Authorization: Bearer $AGENT_API_TOKEN" \
+curl -s -H "Authorization: Bearer ${AGENT_API_TOKEN}" \
   http://10.110.158.146:8000/api/health
-curl -s -H "Authorization: Bearer $AGENT_API_TOKEN" \
+curl -s -H "Authorization: Bearer ${AGENT_API_TOKEN}" \
   "http://10.110.158.146:8000/api/agents/${AGENT_ID}/versions"
 ```
 
@@ -336,7 +337,7 @@ python -m services.orchestrator run \
 7. **Phase 4** — activate/rollback (staging only)  
 8. **Layer D/E** — CI and acceptance  
 
-Aligns with roadmap: **M1 done** → **M2 adapters** → **M3 curation/gates** → **M4 deploy**.
+Aligns with roadmap: **M1 done** (mock dry loop) → **Phase 0 smoke** (M2 gate; not M1 exit) → **M2 adapters** → **M3 curation/gates** → **M4 deploy**.
 
 ---
 
@@ -346,7 +347,7 @@ Aligns with roadmap: **M1 done** → **M2 adapters** → **M3 curation/gates** �
 - [ ] Export AgentEvals OpenAPI → `api-snapshots/agentevals-openapi.json` (requires service on `:8080`; use `scripts/export-integration-snapshots.sh`)
 - [ ] Run Phase 0 smoke; replace fixture with live succeeded `RunDetail`
 - [ ] Choose `agent_id`, canary/holdout `suite_id`, baseline/candidate `version_id`
-- [x] Implement Phase 1.1–1.3 behind `ORCHESTRATOR_EVAL_BACKEND` (`services/adapters/`, `mapping.md`)
+- [x] Implement Phase 1.1–1.3 behind `ORCHESTRATOR_EVAL_BACKEND` (`services/adapters/`, `mapping.md`) (fixture-tested; live staging smoke pending)
 - [x] Add `tests/test_agentevals_adapter.py`
 - [ ] Update [`progress.md`](progress.md) row for Auto-evaluation when Phase 1 exits (live staging)
 

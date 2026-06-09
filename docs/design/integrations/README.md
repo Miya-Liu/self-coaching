@@ -13,14 +13,14 @@ How external systems connect to the shared **evolution engine** via adapters. On
 
 ```text
 services/orchestrator/
-       │
-       ▼
-SelfCoachingClient  ←── mock-services/client.py
-       │
-       ├── evaluate / eval_report  → AgentEvals adapter
-       ├── learn / self_play       → Coaching API (mock → future)
-       ├── train                   → AERL adapter
-       └── (trajectory / deploy)    → Production agent adapter (planned)
+       |
+       v
+SelfCoachingClient  <-- mock-services/client.py
+       |
+       +-- evaluate / eval_report  -> AgentEvals adapter
+       +-- learn / self_play       -> Coaching API (mock -> future)
+       +-- train                   -> AERL adapter
+       +-- (trajectory / deploy)    -> Production agent adapter (planned)
 ```
 
 Code: `services/adapters/`. Execution plan: [integration-plan.md](../../project/integration-plan.md).

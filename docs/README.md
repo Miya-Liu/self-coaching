@@ -30,3 +30,4 @@ Naming: [design/README.md](design/README.md#canonical-naming). Start: [design/ar
 | [project/roadmap.md](project/roadmap.md) | Milestones |
 | [project/integration-plan.md](project/integration-plan.md) | Adapters (AgentEvals, agent API) |
 | [project/progress.md](project/progress.md) | Status |
+| [project/self-coaching-demo-pipeline-plan.md](project/self-coaching-demo-pipeline-plan.md) | Self-coaching loop demo (mock) |

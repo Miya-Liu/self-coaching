@@ -209,6 +209,12 @@ Uses `ORCHESTRATOR_TRANSPORT=module` so each agent keeps its own coaching root.
 
 ---
 
+## Phase 5 — Self-coaching loop demo (planned)
+
+Continuous task-stream demo on mocks (dual E/T evolution paths, generation-scoped buffer, completeness audit). Not started — see [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md).
+
+---
+
 ## Open decisions
 
 | Topic | Decision | Notes |

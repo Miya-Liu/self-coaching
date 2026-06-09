@@ -22,6 +22,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 | **Version management** | M1 | **Mock stub** | `mock_agent_registry.py` | Production agent API adapter |
 | **Coach mode shell** | M5 | **Started** | `modes/coach/registry.py`, `agents.example.yaml` | Scheduler examples + validation CLI |
 | **LLM proxy** | M5 | Not started | — | Optional observation adapter |
+| **Self-coaching loop demo** | M1.5+ | **P0–P2 done** | `modes/self-coaching/loop_driver.py` + fixtures/tests | P3–P5: completeness harness, demo script, CI |
 
 ## Deploy targets and modes
 
@@ -33,6 +34,11 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 
 ## Completed (integration layer)
 
+- **2026-06-09:** Self-coaching demo loop **P0–P2** — deterministic task-stream driver under `modes/self-coaching/`:
+  - **P0:** `trajectory_scorer.py` (§3.2.1 rubric), `trajectory_simulator.py`, `state.py`, `loop_driver.py` skeleton, fixtures in `mock-services/fixtures/task_stream/tool_use_v1.jsonl`, tests `test_trajectory_scorer.py`, `test_loop_driver_skeleton.py`
+  - **P1:** E-path — `support.jsonl` / `tuning_buffer.jsonl` / trajectory artifacts; `client.learn()` via `ModuleClient`; registry draft+activate; `g++` + A6 `meta.generation` mirror; fixtures `e_path_v1.jsonl`; tests `test_loop_e_path.py`
+  - **P2:** Sparse self-play (C06) + T-path (C07) — `generate_suite` before `learn()` when `0 < |Σ| ≤ σ_play`; `FreeTimeSimulator`; `generate_batch` buffer top-up; `client.train()` + holdout `R_suite` + `check_promotion()` + hot-swap; fixtures `sparse_play_v1.jsonl`, `t_path_v1.jsonl`; tests `test_loop_self_play_sparse.py`, `test_loop_t_path.py`
+  - Plan: [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md) · **14 pytest cases** green (module transport; no HTTP stack required)
 - **2026-06-08:** Mock platform Phase 4 — `scripts/mock-coach-demo.sh` (two agents, drop loop, promote/reject); CI `integration-mock-stack`
 - **2026-06-08:** Mock platform Phase 3 — `mock_aerl.py` (async training runs, registry `model_id` drafts, pipeline argv); `aerl_client.py`, `train_adapter.py`, `ORCHESTRATOR_TRAIN_BACKEND=aerl`
 - **2026-06-08:** Mock platform Phase 2 — `mock_self_play.py` (generate-suite, AgentEvals registration, curation splits)

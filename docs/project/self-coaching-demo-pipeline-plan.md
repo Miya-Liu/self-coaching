@@ -1,7 +1,9 @@
 # Self-coaching demo pipeline plan
 
-**Status:** Draft — implementation not started  
+**Status:** P0–P2 implemented (2026-06-09); P3–P5 not started  
 **Goal:** Deploy a **demo-ready, deterministic pipeline** that shows how **self-coaching mode** runs continuously on top of the **mock platform**, and doubles as a **mock-completeness harness** beyond one-shot `run-all` / `production_readiness.py`.
+
+**Implementation note:** Runtime code lives under `modes/self-coaching/` (not `mock-services/` as in §19) because the self-coaching mode package uses hyphenated directory names; imports use `sys.path` shims. Entry point: `loop_driver.run_tasks()`.
 
 **Related:** [mock-platform-design.md](mock-platform-design.md) (Phases 0–4 done), [pipelines.md](../design/pipelines.md) (batch evolution engine), [roadmap.md](roadmap.md) (M0–M5), [progress.md](progress.md).
 
@@ -414,59 +416,54 @@ Scenarios (JSON):
 
 ## 9. Implementation phases
 
-### Phase P0 — Foundations (no mock stack HTTP required)
+### Phase P0 — Foundations (no mock stack HTTP required) — **done**
 
 **Deliverables**
 
-| Item | Path |
+| Item | Path (implemented) |
 |------|------|
 | Plan doc (this file) | `docs/project/self-coaching-demo-pipeline-plan.md` |
-| Task fixtures | `mock-services/fixtures/task_stream/*.jsonl` |
-| Trajectory simulator | `mock-services/trajectory_simulator.py` |
-| Online scorer | `mock-services/trajectory_scorer.py` |
-| Generation state | `mock-services/loop_state.py` |
-| Unit tests | `tests/test_trajectory_simulator.py`, `tests/test_trajectory_scorer.py`, `tests/test_loop_state.py` |
+| Task fixtures | `mock-services/fixtures/task_stream/tool_use_v1.jsonl` |
+| Trajectory simulator | `modes/self-coaching/trajectory_simulator.py` |
+| Online scorer | `modes/self-coaching/self-learning/trajectory_scorer.py` |
+| Generation state | `modes/self-coaching/state.py` |
+| Loop driver (skeleton) | `modes/self-coaching/loop_driver.py` |
+| Unit tests | `tests/test_trajectory_scorer.py`, `tests/test_loop_driver_skeleton.py` |
 
-**Exit:** Given fixture tasks, simulator produces ξᵢ; scorer returns scores matching §3.2.1 golden triples; `rᵢ < τ_fail` routes rows to Σ vs B; state read/write round-trips.
-
-**Estimate:** 1–2 days.
-
----
-
-### Phase P1 — Loop controller (in-process)
-
-**Deliverables**
-
-| Item | Path |
-|------|------|
-| Loop controller | `mock-services/self_coaching_loop.py` |
-| CLI | `python -m mock_services.self_coaching_loop run --root … --scenario full_loop` |
-| Support + buffer stores | `.self-coaching/loop/*` |
-| Skill retrieve stub | `retrieve_skills(task, coaching_root) → full bundle` |
-
-**Behavior:** Run N tasks from fixture; populate Σ and B; no E/T yet.
-
-**Exit:** After 10 tasks, `support.jsonl` and `tuning_buffer.jsonl` reflect injected failure rate; `state.json` consistent.
-
-**Estimate:** 2–3 days.
+**Exit:** Given fixture tasks, simulator produces ξᵢ; scorer returns scores matching §3.2.1 golden triples; `rᵢ < τ_fail` routes rows to Σ vs B; state read/write round-trips. **Met.**
 
 ---
 
-### Phase P2 — E-path (self-learning evolution)
+### Phase P1 — Loop controller + E-path (in-process) — **done**
 
 **Deliverables**
 
-| Item | Path |
+| Item | Path (implemented) |
 |------|------|
-| E-path in controller | calls `client.learn()` / `MockSelfLearningEngine` |
-| Sparse self-play | when `0 < \|Σ\| ≤ σ_play`, `generate_suite` / `POST /self-play/generate-suite` from first failure (§3.3) |
-| Registry bump | `create_version` + update `state.generation` |
-| Buffer flush | remove rows where `generation ≤ g` |
-| Tests | `tests/test_self_coaching_loop_e_path.py` |
+| Loop controller | `modes/self-coaching/loop_driver.py` (`run_tasks`) |
+| Loop store (Σ, B) | `modes/self-coaching/loop_store.py` → `.self-coaching/loop/*` |
+| E-path | `run_e_path()` → `ModuleClient.learn()` / `MockSelfLearningEngine` |
+| Registry bump | `mock_agent_registry` draft + `activate`; `state.generation` + `meta.generation` |
+| Tests | `tests/test_loop_e_path.py`, fixture `e_path_v1.jsonl` |
 
-**Exit:** Demo scenario with 3 failures triggers skill or memory draft; `skill_bundle_version` changes in registry; B flushed; `g` incremented.
+**Exit:** After 10 tasks, `support.jsonl` and `tuning_buffer.jsonl` reflect injected failure rate; `state.json` consistent; 3 failures trigger learn + `g++`. **Met.**
 
-**Estimate:** 2–3 days.
+---
+
+### Phase P2 — Sparse self-play + T-path — **done** (plan had T-path as P3; implemented early)
+
+**Deliverables**
+
+| Item | Path (implemented) |
+|------|------|
+| Sparse self-play (C06) | `augment_sigma_sparse()` → `MockSelfPlayEngine.generate_suite()` before `learn()` |
+| Buffer top-up (C07) | `fill_buffer_batch()` → `generate_batch()` / `MOCK_SELF_PLAY_URL` |
+| T-path train + gate | `run_t_path()` → `client.train()`, holdout `MockAgentEvalsEngine`, `check_promotion()`, hot-swap |
+| Free-time | `modes/self-coaching/free_time.py` (`LOOP_IDLE_AFTER`) |
+| Buffer flush on E-path | `loop_store.flush_buffer_stale(g)` |
+| Tests | `tests/test_loop_self_play_sparse.py`, `tests/test_loop_t_path.py`; fixtures `sparse_play_v1.jsonl`, `t_path_v1.jsonl` |
+
+**Exit:** 3 failures → skill draft + `skill_bundle_version` change + B flushed + `g++`; T-path promotes on holdout pass and preserves B on reject. **Met.**
 
 ---
 
@@ -723,4 +720,4 @@ docs/
 
 ---
 
-*Last updated: 2026-06-09. Revise this doc when P0 starts; check off phases in [progress.md](progress.md).*
+*Last updated: 2026-06-09. P0–P2 implemented; check off phases in [progress.md](progress.md).*

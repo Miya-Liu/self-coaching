@@ -1,0 +1,19 @@
+{
+  "name": "sparse_failures",
+  "description": "Single failure triggers sparse self-play (C06) before E.learn",
+  "agent_id": "demo-agent",
+  "task_stream": "mock-services/fixtures/task_stream/sparse_play_v1.jsonl",
+  "e_path": {
+    "expect_sparse_self_play": true,
+    "min_generation_bump": 1
+  },
+  "t_path": {
+    "outcome": "skip"
+  },
+  "loop": {
+    "sigma_min": 1,
+    "sigma_play": 3,
+    "enable_e_path": true,
+    "enable_t_path": false
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "dense_failures",
+  "description": "Many failures skip sparse self-play (C06 null); E-path still runs",
+  "agent_id": "demo-agent",
+  "task_stream": "mock-services/fixtures/task_stream/tool_use_v1.jsonl",
+  "e_path": {
+    "expect_sparse_self_play": false,
+    "min_generation_bump": 1
+  },
+  "t_path": {
+    "outcome": "skip"
+  },
+  "loop": {
+    "sigma_min": 4,
+    "sigma_play": 3,
+    "limit": 10,
+    "enable_e_path": true,
+    "enable_t_path": false
+  }
+}

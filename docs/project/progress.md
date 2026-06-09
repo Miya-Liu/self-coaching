@@ -22,7 +22,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 | **Version management** | M1 | **Mock stub** | `mock_agent_registry.py` | Production agent API adapter |
 | **Coach mode shell** | M5 | **Started** | `modes/coach/registry.py`, `agents.example.yaml` | Scheduler examples + validation CLI |
 | **LLM proxy** | M5 | Not started | — | Optional observation adapter |
-| **Self-coaching loop demo** | M1.5+ | **P0–P2 done** | `modes/self-coaching/loop_driver.py` + fixtures/tests | P3–P5: completeness harness, demo script, CI |
+| **Self-coaching loop demo** | M1.5+ | **P0–P3 done** | `loop_driver.py`, `tools/loop_completeness.py`, `scenarios/*.json` | P4–P5: operator script, runbook, CI |
 
 ## Deploy targets and modes
 
@@ -39,6 +39,12 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
   - **P1:** E-path — `support.jsonl` / `tuning_buffer.jsonl` / trajectory artifacts; `client.learn()` via `ModuleClient`; registry draft+activate; `g++` + A6 `meta.generation` mirror; fixtures `e_path_v1.jsonl`; tests `test_loop_e_path.py`
   - **P2:** Sparse self-play (C06) + T-path (C07) — `generate_suite` before `learn()` when `0 < |Σ| ≤ σ_play`; `FreeTimeSimulator`; `generate_batch` buffer top-up; `client.train()` + holdout `R_suite` + `check_promotion()` + hot-swap; fixtures `sparse_play_v1.jsonl`, `t_path_v1.jsonl`; tests `test_loop_self_play_sparse.py`, `test_loop_t_path.py`
   - Plan: [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md) · **14 pytest cases** green (module transport; no HTTP stack required)
+- **2026-06-09:** Self-coaching demo loop **P3 — completeness harness** — mock-completeness audit (C01–C18):
+  - `tools/loop_completeness.py` — reads loop artifacts, registry lineage, T-path run dir (`current_eval.json`, `candidate_eval.json`, `decision.json`, `deploy_manifest.json`); emits `completeness_report.json`; **C18** semantic promote gate (`candidate_eval.score >= current_eval.score`)
+  - Scenario manifests: `scenarios/full_loop.json`, `sparse_failures.json`, `dense_failures.json`
+  - Loop driver persists `e_path_last.json`, `t_path_last.json`, `.self-coaching/loop/runs/t_path/` for audit evidence
+  - `loop_store.export_train_dataset` tags `source: loop_buffer` for split-hygiene (C16)
+  - Tests: `tests/test_loop_completeness.py` (synthetic matrix, C18 negative, sparse/dense C06, E2E full_loop PASS) · **19 pytest cases** green across loop suite
 - **2026-06-08:** Mock platform Phase 4 — `scripts/mock-coach-demo.sh` (two agents, drop loop, promote/reject); CI `integration-mock-stack`
 - **2026-06-08:** Mock platform Phase 3 — `mock_aerl.py` (async training runs, registry `model_id` drafts, pipeline argv); `aerl_client.py`, `train_adapter.py`, `ORCHESTRATOR_TRAIN_BACKEND=aerl`
 - **2026-06-08:** Mock platform Phase 2 — `mock_self_play.py` (generate-suite, AgentEvals registration, curation splits)

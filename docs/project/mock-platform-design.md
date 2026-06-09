@@ -227,7 +227,7 @@ Uses `ORCHESTRATOR_TRANSPORT=module` so each agent keeps its own coaching root.
 
 ## Phase 5 — Self-coaching loop demo (in progress)
 
-Continuous task-stream demo on mocks (dual E/T evolution paths, generation-scoped buffer, completeness audit). **P0–P2 done** (2026-06-09): `modes/self-coaching/loop_driver.py`, fixtures, 14 pytest cases — see [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md). Remaining: completeness harness (P4), operator script, CI job.
+Continuous task-stream demo on mocks (dual E/T evolution paths, generation-scoped buffer, completeness audit). **P0–P3 done** (2026-06-09): `modes/self-coaching/loop_driver.py`, `tools/loop_completeness.py` (C01–C18 matrix + C18 promote gate), `scenarios/*.json`, 19 pytest cases — see [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md). Remaining: operator script + runbook (P4), split-stack CI (P5).
 
 ---
 

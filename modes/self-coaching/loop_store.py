@@ -166,6 +166,7 @@ class LoopStore:
                     "messages": traj.get("messages") or [],
                     "tool_trace_summary": traj.get("tool_trace_summary") or [],
                     "labels": {"privacy_checked": True, "use_for": ["train"]},
+                    "source": "loop_buffer",
                 }
             )
         train_path.write_text(

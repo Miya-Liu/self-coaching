@@ -1,6 +1,6 @@
 # Self-coaching demo pipeline plan
 
-**Status:** P0–P2 implemented (2026-06-09); P3–P5 not started  
+**Status:** P0–P3 implemented (2026-06-09); P4–P5 not started  
 **Goal:** Deploy a **demo-ready, deterministic pipeline** that shows how **self-coaching mode** runs continuously on top of the **mock platform**, and doubles as a **mock-completeness harness** beyond one-shot `run-all` / `production_readiness.py`.
 
 **Implementation note:** Runtime code lives under `modes/self-coaching/` (not `mock-services/` as in §19) because the self-coaching mode package uses hyphenated directory names; imports use `sys.path` shims. Entry point: `loop_driver.run_tasks()`.
@@ -262,7 +262,7 @@ Do **not** replace `services/orchestrator/run.py` for coach mode. The loop drive
 | Flush B on `g++` | — | Buffer filter by generation | P2 |
 | F-path free-time | — | `FreeTimeSimulator` (step budget) | P3 |
 | T.train + hot-swap | `mock_aerl` | Loop + `check_promotion` | P3 |
-| Completeness report | `production_readiness.py` | Per-step audit JSON/MD | P4 |
+| Completeness report | `production_readiness.py` | Per-step audit JSON/MD | **P3 done** (`tools/loop_completeness.py`) |
 | Demo script + docs | `mock-run-all.sh` | `mock-self-coaching-demo.sh` | P4 |
 | CI job | partial | `integration-self-coaching-loop` | P5 |
 
@@ -467,33 +467,46 @@ Scenarios (JSON):
 
 ---
 
-### Phase P3 — T-path (self-tuning + gates)
+### Phase P3 — T-path (self-tuning + gates) — **done** (shipped in P2)
 
 **Deliverables**
 
-| Item | Path |
+| Item | Path (implemented) |
 |------|------|
-| Free-time simulator | step counter: `--idle-after-tasks 8` or explicit `--inject-idle` |
-| Buffer fill self-play | `generate_batch` / `POST /self-play/generate` when `\|B\| < β` (§3.4) |
-| AERL train | `client.train()` via `mock_aerl` |
-| Promotion gate | `check_promotion` before `registry.activate` |
-| Tests | `tests/test_self_coaching_loop_t_path.py` |
+| Free-time simulator | `modes/self-coaching/free_time.py` |
+| Buffer fill self-play | `fill_buffer_batch()` → `generate_batch` (C07) |
+| AERL train | `run_t_path()` → `client.train()` |
+| Promotion gate | `check_promotion()` before `registry.activate` |
+| Tests | `tests/test_loop_t_path.py` |
 
-**Exit:** Success-heavy scenario fills B, trains, holdout eval → promote or reject; `training.json` / manifest present; promote scenarios satisfy C18 score gate.
-
-**Estimate:** 2–3 days.
+**Exit:** Success-heavy scenario fills B, trains, holdout eval → promote or reject; `training.json` / manifest present. **Met** (P2).
 
 ---
 
-### Phase P4 — Demo packaging + completeness harness
+### Phase P3b — Completeness harness (C01–C18) — **done**
+
+**Deliverables**
+
+| Item | Path (implemented) |
+|------|------|
+| Completeness module | `tools/loop_completeness.py` |
+| Scenario manifests | `scenarios/{full_loop,sparse_failures,dense_failures}.json` |
+| T-path audit artifacts | `.self-coaching/loop/runs/t_path/`, `t_path_last.json`, `e_path_last.json` |
+| Tests | `tests/test_loop_completeness.py` |
+
+**Exit:** E2E on `full_loop.json`: generation increments, registry lineage, `completeness_report.json` PASS for every required row including **C18**; holdout gate honored. Negative: tampered `candidate_eval.score` → C18 semantic `fail` while invocation rows stay `pass`. **Met.**
+
+This is the **“agent can validate framework end-to-end on mocks”** milestone.
+
+---
+
+### Phase P4 — Demo packaging
 
 **Deliverables**
 
 | Item | Path |
 |------|------|
 | Operator script | `scripts/mock-self-coaching-demo.sh` |
-| Completeness module | `mock-services/loop_completeness.py` |
-| Scenario manifests | `mock-services/fixtures/scenarios/*.json` |
 | Summary artifact | `{root}/.self-coaching/loop/demo_summary.md` |
 
 **P4 documentation checklist** (required for P4 PR — not deferred to P6):
@@ -515,7 +528,8 @@ python mock-services/self_coaching_loop.py run \
   --scenario mock-services/fixtures/scenarios/full_loop.json \
   --report json
 
-python mock-services/loop_completeness.py --root mock-services/demo-loop --json
+python tools/loop_completeness.py --root mock-services/demo-loop \
+  --expect-json scenarios/full_loop.json --json
 ```
 
 **Exit:** Presenter runs one script; sees generation increase, registry diff, completeness **PASS**; runbook § Self-coaching demo (mock loop) documents the same commands without reading this plan.
@@ -685,26 +699,16 @@ Parallelizable: P0 tests while reviewing plan; P5 can trail demo if module-only 
 ## 19. File tree (target)
 
 ```text
-mock-services/
-  fixtures/
-    task_stream/tool_use_v1.jsonl
-    scenarios/{e_path_only,t_path_only,full_loop,completeness_regress}.json
-  trajectory_simulator.py
-  trajectory_scorer.py
-  loop_state.py
-  self_coaching_loop.py
-  loop_completeness.py
-scripts/
-  mock-self-coaching-demo.sh
-tests/
-  test_trajectory_simulator.py
+modes/self-coaching/
+  loop_driver.py, loop_store.py, state.py, free_time.py
+  trajectory_simulator.py, self-learning/trajectory_scorer.py
+mock-services/fixtures/task_stream/*.jsonl
+scenarios/{full_loop,sparse_failures,dense_failures}.json
+tools/loop_completeness.py
+scripts/mock-self-coaching-demo.sh          # P4
+tests/test_loop_{completeness,e_path,t_path,self_play_sparse,driver_skeleton}.py
   test_trajectory_scorer.py
-  test_loop_state.py
-  test_self_coaching_loop_e_path.py
-  test_self_coaching_loop_t_path.py
-  test_loop_completeness.py
-docs/
-  project/self-coaching-demo-pipeline-plan.md
+docs/project/self-coaching-demo-pipeline-plan.md
 ```
 
 ---
@@ -720,4 +724,4 @@ docs/
 
 ---
 
-*Last updated: 2026-06-09. P0–P2 implemented; check off phases in [progress.md](progress.md).*
+*Last updated: 2026-06-09. P0–P3 implemented (completeness harness + C18); check off phases in [progress.md](progress.md).*

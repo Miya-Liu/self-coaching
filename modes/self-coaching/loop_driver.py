@@ -251,6 +251,9 @@ def run_e_path(
         "sparse_self_play": suite_result,
         "sigma_size_before_learn": sigma_size_before_learn,
     }
+    audit_path = coaching_root / ".self-coaching" / "loop" / "e_path_last.json"
+    audit_path.parent.mkdir(parents=True, exist_ok=True)
+    audit_path.write_text(json.dumps(result["e_path"], ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return result
 
 
@@ -370,8 +373,9 @@ def run_t_path(
 
     batch_size = batch_size_threshold() if beta is None else beta
     active_rows = loop_store.active_buffer_rows()
+    batch_fill: dict[str, Any] | None = None
     if len(active_rows) < batch_size:
-        fill_buffer_batch(
+        batch_fill = fill_buffer_batch(
             coaching_root=coaching_root,
             loop_store=loop_store,
             registry=registry,
@@ -426,17 +430,49 @@ def run_t_path(
             task_ids={str(row.get("task_id")) for row in active_rows},
         )
 
-    return {
+    from services.orchestrator.eval_metrics import write_json
+
+    run_dir = coaching_root / ".self-coaching" / "loop" / "runs" / "t_path"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    current_eval = current_metrics.to_dict()
+    candidate_eval = candidate_metrics.to_dict()
+    decision = {
+        "recommendation": "promote" if ok else "reject",
+        "promotion_allowed": ok,
+        "gate_reasons": gate_reasons,
+        "deploy_mode": "dry_run",
+    }
+    write_json(run_dir / "current_eval.json", current_eval)
+    write_json(run_dir / "candidate_eval.json", candidate_eval)
+    write_json(run_dir / "decision.json", decision)
+    write_json(run_dir / "training.json", train_result)
+    write_json(
+        run_dir / "deploy_manifest.json",
+        {
+            "agent_id": agent_id,
+            "candidate_version_id": candidate_version_id,
+            "production_version_id": production_version,
+            "canary_fraction": 0.0,
+            "status": "dry_run_only" if ok else "rejected",
+        },
+    )
+
+    t_path_summary = {
         "promoted": ok,
         "gate_reasons": gate_reasons,
         "train_result": train_result,
         "candidate_version_id": candidate_version_id,
         "production_version_id": production_version,
-        "current_eval": current_metrics.to_dict(),
-        "candidate_eval": candidate_metrics.to_dict(),
+        "current_eval": current_eval,
+        "candidate_eval": candidate_eval,
         "buffer_consumed": consumed,
         "buffer_preserved": not ok,
+        "batch_fill": batch_fill,
+        "run_dir": str(run_dir),
     }
+    write_json(coaching_root / ".self-coaching" / "loop" / "t_path_last.json", t_path_summary)
+
+    return t_path_summary
 
 
 def process_task(

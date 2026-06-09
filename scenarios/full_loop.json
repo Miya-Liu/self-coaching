@@ -2,6 +2,10 @@
   "name": "full_loop",
   "description": "E-path skill evolution plus T-path promote; C18 semantic score gate required",
   "agent_id": "demo-agent",
+  "task_streams": {
+    "e_path": "mock-services/fixtures/task_stream/e_path_v1.jsonl",
+    "t_path": "mock-services/fixtures/task_stream/t_path_v1.jsonl"
+  },
   "e_path": {
     "expect_sparse_self_play": false,
     "min_generation_bump": 1
@@ -11,6 +15,12 @@
     "semantic_checks": ["C18"]
   },
   "loop": {
+    "e_path_limit": 10,
+    "t_path_limit": 4,
+    "sigma_min": 3,
+    "sigma_play": 0,
+    "beta": 4,
+    "tau_fail": 0.75,
     "enable_t_path": true
   }
 }

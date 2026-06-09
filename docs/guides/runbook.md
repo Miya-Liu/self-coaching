@@ -33,3 +33,68 @@ Summaries in `experience/`; full train output in `logs/<id>.log` only.
 ## Merge after approval
 
 See `modes/self-coaching/SKILL.md` (`git checkout main`, `git merge`, optional `worktree remove`).
+
+## Self-coaching demo (mock loop)
+
+Deterministic **task-stream loop** on mocks: failures → E-path (`g++`, skill draft) → successes → T-path (train + holdout promote). Completeness audit **C01–C18** including semantic promote gate **C18**. Plan: [self-coaching-demo-pipeline-plan.md](../project/self-coaching-demo-pipeline-plan.md).
+
+### One command (~30–60s, module transport)
+
+```bash
+bash scripts/mock-self-coaching-demo.sh
+```
+
+Prints `completeness: PASS` and exits **0** when the loop and audit succeed. Idempotent: recreates `mock-services/demo-loop/` each run.
+
+Optional split-stack fidelity (HTTP mocks on high ports):
+
+```bash
+bash scripts/mock-self-coaching-demo.sh --with-http
+```
+
+### Verbose (same flow, step by step)
+
+```bash
+DEMO_ROOT=mock-services/demo-loop
+SCENARIO=scenarios/full_loop.json
+rm -rf "${DEMO_ROOT}"
+
+python mock-services/self_coaching_loop.py run \
+  --root "${DEMO_ROOT}" \
+  --scenario "${SCENARIO}"
+
+python tools/loop_completeness.py \
+  --root "${DEMO_ROOT}" \
+  --expect-json "${SCENARIO}" \
+  --json
+```
+
+### Expected artifacts
+
+Under `${DEMO_ROOT}/`:
+
+| Path | Meaning |
+|------|---------|
+| `.self-coaching/loop/state.json` | Generation, task/buffer counters |
+| `.self-coaching/loop/support.jsonl` | Failed trajectories (Σ) |
+| `.self-coaching/loop/tuning_buffer.jsonl` | Success buffer (B) |
+| `.self-coaching/loop/completeness_report.json` | C01–C18 audit (`status`: PASS/FAIL) |
+| `.self-coaching/loop/demo_summary.md` | Human-readable run summary |
+| `.self-coaching/loop/runs/t_path/` | Holdout gate: `current_eval.json`, `candidate_eval.json`, `decision.json` |
+| `agents/demo-agent/versions/*.json` | Registry lineage |
+
+### Environment (demo defaults)
+
+See [self-coaching-demo-pipeline-plan.md §10](../project/self-coaching-demo-pipeline-plan.md#10-configuration-environment):
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `LOOP_AGENT_ID` | `demo-agent` | Registry agent |
+| `LOOP_TAU_FAIL` | `0.75` | Online failure threshold (τ_fail) |
+| `LOOP_SIGMA_MIN` | `3` | Min failures to trigger E-path |
+| `LOOP_SIGMA_PLAY` | `0` | Max \|Σ\| for sparse self-play (C06) in full_loop |
+| `LOOP_BATCH_SIZE` | `4` | T-path batch size (β) |
+| `LOOP_IDLE_AFTER` | `0` | Tasks before free-time window |
+| `AGENTEVALS_SUITE_ID_HOLDOUT` | `tool-use-holdout` | Promotion holdout suite |
+
+Override for sparse/dense scenarios: `scenarios/sparse_failures.json`, `scenarios/dense_failures.json`.

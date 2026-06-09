@@ -1,0 +1,24 @@
+{
+  "scenario": "full_loop",
+  "rows": [
+    {"id": "C01", "invocation": "pass", "semantic": null},
+    {"id": "C02", "invocation": "pass", "semantic": null},
+    {"id": "C03", "invocation": "pass", "semantic": null},
+    {"id": "C04", "invocation": "pass", "semantic": null},
+    {"id": "C05", "invocation": "pass", "semantic": null},
+    {"id": "C06", "invocation": null, "semantic": null},
+    {"id": "C07", "invocation": null, "semantic": null},
+    {"id": "C08", "invocation": "pass", "semantic": null},
+    {"id": "C09", "invocation": "pass", "semantic": null},
+    {"id": "C10", "invocation": "pass", "semantic": null},
+    {"id": "C11", "invocation": "pass", "semantic": null},
+    {"id": "C12", "invocation": "pass", "semantic": null},
+    {"id": "C13", "invocation": "pass", "semantic": null},
+    {"id": "C14", "invocation": "pass", "semantic": null},
+    {"id": "C15", "invocation": null, "semantic": null},
+    {"id": "C16", "invocation": null, "semantic": "pass"},
+    {"id": "C17", "invocation": null, "semantic": "pass"},
+    {"id": "C18", "invocation": null, "semantic": "pass"}
+  ],
+  "status": "PASS"
+}

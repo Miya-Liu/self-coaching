@@ -1,6 +1,6 @@
 # Self-coaching demo pipeline plan
 
-**Status:** P0–P3 implemented (2026-06-09); P4–P5 not started  
+**Status:** P0–P4 implemented (2026-06-09); P5 not started  
 **Goal:** Deploy a **demo-ready, deterministic pipeline** that shows how **self-coaching mode** runs continuously on top of the **mock platform**, and doubles as a **mock-completeness harness** beyond one-shot `run-all` / `production_readiness.py`.
 
 **Implementation note:** Runtime code lives under `modes/self-coaching/` (not `mock-services/` as in §19) because the self-coaching mode package uses hyphenated directory names; imports use `sys.path` shims. Entry point: `loop_driver.run_tasks()`.
@@ -500,19 +500,21 @@ This is the **“agent can validate framework end-to-end on mocks”** milestone
 
 ---
 
-### Phase P4 — Demo packaging
+### Phase P4 — Demo packaging — **done**
 
 **Deliverables**
 
-| Item | Path |
+| Item | Path (implemented) |
 |------|------|
-| Operator script | `scripts/mock-self-coaching-demo.sh` |
+| Operator script | `scripts/mock-self-coaching-demo.sh` (`--with-http` optional) |
+| Loop CLI | `mock-services/self_coaching_loop.py` |
 | Summary artifact | `{root}/.self-coaching/loop/demo_summary.md` |
+| CI + golden | `tests/test_mock_self_coaching_demo.sh`, `tests/fixtures/golden/completeness_report_full_loop.json` |
 
-**P4 documentation checklist** (required for P4 PR — not deferred to P6):
+**P4 documentation checklist** — **done**
 
-- [ ] Update [docs/guides/runbook.md](../guides/runbook.md) — add **§ Self-coaching demo (mock loop)** (new top-level section after “Merge after approval”): one-command `bash scripts/mock-self-coaching-demo.sh`, verbose `self_coaching_loop.py` + `loop_completeness.py` invocations (see Demo UX below), expected artifacts, and §10 env vars.
-- [ ] Cross-link from [docs/README.md](../README.md) under Guides → runbook (one line pointing at the new section).
+- [x] [docs/guides/runbook.md](../guides/runbook.md) — **§ Self-coaching demo (mock loop)**
+- [x] [docs/README.md](../README.md) — Guides index cross-link
 
 `deploy-skill-pack.md` stays unchanged until the script exists; the runbook section is the operator entry for the mock loop demo.
 
@@ -532,7 +534,7 @@ python tools/loop_completeness.py --root mock-services/demo-loop \
   --expect-json scenarios/full_loop.json --json
 ```
 
-**Exit:** Presenter runs one script; sees generation increase, registry diff, completeness **PASS**; runbook § Self-coaching demo (mock loop) documents the same commands without reading this plan.
+**Exit:** Presenter runs one script; sees generation increase, registry diff, completeness **PASS**; runbook § Self-coaching demo (mock loop) documents the same commands without reading this plan. **Met** — tag `v0.3.0-self-coaching-demo`.
 
 **Estimate:** 2 days.
 
@@ -724,4 +726,4 @@ docs/project/self-coaching-demo-pipeline-plan.md
 
 ---
 
-*Last updated: 2026-06-09. P0–P3 implemented (completeness harness + C18); check off phases in [progress.md](progress.md).*
+*Last updated: 2026-06-09. P0–P4 implemented (demo-ready); check off phases in [progress.md](progress.md).*

@@ -35,9 +35,9 @@ Coach mode and `ORCHESTRATOR_EVAL_BACKEND=agentevals` need a **separate AgentEva
                                   |
      +----------------------------+----------------------------+
      |                            |                            |
-+----v----------+   +------------v-----------+   +----------v---------+
-| Mock          |   | Mock Self-Learning     |   | Mock Self-Play       |
-| AgentEvals    |   | :8766                  |   | :8767                |
++----v----------+   +------------v-----------+   +-------------v---------+
+| Mock          |   | Mock Self-Learning     |   | Mock Self-Play        |
+| AgentEvals    |   | :8766                  |   | :8767                 |
 | :8080         |   +------------------------+   +----------------------+
 +----------------+
                                   |
@@ -227,7 +227,7 @@ Uses `ORCHESTRATOR_TRANSPORT=module` so each agent keeps its own coaching root.
 
 ## Phase 5 — Self-coaching loop demo (in progress)
 
-Continuous task-stream demo on mocks (dual E/T evolution paths, generation-scoped buffer, completeness audit). **P0–P3 done** (2026-06-09): `modes/self-coaching/loop_driver.py`, `tools/loop_completeness.py` (C01–C18 matrix + C18 promote gate), `scenarios/*.json`, 19 pytest cases — see [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md). Remaining: operator script + runbook (P4), split-stack CI (P5).
+Continuous task-stream demo on mocks (dual E/T evolution paths, generation-scoped buffer, completeness audit). **Demo-ready** (2026-06-09, `v0.3.0-self-coaching-demo`): `bash scripts/mock-self-coaching-demo.sh`, `self_coaching_loop.py`, `tools/loop_completeness.py`, runbook § [Self-coaching demo (mock loop)](../guides/runbook.md#self-coaching-demo-mock-loop). Remaining: split-stack CI (P5).
 
 ---
 

@@ -14,6 +14,7 @@ runs/
 mock-services/demo-run*/
 mock-services/demo-stack/
 mock-services/ci-*/
+mock-services/demo-loop/
 references/superpowers-skills/
 modes/self-coaching/self-tuning/services/.env
 uv.lock

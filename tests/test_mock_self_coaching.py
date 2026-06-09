@@ -209,6 +209,8 @@ def test_run_all_produces_full_artifact_set(root):
         ".self-coaching/cases/self_play_candidates.jsonl",
         ".self-coaching/cases/eval_cases.jsonl",
         ".self-coaching/curated/train.jsonl",
+        ".self-coaching/curated/validation.jsonl",
+        ".self-coaching/curated/holdout.jsonl",
         ".self-coaching/manifests/training_run_manifest.json",
         ".self-coaching/manifests/mock_pipeline_summary.json",
     ]

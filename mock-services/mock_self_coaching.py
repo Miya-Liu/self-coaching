@@ -122,7 +122,7 @@ def init(root: Path) -> dict:
             fp.write_text(title + "\n", encoding="utf-8")
     # Create empty split files so a fresh initialized workspace satisfies the
     # artifact contract before any examples are curated into those splits.
-    for split in (p["validation"], p["test"]):
+    for split in (p["validation"], p["test"], p["base"] / "curated" / "holdout.jsonl"):
         if not split.exists():
             split.write_text("", encoding="utf-8")
     manifest = {
@@ -192,9 +192,19 @@ def self_play(root: Path, capability: str = "tool_use", n: int = 3) -> dict:
     return MockSelfPlayEngine(root).generate_batch(coaching_root=root, capability=capability, n=n)
 
 
+def negative_eval_marker(text: str) -> bool:
+    """True when id is an intentional negative-eval fixture (not hex substring noise)."""
+    n = text.lower()
+    if "regress" in n or "mock-bad" in n:
+        return True
+    if n.startswith("bad-") or "-bad-" in n:
+        return True
+    return bool(re.search(r"^bad[-_]", n))
+
+
 def _score_case(case: dict, candidate: str) -> dict:
-    # Deterministic fake scoring: candidates containing "bad" fail one verification case.
-    bad = "bad" in candidate.lower() or "regress" in candidate.lower()
+    # Deterministic fake scoring: intentional bad/regress fixtures fail verification cases.
+    bad = negative_eval_marker(candidate)
     final_response = "Created and validated config.yaml with evidence." if not bad else "Created the file."
     failures = []
     for check in case.get("deterministic_checks", []):
@@ -341,7 +351,7 @@ def train(root: Path, pipeline: str = "sft", dataset: str | None = None, base_mo
 def run_all(root: Path, capability: str = "tool_use", pipeline: str = "sft") -> dict:
     init_result = init(root)
     learning = learn(root, "Mock seed: agent forgot to verify a file write", "run_all", capability)
-    play = self_play(root, capability, n=4)
+    play = self_play(root, capability, n=5)
     baseline_eval = evaluate(root, "mock-baseline-v0", "mock-baseline-v0")
     training = train(root, pipeline=pipeline)
     candidate_eval = evaluate(root, training["candidate"], "mock-baseline-v0")

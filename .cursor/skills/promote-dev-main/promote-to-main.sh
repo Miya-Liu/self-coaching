@@ -109,9 +109,18 @@ if [[ "${DO_PUSH}" != true ]]; then
   exit 0
 fi
 
-git commit -m "Promote allowlisted paths from ${SOURCE_BRANCH} to ${TARGET_BRANCH}."
+PROMOTE_SHA="$(git rev-parse --short "${SOURCE_BRANCH}")"
+STAGED_STAT="$(git diff --cached --stat)"
+COMMIT_SUBJECT="${PROMOTE_COMMIT_SUBJECT:-Promote allowlisted paths from ${SOURCE_BRANCH} to ${TARGET_BRANCH}.}"
+COMMIT_BODY="${PROMOTE_COMMIT_BODY:-Source: ${SOURCE_BRANCH}@${PROMOTE_SHA}
+
+${STAGED_STAT}}"
+
+git commit -m "${COMMIT_SUBJECT}" -m "${COMMIT_BODY}"
 
 echo "==> Push ${REMOTE} ${TARGET_BRANCH}"
+echo "    Subject: ${COMMIT_SUBJECT}"
+echo "    Source:  ${SOURCE_BRANCH}@${PROMOTE_SHA}"
 git push "${REMOTE}" "${TARGET_BRANCH}"
 
 echo "Done. ${REMOTE}/${TARGET_BRANCH} updated."

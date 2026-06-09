@@ -81,6 +81,12 @@ jobs:
       - name: Mock AERL Phase 3 smoke
         run: bash scripts/mock-aerl-smoke.sh
 
+      - name: Mock production-readiness harness
+        run: bash scripts/mock-production-readiness.sh
+
+      - name: Facade run-all with split stack delegation
+        run: bash scripts/mock-facade-run-all.sh
+
       - name: Assert OpenAPI and compact contract stay in sync
         run: python mock-services/contracts/regenerate.py --check
 
@@ -140,6 +146,8 @@ jobs:
             mock-services/ci-smoke-run/.self-coaching/cases/self_play_candidates.jsonl \
             mock-services/ci-smoke-run/.self-coaching/cases/eval_cases.jsonl \
             mock-services/ci-smoke-run/.self-coaching/curated/train.jsonl \
+            mock-services/ci-smoke-run/.self-coaching/curated/validation.jsonl \
+            mock-services/ci-smoke-run/.self-coaching/curated/holdout.jsonl \
             mock-services/ci-smoke-run/.self-coaching/manifests/training_run_manifest.json \
             mock-services/ci-smoke-run/.self-coaching/manifests/mock_pipeline_summary.json
           do

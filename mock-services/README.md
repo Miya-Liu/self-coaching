@@ -131,6 +131,15 @@ bash scripts/mock-coach-demo.sh
 ```
 
 Full mock stack, two supervised agents (`modes/coach/agents.demo.yaml`), drop-triggered improvement runs, promote vs reject with registry activation.
+
+### Production-readiness + facade run-all
+
+```bash
+bash scripts/mock-production-readiness.sh
+bash scripts/mock-facade-run-all.sh
+```
+
+`production_readiness.py` checks pipeline phases, `validation.jsonl` / `holdout.jsonl`, and split hygiene.
 - `POST /pipeline/run-all` with `{"capability":"tool_use","pipeline":"sft"}`
 
 Formal contract (including auth and idempotency): `contracts/openapi.yaml`.

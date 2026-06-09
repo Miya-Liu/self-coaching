@@ -19,6 +19,38 @@ def engine(tmp_path: Path) -> MockSelfPlayEngine:
     return MockSelfPlayEngine(tmp_path / "coach")
 
 
+def test_registered_suite_runs_in_agentevals(engine: MockSelfPlayEngine):
+    result = engine.generate_suite(
+        user_query="Verify config.yaml exists after write",
+        trajectory={
+            "messages": [
+                {"role": "user", "content": "Write and verify config.yaml"},
+                {"role": "assistant", "content": "Done."},
+            ],
+        },
+        eval_score=0.4,
+        agent_id="suite-run-agent",
+    )
+    suite_id = result["suite_id"]
+    created = engine.agentevals.create_run(
+        {
+            "suite_id": suite_id,
+            "agent_config": {"agent_id": "suite-run-agent", "version_id": "ver-0001"},
+            "num_trials": 2,
+        }
+    )
+    import time
+
+    run_id = str(created["id"])
+    for _ in range(50):
+        detail = engine.agentevals.get_run(run_id)
+        if detail.get("status") == "succeeded":
+            assert float(detail["metrics"]["overall"]) > 0
+            return
+        time.sleep(0.02)
+    raise AssertionError(f"run {run_id} did not succeed")
+
+
 def test_generate_suite_registers_suite_and_curates(engine: MockSelfPlayEngine):
     result = engine.generate_suite(
         user_query="Create config.yaml and verify it exists",

@@ -202,10 +202,10 @@ Uses `ORCHESTRATOR_TRANSPORT=module` so each agent keeps its own coaching root.
 - [x] Coach demo without external services (Phase 4)
 - [x] Phase 0: registry + AgentEvals mock + orchestrator `record-eval` against mock
 - [x] Self-play registers suites in AgentEvals (Phase 2)
-- [ ] Self-learning bumps `skill_bundle_version`
+- [x] Self-learning bumps `skill_bundle_version` (skill_patch path; `test_mock_self_learning`)
 - [x] AERL mock returns new `model_id` (Phase 3)
-- [ ] Production-readiness report PASS
-- [ ] Monolithic `run-all` still passes via facade
+- [x] Production-readiness harness PASS (`mock-services/production_readiness.py`, CI)
+- [x] Monolithic `run-all` via facade (`scripts/mock-facade-run-all.sh`, split-stack delegation)
 
 ---
 

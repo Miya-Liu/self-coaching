@@ -157,6 +157,14 @@ class AgentRegistry:
         version["active"] = True
         return version
 
+    @staticmethod
+    def _negative_eval_marker(text: str) -> bool:
+        if "regress" in text or "mock-bad" in text:
+            return True
+        if text.startswith("bad-") or "-bad-" in text:
+            return True
+        return bool(re.search(r"^bad[-_]", text))
+
     def score_multiplier(self, agent_id: str, version_id: str) -> float:
         """Deterministic mock scoring factor from version / model ids."""
         model_id = ""
@@ -166,7 +174,7 @@ class AgentRegistry:
         except RegistryError:
             pass
         text = f"{model_id} {version_id}".lower()
-        if "bad" in text or "regress" in text:
+        if self._negative_eval_marker(text):
             return 0.55
         if "cand" in text or "candidate" in text:
             return 0.92

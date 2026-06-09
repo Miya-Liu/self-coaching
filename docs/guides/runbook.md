@@ -40,17 +40,27 @@ Deterministic **task-stream loop** on mocks: failures → E-path (`g++`, skill d
 
 ### One command (~30–60s, module transport)
 
+**Linux / macOS / Git Bash:**
+
 ```bash
 bash scripts/mock-self-coaching-demo.sh
 ```
 
+**Windows (PowerShell — no bash required):**
+
+```powershell
+python scripts/mock_self_coaching_demo.py
+```
+
+Or:
+
+```powershell
+.\scripts\mock-self-coaching-demo.ps1
+```
+
 Prints `completeness: PASS` and exits **0** when the loop and audit succeed. Idempotent: recreates `mock-services/demo-loop/` each run.
 
-Optional split-stack fidelity (HTTP mocks on high ports):
-
-```bash
-bash scripts/mock-self-coaching-demo.sh --with-http
-```
+Optional split-stack fidelity (HTTP mocks on high ports): add `--with-http` (bash or Python) or `-WithHttp` (PowerShell script).
 
 ### Verbose (same flow, step by step)
 

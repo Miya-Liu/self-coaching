@@ -159,10 +159,13 @@ class MockAgentEvalsEngine:
 
     def _load_run(self, run_id: str) -> dict[str, Any]:
         path = self._run_path(run_id)
-        if not path.is_file():
-            raise KeyError(f"run not found: {run_id}")
         with self._lock:
-            text = path.read_text(encoding="utf-8")
+            if not path.is_file():
+                raise KeyError(f"run not found: {run_id}")
+            try:
+                text = path.read_text(encoding="utf-8")
+            except FileNotFoundError as exc:
+                raise KeyError(f"run not found: {run_id}") from exc
         if not text.strip():
             raise KeyError(f"run file empty: {run_id}")
         return json.loads(text)

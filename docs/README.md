@@ -19,6 +19,7 @@ Naming: [design/README.md](design/README.md#canonical-naming). Start: [design/ar
 
 | Doc | Topic |
 |-----|--------|
+| [guides/install-as-hermes-skill.md](guides/install-as-hermes-skill.md) | Install as a Hermes skill |
 | [guides/deploy-skill-pack.md](guides/deploy-skill-pack.md) | T1 — `modes/self-coaching/` |
 | [guides/deploy-overview.md](guides/deploy-overview.md) | T1 / T2 / T3 |
 | [guides/runbook.md](guides/runbook.md) | Day-to-day commands · [§ Self-coaching demo (mock loop)](guides/runbook.md#self-coaching-demo-mock-loop) |

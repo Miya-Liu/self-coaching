@@ -150,13 +150,22 @@ class MockAgentEvalsEngine:
         return self._runs_dir / f"{run_id}.json"
 
     def _save_run(self, run: dict[str, Any]) -> None:
-        self._run_path(str(run["id"])).write_text(json.dumps(run, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        path = self._run_path(str(run["id"]))
+        payload = json.dumps(run, indent=2, sort_keys=True) + "\n"
+        tmp = path.with_suffix(".json.tmp")
+        with self._lock:
+            tmp.write_text(payload, encoding="utf-8")
+            tmp.replace(path)
 
     def _load_run(self, run_id: str) -> dict[str, Any]:
         path = self._run_path(run_id)
         if not path.is_file():
             raise KeyError(f"run not found: {run_id}")
-        return json.loads(path.read_text(encoding="utf-8"))
+        with self._lock:
+            text = path.read_text(encoding="utf-8")
+        if not text.strip():
+            raise KeyError(f"run file empty: {run_id}")
+        return json.loads(text)
 
     def _compute_metrics(self, *, suite_id: str, agent_config: dict[str, Any], num_trials: int) -> dict[str, Any]:
         agent_id = str(agent_config.get("agent_id") or "example-agent")

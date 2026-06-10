@@ -9,6 +9,42 @@ metadata:
   hermes:
     tags: [self-coaching, agent-evolution, evaluation, training, evolution-loop, gated-pipeline]
     related_skills: [self-learning, self-play, self-evaluation, self-tuning]
+required_commands:
+  - name: python3
+    minimum_version: "3.10"
+    required_for: all-modes
+    rationale: "Mock loop runner; demo + completeness audit."
+  - name: bash
+    required_for: install-and-mock
+    rationale: "install-skill-pack.sh and mock-self-coaching-demo.sh wrappers. PowerShell wrapper available on Windows."
+  - name: git
+    required_for: all-modes
+    rationale: "Worktree-based experiment isolation per umbrella §10."
+required_environment_variables:
+  - name: AGENT_API_TOKEN
+    required_for: real-api-mode
+    optional: true
+    rationale: "Bearer auth for AgentEvals + self-learning + self-play + AERL. Unset → mock mode."
+  - name: AGENTEVALS_BASE_URL
+    required_for: real-api-mode
+    optional: true
+    rationale: "Real AgentEvals service base URL. Unset → in-process MockAgentEvalsEngine."
+  - name: SELF_LEARNING_BASE_URL
+    required_for: real-api-mode
+    optional: true
+    rationale: "Real self-learning service. Unset → ModuleClient mock."
+  - name: SELF_PLAY_BASE_URL
+    required_for: real-api-mode
+    optional: true
+    rationale: "Real self-play service. Distinct endpoints for generate-suite (sparse) vs generate (batch)."
+  - name: AERL_BASE_URL
+    required_for: real-api-mode
+    optional: true
+    rationale: "Real AERL training service. Synchronous train + holdout."
+  - name: LOOP_HOLDOUT_TIMEOUT_S
+    required_for: real-api-mode
+    optional: true
+    rationale: "Holdout poll budget. Default 5s for mock, set 300s for real."
 ---
 
 # Self Coaching

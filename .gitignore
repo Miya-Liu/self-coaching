@@ -1,5 +1,3 @@
-# Dev-branch .gitignore (tests/ are tracked on dev).
-# Apply: cp .cursor/skills/promote-dev-main/gitignore.dev .gitignore
 logs/
 worktrees/
 upstream/*
@@ -20,7 +18,5 @@ references/superpowers-skills/
 modes/self-coaching/self-tuning/services/.env
 uv.lock
 
-# Cursor local state (promote skill is tracked on dev)
-.cursor/*
-!.cursor/skills/
-!.cursor/skills/promote-dev-main/
+# Cursor local state (not part of the skill pack)
+.cursor/

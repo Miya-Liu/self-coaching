@@ -144,7 +144,7 @@ Supervise external agents: [`docs/guides/deploy-overview.md#coach-mode`](docs/gu
 
 ## Contribution
 
-Maintainers: branch `dev`, promote to `main` via `@promote-dev-main` (`.cursor/skills/promote-dev-main/`).
+Develop and merge on `main`. Open a PR or push directly if you have write access.
 
 ## Scope
 

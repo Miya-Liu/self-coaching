@@ -1,8 +1,8 @@
 # Mock → real API migration plan
 
-**Status:** Design finalized (2026-06-09)  
-**Ground truth:** tag `v0.3.0-self-coaching-demo` (demo-ready all-mocks baseline)  
-**Related:** [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md), [integration-plan.md](integration-plan.md), [integration/mapping.md](../integration/mapping.md), [mock-platform-design.md](mock-platform-design.md)
+**Status:** Design finalized (2026-06-09); execution entry **M1** (M0 contract work may overlap)  
+**Ground truth:** tag **`v0.3.1-hermes-installable`** — mocks-only “it works” pin (Hermes pack + loop demo)  
+**Related:** [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md), [integration-plan.md](integration-plan.md), [integration/mapping.md](../integration/mapping.md), [mock-platform-design.md](mock-platform-design.md), [install-as-hermes-skill.md](../guides/install-as-hermes-skill.md)
 
 ---
 
@@ -14,24 +14,68 @@ Move the self-coaching **loop demo** from in-process / HTTP **mocks** to **stagi
 
 ---
 
-## 2. Regression net (do not break)
+## 2. Migration rules (M0–M6)
+
+These rules apply to **every** phase. Violating them blocks merge.
+
+| ID | Rule |
+|----|------|
+| **R1** | **Adapter parity, not replacement.** Extend `services/adapters/` and env factories; do not fork parallel HTTP client trees or delete mock engines. |
+| **R2** | **Mode is explicit.** `LOOP_SERVICE_MODE` + backend flags (`ORCHESTRATOR_*_BACKEND`) are authoritative — never infer mock vs live from hostname alone. |
+| **R3** | **Extend the CI gate, never replace it.** `tests/test_mock_self_coaching_demo.sh` and the mock golden stay on the default PR path; staging smoke is opt-in only. |
+| **R4** | **One phase, one adapter surface.** Each phase wires **one** real backend behind the existing loop contract; do not bundle unrelated service swaps in the same PR. |
+| **R5** | **Mocks-only pin stays green.** Tag **`v0.3.1-hermes-installable`** is the bisect anchor for “mocks-only works.” After **every** migration phase (M0–M6), re-run the R5 smoke on **default mock settings** (`LOOP_SERVICE_MODE=mock-module`, no live URLs) and confirm exit 0 + golden audit PASS before merging. |
+| **R6** | **Live ≠ mock golden.** Staging/live completeness uses `full_loop_live.json` (or checklist) — never require identical scores or evidence strings to the mock golden. |
+| **R7** | **Mapping discipline.** Reject unmapped **required** API fields; **warn** on extra additive fields ([mapping.md](../integration/mapping.md)). Fix mappers, not upstream contracts, unless M0 snapshot proves a breaking change. |
+
+### R5 smoke (re-run after each phase)
+
+```bash
+git checkout v0.3.1-hermes-installable   # bisect anchor only; on feature branches use HEAD with mock-module
+unset MOCK_SELF_LEARNING_URL MOCK_SELF_PLAY_URL MOCK_AERL_URL MOCK_AGENTEVALS_URL
+export LOOP_SERVICE_MODE=mock-module
+python scripts/mock_self_coaching_demo.py
+# Linux CI equivalent:
+bash tests/test_mock_self_coaching_demo.sh
+```
+
+**Expected:** exit 0; `completeness_report.json` with `status: PASS`; golden diff on invocation + semantic columns only (`tests/fixtures/golden/completeness_report_full_loop.json`).
+
+On **`main` / feature branches**, run the same commands at **`LOOP_SERVICE_MODE=mock-module`** (no `--env-file` pointing at live URLs). The tag is the known-good anchor for bisect, not a requirement to develop from a detached HEAD.
+
+### Phase overview
+
+| Phase | Focus | Est. | Entry |
+|-------|--------|------|-------|
+| **M0** | Snapshot + contract freeze | ~3d | OpenAPI snapshots, fixture capture, mapping walk |
+| **M1** | AgentEvals real adapter (read-only) | ~3d | **Start here** — holdout factory + `LOOP_HOLDOUT_TIMEOUT_S` |
+| **M2** | Self-learning real adapter | ~3d | E-path with real learn + M1 eval |
+| **M3** | Self-play real adapter | ~3d | C06/C07 endpoints + `staging.jsonl` writeback |
+| **M4** | AERL training real adapter | ~5d | Full E+T loop on real train |
+| **M5** | Agent registry real | ~2d | **Conditional** — only if a separate registry service exists |
+| **M6** | Harden + cut to staging-default | ~3d | `demo.live.env`, opt-in CI matrix, runbook, release tag |
+
+**Calendar:** ~20d (M5 +2d if separate registry). Buffer for VPN/auth/staging flakiness.
+
+### Carry-over watchlist
+
+| ID | Item | When to act |
+|----|------|-------------|
+| **M-W1** | Scorer 3-band collapse | Revisit if `LOOP_TAU_FAIL` (τ_fail) is tuned away from `0.75`, or before **P5** multi-scenario manifests ship — online rubric bands must stay derivable from fixtures. |
+| **M-W2** | Golden-audit regeneration cadence | When a migration phase **flips** a completeness row (invocation or semantic), land **one** dedicated commit that refreshes `completeness_report_full_loop.json` — no drive-by golden edits. |
+| **M-W3** | `LOOP_HOLDOUT_TIMEOUT_S` | Declared in [demo.env.example](../../scenarios/demo.env.example); **implement in M1** — `_holdout_metrics` hardcodes 5s today and is the first failure mode on real AgentEvals. |
+| **M-W4** | Per-phase commit discipline | Same discipline as M-W2 through M0–M6: phase-scoped PRs, R5 green before merge, golden refresh only when that phase changes mock audit shape. |
+
+---
+
+## 3. Regression net (do not break)
 
 | Asset | Role |
 |-------|------|
-| Tag `v0.3.0-self-coaching-demo` | Bisect anchor: all-mocks demo must stay green |
+| Tag **`v0.3.1-hermes-installable`** | R5 bisect anchor; Hermes install + mock loop validation |
 | `tests/test_mock_self_coaching_demo.sh` | CI gate; **extend**, never replace |
 | `tests/fixtures/golden/completeness_report_full_loop.json` | Mock audit shape (C01–C18 invocation/semantic columns) |
 | `python scripts/mock_self_coaching_demo.py` | Cross-platform demo entry (Windows + Linux) |
-
-**Bisect command (mock path):**
-
-```bash
-git checkout v0.3.0-self-coaching-demo
-python scripts/mock_self_coaching_demo.py
-# or: bash tests/test_mock_self_coaching_demo.sh  # Linux CI
-```
-
-**Note:** commit `5ff196b` (Windows Python runner) is **after** the tag. For Windows bisect, use `main` or a retagged `v0.3.1-self-coaching-demo` if needed.
 
 **Golden policy:**
 
@@ -40,9 +84,9 @@ python scripts/mock_self_coaching_demo.py
 
 ---
 
-## 3. Service access model
+## 4. Service access model
 
-### 3.1 `LOOP_SERVICE_MODE`
+### 4.1 `LOOP_SERVICE_MODE`
 
 Single knob that classifies the run (set in `scenarios/demo.env` or shell):
 
@@ -54,7 +98,7 @@ Single knob that classifies the run (set in `scenarios/demo.env` or shell):
 
 Do **not** infer mock vs live from hostname alone. Mode + explicit backend flags are authoritative.
 
-### 3.2 Environment variables (canonical names)
+### 4.2 Environment variables (canonical names)
 
 Reuse **existing** repo names — no parallel `SELF_*_BASE_URL` tree.
 
@@ -74,7 +118,7 @@ Reuse **existing** repo names — no parallel `SELF_*_BASE_URL` tree.
 
 **Template:** [scenarios/demo.env.example](../../scenarios/demo.env.example) — copy to `scenarios/demo.env` (gitignored) and pass `--env-file` to the demo runner (when wired).
 
-### 3.3 Code layers (no duplicate clients)
+### 4.3 Code layers (no duplicate clients)
 
 | Layer | Location | Responsibility |
 |-------|----------|----------------|
@@ -86,14 +130,14 @@ Reuse **existing** repo names — no parallel `SELF_*_BASE_URL` tree.
 
 **Do not** add a parallel `integrations/*/http_client.py` tree; extend `services/adapters/`.
 
-### 3.4 Known gaps today (pre-M1)
+### 4.4 Known gaps today (pre-M1)
 
 1. **`loop_driver._holdout_metrics`** instantiates `MockAgentEvalsEngine` in-process — ignores `AGENTEVALS_BASE_URL`.
 2. **`loop_driver.default_client`** uses bare `ModuleClient` — does not call `build_composite_client()`.
-3. **Demo runner** clears/sets `MOCK_*_URL` manually — should load `scenarios/demo.env` profile.
-4. **Self-play** read path uses `curated/staging.jsonl` — real adapters must **write back** the same file (writeback contract §3.5).
+3. **`build_loop_client()`** not yet wired — demo runner loads `scenarios/demo.env` via `--env-file`, but `loop_driver.default_client` still uses bare `ModuleClient`.
+4. **Self-play** read path uses `curated/staging.jsonl` — real adapters must **write back** the same file (writeback contract §4.5).
 
-### 3.5 Self-play writeback contract (M3)
+### 4.5 Self-play writeback contract (M3)
 
 `augment_sigma_sparse` and `fill_buffer_batch` read `.self-coaching/curated/staging.jsonl`. Real self-play HTTP clients must:
 
@@ -104,7 +148,7 @@ C06 uses `POST /self-play/generate-suite`; C07 uses `POST /self-play/generate` �
 
 ---
 
-## 4. CI strategy
+## 5. CI strategy
 
 | Job | When | Command |
 |-----|------|---------|
@@ -116,7 +160,9 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 
 ---
 
-## 5. Migration phases
+## 6. Migration phases
+
+**Per-phase checklist (all phases):** R5 green on `mock-module` · scoped PR (R4) · golden refresh only if a row flips (M-W2/M-W4) · phase exit criteria met.
 
 ### M0 — Snapshot + contract freeze (~3 days)
 
@@ -132,30 +178,30 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 - Walk [mapping.md](../integration/mapping.md); fix mappers, not contracts
 - Document auth per service (Bearer, API keys)
 
-**Exit:** Every mapped field has a real-shape fixture. Mock golden audit still passes.
+**Exit:** Every mapped field has a real-shape fixture. **R5** mock golden audit still passes. No live calls in default CI.
 
-**Mapping rule:** Reject **unmapped required** fields; **warn** on extra API fields (additive APIs).
+**Mapping rule:** R7 — reject unmapped **required** fields; **warn** on extra API fields.
 
 ---
 
-### M1 — AgentEvals real adapter, read-only (~3 days)
+### M1 — AgentEvals real adapter, read-only (~3 days) — **execution start**
 
-**Why first:** Read-only; failure = “can’t promote”, not corrupt state.
+**Why first:** Read-only; failure = “can’t promote”, not corrupt state. First code phase after contract snapshots (M0 may overlap).
 
 **Build:**
 
 - Holdout factory in `loop_driver._holdout_metrics` keyed off `ORCHESTRATOR_EVAL_BACKEND` + `AGENTEVALS_BASE_URL`
 - Reuse `AgentEvalsClient` + `AgentEvalsEvalAdapter`; add thin `create_run`/`get_run` surface matching `MockAgentEvalsEngine` where needed
-- `LOOP_HOLDOUT_TIMEOUT_S` env knob (default 5s mock, 300s+ live)
+- **`LOOP_HOLDOUT_TIMEOUT_S` env knob** (M-W3 — replace hardcoded 5s in `_holdout_metrics`; default 5s mock, 300s+ live)
 - Map `metrics` → `EvalMetrics.score` per mapping.md (critical for **C18**)
 
 **Tests:**
 
 - Replay from captured `run_detail` fixture (mock HTTP; `unittest.mock` or optional `respx`)
 - `tests/test_holdout_timeout.py`
-- Mock demo script stays green
+- **R5** mock demo script stays green (staging tests are opt-in)
 
-**Exit:** Staging AgentEvals drives holdout gate; C12 invocation + C18 semantic pass under `full_loop_live` scenario (separate golden if needed).
+**Exit:** Staging AgentEvals drives holdout gate; C12 invocation + C18 semantic pass under `full_loop_live` scenario (separate golden if needed). **R5** PASS before merge.
 
 ---
 
@@ -180,7 +226,7 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 **Build:**
 
 - `generate_suite` (C06) vs `generate_batch` (C07) — distinct endpoints
-- Writeback to `staging.jsonl` (§3.5)
+- Writeback to `staging.jsonl` (§4.5)
 - Factory keyed off `MOCK_SELF_PLAY_URL`
 
 **Tests:**
@@ -204,7 +250,7 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 
 **Tests:** `test_loop_t_path` promote + reject on staging; `tests/test_aerl_train_timeout.py`
 
-**Exit:** Full E+T loop on all real services; completeness PASS for **live scenario rows**; mock CI unchanged.
+**Exit:** Full E+T loop on all real services; completeness PASS for **live scenario rows**; **R5** mock CI unchanged.
 
 ---
 
@@ -214,20 +260,22 @@ Only if a **separate** registry service exists. Otherwise local `mock_agent_regi
 
 ---
 
-### M6 — Harden + staging profile (~3 days)
+### M6 — Harden + cut to staging-default (~3 days)
 
 **Build:**
 
-- `LOOP_SERVICE_MODE=live` + `scenarios/demo.live.env.example` for staging
-- CI matrix: staging smoke on integration changes
+- `LOOP_SERVICE_MODE=live` + `scenarios/demo.live.env.example` for staging operators
+- CI matrix: staging smoke on `integration/*` changes (opt-in; R3)
 - Runbook: three flows (mock-module, mock-http, live)
 - Tag `v0.4.0-self-coaching-staging` when live path proven
 
-**Do not** default all environments to live — explicit mode only.
+**Do not** flip repo-wide default to live — explicit `LOOP_SERVICE_MODE` only. Mock-module remains the PR default and **R5** anchor.
+
+**Exit:** Staging profile documented and smoke-tested; **R5** still green on `v0.3.1-hermes-installable` mock path.
 
 ---
 
-## 6. Dependency graph
+## 7. Dependency graph
 
 ```text
 M0 (contracts)
@@ -246,14 +294,12 @@ M4 (AERL train)
 M5? (registry, if separate)
  │
  ▼
-M6 (staging profile + tag)
+M6 (staging-default profile + tag)
 ```
-
-**Estimated calendar:** ~20 days (M5 +2 if separate registry). Add buffer for VPN/auth/staging flakiness.
 
 ---
 
-## 7. Prerequisites before M1 (small, recommended)
+## 8. Prerequisites before M1 (small, recommended)
 
 | Item | Path | Purpose |
 |------|------|---------|
@@ -264,7 +310,7 @@ M6 (staging profile + tag)
 
 ---
 
-## 8. Related commands
+## 9. Related commands
 
 | Today (mock) | Staging (future) |
 |--------------|------------------|

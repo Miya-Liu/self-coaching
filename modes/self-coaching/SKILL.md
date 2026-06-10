@@ -91,6 +91,125 @@ This stands up four mock services on configurable ports and
 exercises the same loop with network I/O instead of in-process
 calls. Same exit conditions, same artifacts.
 
+## Invocation Contract
+
+A calling agent can use this skill in three modes. Pick the
+mode based on what you have available; you can always
+"upgrade" from a lower mode to a higher one without
+re-loading the skill.
+
+### Mode 1 — Policy reference (read-only)
+
+**Use when:** reasoning about agent improvement during a
+session, deciding whether an experience should become a
+memory / skill / eval case / training row, applying the
+gated pipeline mentally without executing anything.
+
+**Setup:** none. Just load `SKILL.md`.
+
+**External services:** none.
+
+**Env vars:** none.
+
+**Success criterion:** the agent applies the methodology
+(Observe → Diagnose → Encode → Verify → Curate → Train)
+to its decision and produces an artifact (memory, skill
+patch, test, eval case, or curated row) that follows
+the discipline in §4 of this skill.
+
+### Mode 2 — Mock validation (deterministic)
+
+**Use when:** validating that this skill is installed
+correctly, reproducing the demo loop, establishing a
+baseline before real-API migration, or running the loop
+in CI on a host with no external network access.
+
+**Setup:**
+
+```bash
+python <skill_root>/scripts/mock_self_coaching_demo.py
+```
+
+`<skill_root>` is wherever this skill is installed —
+typically `~/.hermes/skills/self-coaching/`.
+
+**External services:** none (in-process mocks). Optionally
+`--with-http` spins up four mock HTTP services on
+localhost.
+
+**Env vars:** optional `MOCK_AGENTEVALS_PORT`,
+`MOCK_SELF_LEARNING_PORT`, `MOCK_SELF_PLAY_PORT`,
+`MOCK_AERL_PORT` to override default ports when running
+`--with-http`. None required.
+
+**Success criterion:** exit code 0;
+`mock-services/demo-loop/.self-coaching/loop/completeness_report.json`
+has `status: "PASS"`; all 18 C-rows (C01-C18) recorded;
+registry version bump visible in
+`agents/demo-agent/meta.json`.
+
+**Failure modes:** if `completeness_report.json` status
+is FAIL, the failing C-row identifies which gate broke.
+See `docs/project/self-coaching-demo-pipeline-plan.md` §7
+for what each Cnn check means. **Do not proceed to Mode 3
+until Mode 2 passes.**
+
+### Mode 3 — Real-API mode (post-migration)
+
+**Use when:** running the loop against real production
+services for staging or production deployments. Requires
+the staged migration in `docs/project/integration-plan.md`
+to be complete (or at least the M1+M2 phases for E-path,
+all of M1-M4 for full E+T loop).
+
+**Setup:**
+
+```bash
+export AGENT_API_TOKEN="<your-token>"
+export AGENTEVALS_BASE_URL="<https://agentevals.example.com>"
+export SELF_LEARNING_BASE_URL="<https://self-learning.example.com>"
+export SELF_PLAY_BASE_URL="<https://self-play.example.com>"
+export AERL_BASE_URL="<https://aerl.example.com>"
+export LOOP_HOLDOUT_TIMEOUT_S=300
+
+python <skill_root>/scripts/mock_self_coaching_demo.py
+```
+
+(Same runner; behavior switches based on which `*_BASE_URL`
+env vars are set. Any unset URL falls back to its mock.)
+
+**External services:** AgentEvals, self-learning,
+self-play, AERL (any subset; unset services fall back
+to mocks for graceful partial migration).
+
+**Env vars:** see Setup. `AGENT_API_TOKEN` required when
+any real BASE_URL is set. `LOOP_HOLDOUT_TIMEOUT_S` default
+300s for real services (5s is too tight — see W3 in the
+migration plan).
+
+**Success criterion:** same as Mode 2 — exit 0 and
+`completeness_report.json` status PASS — but now backed by
+real services. C18 semantic gate compares real
+candidate_eval.score vs current_eval.score from the real
+AgentEvals run.
+
+**Failure modes:** if a real service is unreachable or
+returns a malformed response, the integration mapper in
+`integration/mapping.md` should surface a clear error
+(reject unknown fields, do not silently drop). Do not
+treat a Mode 3 failure as a Mode 2 regression — the mocks
+are still the baseline of correctness.
+
+### Mode-selection decision tree
+
+```
+Need to reason about a single experience?       → Mode 1
+Verifying install / reproducing demo / CI?      → Mode 2
+Promoting against real metrics on staging?      → Mode 3
+Migrating from mock to real one module at a time → Mode 3
+   (with partial BASE_URL coverage)
+```
+
 ## Self-Coaching Loop
 
 ### 1. Observe

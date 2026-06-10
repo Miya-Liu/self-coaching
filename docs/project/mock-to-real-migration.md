@@ -1,6 +1,6 @@
 # Mock → real API migration plan
 
-**Status:** Design finalized (2026-06-09); execution entry **M1** (M0 contract work may overlap)  
+**Status:** **M1 AgentEvals PASS** (2026-06-10) — live smoke + holdout factory; `full_loop_live` E2E pending  
 **Ground truth:** tag **`v0.3.1-hermes-installable`** — mocks-only “it works” pin (Hermes pack + loop demo)  
 **Related:** [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md), [integration-plan.md](integration-plan.md), [integration/mapping.md](../integration/mapping.md), [mock-platform-design.md](mock-platform-design.md), [install-as-hermes-skill.md](../guides/install-as-hermes-skill.md)
 
@@ -130,12 +130,12 @@ Reuse **existing** repo names — no parallel `SELF_*_BASE_URL` tree.
 
 **Do not** add a parallel `integrations/*/http_client.py` tree; extend `services/adapters/`.
 
-### 4.4 Known gaps today (pre-M1)
+### 4.4 Known gaps (post-M1)
 
-1. **`loop_driver._holdout_metrics`** instantiates `MockAgentEvalsEngine` in-process — ignores `AGENTEVALS_BASE_URL`.
-2. **`loop_driver.default_client`** uses bare `ModuleClient` — does not call `build_composite_client()`.
-3. **`build_loop_client()`** not yet wired — demo runner loads `scenarios/demo.env` via `--env-file`, but `loop_driver.default_client` still uses bare `ModuleClient`.
-4. **Self-play** read path uses `curated/staging.jsonl` — real adapters must **write back** the same file (writeback contract §4.5).
+1. ~~Holdout ignores `AGENTEVALS_BASE_URL`~~ — fixed: `services/adapters/holdout_engine.py` + `LOOP_HOLDOUT_TIMEOUT_S`.
+2. ~~`default_client` / `build_loop_client()` not wired~~ — fixed in `loop_env.py` + `self_coaching_loop.py`.
+3. **`full_loop_live.json`** — not yet shipped; migration M1 loop E2E on live holdout (C12/C18) still open.
+4. **Self-play** read path uses `curated/staging.jsonl` — real adapters must **write back** the same file (writeback contract §4.5; **M3**).
 
 ### 4.5 Self-play writeback contract (M3)
 
@@ -184,7 +184,7 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 
 ---
 
-### M1 — AgentEvals real adapter, read-only (~3 days) — **execution start**
+### M1 — AgentEvals real adapter, read-only (~3 days) — **PASS** (live smoke; loop E2E open)
 
 **Why first:** Read-only; failure = “can’t promote”, not corrupt state. First code phase after contract snapshots (M0 may overlap).
 

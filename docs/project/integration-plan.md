@@ -344,12 +344,12 @@ Aligns with roadmap: **M1 done** (mock dry loop) → **Phase 0 smoke** (M2 gate;
 ## 8. Immediate next actions
 
 - [x] Export production agent OpenAPI → `docs/integration/api-snapshots/agent-openapi.json` (2026-05-29)
-- [ ] Export AgentEvals OpenAPI → `api-snapshots/agentevals-openapi.json` (requires service on `:8080`; use `scripts/export-integration-snapshots.sh`)
-- [ ] Run Phase 0 smoke; replace fixture with live succeeded `RunDetail`
-- [ ] Choose `agent_id`, canary/holdout `suite_id`, baseline/candidate `version_id`
-- [x] Implement Phase 1.1–1.3 behind `ORCHESTRATOR_EVAL_BACKEND` (`services/adapters/`, `mapping.md`) (fixture-tested; live staging smoke pending)
-- [x] Add `tests/test_agentevals_adapter.py`
-- [ ] Update [`progress.md`](progress.md) row for Auto-evaluation when Phase 1 exits (live staging)
+- [x] Export AgentEvals OpenAPI → `api-snapshots/agentevals-openapi.json` (2026-06-10; live service on `:8080`)
+- [x] Run Phase 0 smoke; live succeeded `RunDetail` captured → `tests/fixtures/agentevals/run_detail_memoryarena_succeeded.json`
+- [x] Choose `agent_id`, canary/holdout `suite_id` for local smoke — agent `6ed953f5-ca52-45ff-a137-9d2d1b2e1d8d`, suite `MemoryArena_Preview`, model `gpt-4o` (`scenarios/demo.agentevals.env.example`)
+- [x] Implement Phase 1.1–1.3 behind `ORCHESTRATOR_EVAL_BACKEND` (`services/adapters/`, `mapping.md`); live smoke `scripts/agentevals_live_smoke.py` PASS
+- [x] Add `tests/test_agentevals_adapter.py`, `tests/test_holdout_engine.py`, `tests/test_agentevals_mapping.py`
+- [x] Update [`progress.md`](progress.md) — Auto-evaluation **Done (AgentEvals)** (2026-06-10)
 
 ---
 

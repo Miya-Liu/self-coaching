@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
+from services.adapters.agentevals_mapping import build_agent_config, resolve_model_name
 from services.orchestrator.eval_metrics import EvalMetrics, normalize_from_agentevals
 
 _TERMINAL = frozenset({"succeeded", "failed", "cancelled", "canceled"})
@@ -134,16 +135,19 @@ def collect_holdout_metrics(
     components = version.get("components") or {}
     model_id = str(components.get("model_id", version_id))
     skill_bundle = str(components.get("skill_bundle_version", "unknown"))
+    model_name = resolve_model_name(components=components if isinstance(components, dict) else None)
 
     created = engine.create_run(
         {
             "suite_id": holdout_suite_id(),
             "num_trials": 1,
-            "agent_config": {
-                "agent_id": agent_id,
-                "version_id": version_id,
-                "baseline_version_id": version_id,
-            },
+            "agent_config": build_agent_config(
+                agent_id=agent_id,
+                version_id=version_id,
+                baseline_version_id=version_id,
+                components=components if isinstance(components, dict) else None,
+                model_name=model_name,
+            ),
         }
     )
     run_id = str(created.get("id") or created.get("run_id") or "")

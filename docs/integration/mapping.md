@@ -2,7 +2,7 @@
 
 Operational field mapping for adapter fixtures and smoke tests. **Design:** [design/integrations/agentevals.md](../design/integrations/agentevals.md). **Plan:** [integration-plan.md](../project/integration-plan.md).
 
-Confirmed against fixture `tests/fixtures/agentevals/run_detail_succeeded.json` until a live `GET /api/runs/{id}` capture replaces it.
+Confirmed against mock fixture `tests/fixtures/agentevals/run_detail_succeeded.json` and live MemoryArena capture `tests/fixtures/agentevals/run_detail_memoryarena_succeeded.json` (2026-06-10, `localhost:8080`).
 
 **Coach mode:** each **subject agent** has a **coaching root**; `record-eval` appends to `{coaching_root}/.self-coaching/metrics/eval_metrics.jsonl`. See [coach_mode.md](../design/coach_mode.md).
 

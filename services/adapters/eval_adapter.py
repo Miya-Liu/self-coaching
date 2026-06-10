@@ -7,6 +7,7 @@ import os
 from typing import Any
 
 from .agentevals_client import AgentEvalsClient, AgentEvalsError
+from .agentevals_mapping import build_agent_config, score_from_run_metrics, task_scores_from_run_metrics
 
 _TERMINAL = frozenset({"succeeded", "failed", "cancelled", "canceled"})
 
@@ -16,14 +17,13 @@ def run_detail_to_mock_report(detail: dict[str, Any], *, candidate: str, baselin
     metrics = detail.get("metrics") or {}
     if not isinstance(metrics, dict):
         metrics = {}
-    score = _extract_score(metrics)
+    from .agentevals_mapping import trials_from_run_detail
+
+    score = score_from_run_metrics(metrics)
     status = "passed" if score >= 0.8 and str(detail.get("status", "")).lower() == "succeeded" else "failed"
-    reserved = frozenset({"overall", "pass_rate", "cost_usd", "latency_p95_ms", "score"})
     scores: dict[str, float] = {"overall": score, "safety": float(metrics.get("safety", 1.0))}
-    for key, val in metrics.items():
-        if key not in reserved and isinstance(val, (int, float)):
-            scores[key] = float(val)
-    trials = int(detail.get("num_trials") or 1) or 1
+    scores.update(task_scores_from_run_metrics(metrics))
+    trials = trials_from_run_detail(detail, metrics)
     cost_usd = float(metrics.get("cost_usd", 0.0))
     p95_ms = float(metrics.get("latency_p95_ms", 0.0))
     run_id = str(detail.get("id", detail.get("run_id", "eval-unknown")))
@@ -38,14 +38,6 @@ def run_detail_to_mock_report(detail: dict[str, Any], *, candidate: str, baselin
         "recommendation": "promote" if status == "passed" else "do_not_promote",
         "run_detail": detail,
     }
-
-
-def _extract_score(metrics: dict[str, Any]) -> float:
-    for key in ("overall", "pass_rate", "score"):
-        if key in metrics and isinstance(metrics[key], (int, float)):
-            return float(metrics[key])
-    nums = [float(v) for v in metrics.values() if isinstance(v, (int, float))]
-    return sum(nums) / len(nums) if nums else 0.0
 
 
 class AgentEvalsEvalAdapter:
@@ -67,14 +59,12 @@ class AgentEvalsEvalAdapter:
         return suite
 
     def _agent_config(self, *, candidate: str, baseline: str) -> dict[str, Any]:
-        cfg: dict[str, Any] = {
-            "version_id": candidate,
-            "baseline_version_id": baseline,
-        }
-        agent_id = os.environ.get("AGENT_ID")
-        if agent_id:
-            cfg["agent_id"] = agent_id
-        return cfg
+        agent_id = os.environ.get("AGENT_ID") or os.environ.get("LOOP_AGENT_ID") or "demo-agent"
+        return build_agent_config(
+            agent_id=agent_id,
+            version_id=candidate,
+            baseline_version_id=baseline,
+        )
 
     def evaluate(
         self,

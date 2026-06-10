@@ -78,18 +78,10 @@ def normalize_from_mock_eval(
     )
 
 
-_RESERVED_METRIC_KEYS = frozenset(
-    {"overall", "pass_rate", "safety", "cost_usd", "latency_p95_ms", "score"}
-)
-
-
 def _score_from_agentevals_metrics(metrics: dict[str, Any]) -> float:
-    for key in ("overall", "pass_rate", "score"):
-        val = metrics.get(key)
-        if isinstance(val, (int, float)):
-            return float(val)
-    nums = [float(v) for v in metrics.values() if isinstance(v, (int, float))]
-    return sum(nums) / len(nums) if nums else 0.0
+    from services.adapters.agentevals_mapping import score_from_run_metrics
+
+    return score_from_run_metrics(metrics)
 
 
 def normalize_from_agentevals(
@@ -105,12 +97,10 @@ def normalize_from_agentevals(
     metrics = run_detail.get("metrics") or {}
     if not isinstance(metrics, dict):
         metrics = {}
+    from services.adapters.agentevals_mapping import task_scores_from_run_metrics, trials_from_run_detail
+
     score = _score_from_agentevals_metrics(metrics)
-    task_scores = {
-        k: float(v)
-        for k, v in metrics.items()
-        if k not in _RESERVED_METRIC_KEYS and isinstance(v, (int, float))
-    }
+    task_scores = task_scores_from_run_metrics(metrics)
     agent_cfg = run_detail.get("agent_config") or {}
     if not isinstance(agent_cfg, dict):
         agent_cfg = {}
@@ -120,7 +110,7 @@ def normalize_from_agentevals(
     if baseline_score is None:
         baseline_score = score
 
-    trials = int(run_detail.get("num_trials") or 1) or 1
+    trials = trials_from_run_detail(run_detail, metrics)
     cost_usd = float(metrics.get("cost_usd", 0.0))
     p95_ms = float(metrics.get("latency_p95_ms", 0.0))
 

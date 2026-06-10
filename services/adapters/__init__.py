@@ -5,6 +5,13 @@ from .aerl_client import AERLClient, AERLError
 from .agentevals_client import AgentEvalsClient, AgentEvalsError
 from .composite_client import CompositeClient, build_composite_client, with_agentevals_eval
 from .eval_adapter import AgentEvalsEvalAdapter
+from .holdout_engine import (
+    AgentEvalsHoldoutEngine,
+    build_holdout_engine,
+    collect_holdout_metrics,
+    holdout_timeout_s,
+    wait_for_holdout_run,
+)
 from .train_adapter import AERLTrainAdapter
 
 __all__ = [
@@ -14,7 +21,12 @@ __all__ = [
     "AgentEvalsClient",
     "AgentEvalsError",
     "AgentEvalsEvalAdapter",
+    "AgentEvalsHoldoutEngine",
     "CompositeClient",
     "build_composite_client",
+    "build_holdout_engine",
+    "collect_holdout_metrics",
+    "holdout_timeout_s",
+    "wait_for_holdout_run",
     "with_agentevals_eval",
 ]

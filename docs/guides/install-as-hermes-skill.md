@@ -11,9 +11,11 @@ load it with `skill_view`.
 bash scripts/install-skill-pack.sh ~/.hermes/skills --hermes --with-mock
 ```
 
-This copies the five SKILL.md files plus the mock-services
-stack, scenario manifests, and demo runner into
-`~/.hermes/skills/self-coaching/` and its peer submodules.
+This installs five Hermes-discoverable skills (markdown +
+metadata), runs `pip install -e .` for the Python runtime, and
+bundles mock-service assets under
+`~/.hermes/skills/self-coaching/assets/` (with neutralized
+`name:` frontmatter so Hermes does not see duplicate skills).
 
 ## Verify
 
@@ -28,10 +30,10 @@ hermes skill view self-coaching | head -30
 
 ## Validate end-to-end on mocks
 
-From any directory (the demo runner is now self-contained):
+From any directory (requires editable install from the repo clone):
 
 ```bash
-python ~/.hermes/skills/self-coaching/scripts/mock_self_coaching_demo.py
+python -m self_coaching.demo
 ```
 
 Expected: exit 0, `completeness_report.json` with

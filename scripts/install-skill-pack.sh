@@ -48,41 +48,153 @@ if [[ -n "${POSITIONAL}" ]]; then
   TARGET="$(cd "${POSITIONAL}" && pwd)"
 fi
 
-if [[ "${HERMES_MODE:-0}" == "1" ]]; then
-  if [[ "${TARGET}" == "${ROOT}" ]]; then
-    TARGET="${HOME}/.hermes/skills"
+# Copy a directory tree, excluding Python cache and egg metadata.
+copy_tree_excluding() {
+  local src="$1" dst="$2"
+  mkdir -p "${dst}"
+  tar -C "${src}" \
+    --exclude='__pycache__' \
+    --exclude='*.pyc' \
+    --exclude='*.pyo' \
+    --exclude='.pytest_cache' \
+    --exclude='*.egg-info' \
+    --exclude='.egg-info' \
+    -cf - . | tar -C "${dst}" -xf -
+}
+
+# Rewrite frontmatter `name:` so Hermes does not treat asset copies as skills.
+neutralize_skill_frontmatter() {
+  local skill_md="$1"
+  local bundle_name="$2"
+  if [[ ! -f "${skill_md}" ]]; then
+    return 0
   fi
-  mkdir -p "${TARGET}"
-  for sub in self-coaching self-learning self-play self-evaluation self-tuning; do
-    src="${ROOT}/modes/self-coaching"
-    [[ "${sub}" != "self-coaching" ]] && src="${ROOT}/modes/self-coaching/${sub}"
-    dst="${TARGET}/${sub}"
+  if sed --version >/dev/null 2>&1; then
+    sed -i -E "s/^name:[[:space:]]*.*/name: ${bundle_name}/" "${skill_md}"
+  else
+    sed -i '' -E "s/^name:[[:space:]]*.*/name: ${bundle_name}/" "${skill_md}"
+  fi
+}
+
+# Fail when Hermes would see the same skill name in more than one SKILL.md.
+check_duplicate_skill_names() {
+  local skills_root="$1"
+  local skill_md name
+  local -A counts=()
+  while IFS= read -r -d '' skill_md; do
+    name="$(grep -m1 '^name:' "${skill_md}" 2>/dev/null | sed 's/^name:[[:space:]]*//' | tr -d '\r' || true)"
+    [[ -z "${name}" ]] && continue
+    [[ "${name}" == _asset-bundle-* ]] && continue
+    counts["${name}"]=$(( ${counts["${name}"]:-0} + 1 ))
+  done < <(find "${skills_root}" -name 'SKILL.md' -print0 2>/dev/null)
+  for name in "${!counts[@]}"; do
+    if [[ "${counts[$name]}" -gt 1 ]]; then
+      echo "install-skill-pack.sh: ambiguous skill name '${name}' (${counts[$name]} SKILL.md files under ${skills_root})" >&2
+      echo "  Remove duplicate SKILL.md copies (often under self-coaching/assets/) and retry." >&2
+      return 1
+    fi
+  done
+  return 0
+}
+
+install_hermes_skills() {
+  local skills_root="$1"
+  local src dst sub kind
+
+  if ! check_duplicate_skill_names "${skills_root}"; then
+    exit 1
+  fi
+
+  # Umbrella — Hermes-discoverable markdown + metadata only.
+  src="${ROOT}/modes/self-coaching"
+  dst="${skills_root}/self-coaching"
+  mkdir -p "${dst}"
+  for f in SKILL.md DESCRIPTION.md SKILL_PACK_VERSION; do
+    [[ -f "${src}/${f}" ]] && cp -f "${src}/${f}" "${dst}/${f}"
+  done
+  for kind in references templates scripts; do
+    [[ -d "${src}/${kind}" ]] && cp -rf "${src}/${kind}" "${dst}/"
+  done
+
+  # Flat sibling submodules — Hermes-discoverable.
+  for sub in self-learning self-play self-evaluation self-tuning; do
+    src="${ROOT}/modes/self-coaching/${sub}"
+    dst="${skills_root}/${sub}"
     mkdir -p "${dst}"
     cp -f "${src}/SKILL.md" "${dst}/SKILL.md"
     for kind in references templates scripts; do
       [[ -d "${src}/${kind}" ]] && cp -rf "${src}/${kind}" "${dst}/"
     done
+    if [[ "${sub}" == "self-tuning" ]]; then
+      [[ -d "${src}/pipelines" ]] && cp -rf "${src}/pipelines" "${dst}/"
+      [[ -d "${src}/services" ]] && cp -rf "${src}/services" "${dst}/"
+    fi
   done
-  if [[ "${WITH_MOCK}" == "1" ]]; then
-    umbrella_dst="${TARGET}/self-coaching"
-    mkdir -p "${umbrella_dst}/assets/mock-services" \
-             "${umbrella_dst}/assets/scenarios" \
-             "${umbrella_dst}/assets/tools" \
-             "${umbrella_dst}/assets/services" \
-             "${umbrella_dst}/scripts"
-    cp -rf "${ROOT}/mock-services/." "${umbrella_dst}/assets/mock-services/"
-    cp -rf "${ROOT}/scenarios/."     "${umbrella_dst}/assets/scenarios/"
-    cp -f  "${ROOT}/tools/loop_completeness.py" "${umbrella_dst}/assets/tools/"
-    cp -rf "${ROOT}/services/."      "${umbrella_dst}/assets/services/"
-    mkdir -p "${umbrella_dst}/assets/modes/self-coaching"
-    cp -rf "${ROOT}/modes/self-coaching/." "${umbrella_dst}/assets/modes/self-coaching/"
-    cp -f  "${ROOT}/scripts/mock_self_coaching_demo.py" \
-           "${ROOT}/scripts/mock-self-coaching-demo.sh" \
-           "${ROOT}/scripts/mock-self-coaching-demo.ps1" \
-           "${umbrella_dst}/scripts/"
+}
+
+install_hermes_mock_assets() {
+  local umbrella_dst="$1"
+  local assets="${umbrella_dst}/assets"
+  local skill_md
+
+  mkdir -p "${assets}/mock-services" \
+           "${assets}/scenarios" \
+           "${assets}/tools" \
+           "${assets}/services" \
+           "${assets}/modes/self-coaching"
+
+  copy_tree_excluding "${ROOT}/mock-services" "${assets}/mock-services"
+  copy_tree_excluding "${ROOT}/scenarios" "${assets}/scenarios"
+  mkdir -p "${assets}/tools"
+  cp -f "${ROOT}/tools/loop_completeness.py" "${assets}/tools/"
+  copy_tree_excluding "${ROOT}/services" "${assets}/services"
+
+  # Runtime Python modules for legacy path resolution — NOT Hermes-discoverable.
+  copy_tree_excluding "${ROOT}/modes/self-coaching" "${assets}/modes/self-coaching"
+  while IFS= read -r -d '' skill_md; do
+    rel="${skill_md#${assets}/modes/self-coaching/}"
+    bundle="_asset-bundle-${rel//\//-}"
+    bundle="${bundle%.md}"
+    neutralize_skill_frontmatter "${skill_md}" "${bundle}"
+  done < <(find "${assets}/modes/self-coaching" -name 'SKILL.md' -print0)
+}
+
+pip_install_runtime() {
+  local py=""
+  if command -v python3 >/dev/null 2>&1; then
+    py="python3"
+  elif command -v python >/dev/null 2>&1; then
+    py="python"
+  else
+    echo "WARN: python not found; skipped pip install -e ." >&2
+    echo "      Mock demo requires: pip install -e ${ROOT}" >&2
+    return 0
   fi
+  echo "==> Installing Python runtime (editable): pip install -e ${ROOT}"
+  "${py}" -m pip install -e "${ROOT}" --quiet
+}
+
+if [[ "${HERMES_MODE:-0}" == "1" ]]; then
+  if [[ "${TARGET}" == "${ROOT}" ]]; then
+    TARGET="${HOME}/.hermes/skills"
+  fi
+  mkdir -p "${TARGET}"
+
+  install_hermes_skills "${TARGET}"
+
+  if [[ "${WITH_MOCK}" == "1" ]]; then
+    pip_install_runtime
+    install_hermes_mock_assets "${TARGET}/self-coaching"
+    if ! check_duplicate_skill_names "${TARGET}"; then
+      exit 1
+    fi
+  fi
+
   echo "==> Hermes skill pack installed to ${TARGET}"
-  echo "    Verify: hermes skill list | grep self-coaching"
+  echo "    Skills:  hermes skill list | grep self-coaching"
+  if [[ "${WITH_MOCK}" == "1" ]]; then
+    echo "    Demo:    python -m self_coaching.demo"
+  fi
   exit 0
 fi
 
@@ -123,8 +235,9 @@ Skill pack ready at: ${TARGET}
 
 Next steps:
   1. Point your agent at: ${ROOT}/modes/self-coaching/SKILL.md
-  2. Read: ${ROOT}/docs/guides/deploy-skill-pack.md
-  3. Optional AERL: cp modes/self-coaching/self-tuning/services/example.env -> modes/self-coaching/self-tuning/services/.env
-  4. Optional autoresearch: clone karpathy/autoresearch, export AUTORESEARCH_ROOT, see upstream/README.md
+  2. Mock demo: python -m self_coaching.demo  (or: pip install -e . first)
+  3. Read: ${ROOT}/docs/guides/deploy-skill-pack.md
+  4. Optional AERL: cp modes/self-coaching/self-tuning/services/example.env -> modes/self-coaching/self-tuning/services/.env
+  5. Optional autoresearch: clone karpathy/autoresearch, export AUTORESEARCH_ROOT, see upstream/README.md
 
 EOF

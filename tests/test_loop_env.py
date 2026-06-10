@@ -14,7 +14,7 @@ SC_ROOT = REPO_ROOT / "modes" / "self-coaching"
 if str(SC_ROOT) not in sys.path:
     sys.path.insert(0, str(SC_ROOT))
 
-from loop_env import configure_demo_env, load_env_file, service_profile  # noqa: E402
+from loop_env import build_loop_client, configure_demo_env, load_env_file, service_profile  # noqa: E402
 
 
 def test_load_env_file_sets_mode(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -51,6 +51,16 @@ def test_mock_module_clears_service_urls(monkeypatch: pytest.MonkeyPatch):
     profile = configure_demo_env(with_http=False)
     assert profile.mode == "mock-module"
     assert profile.service_urls == {}
+
+
+def test_build_loop_client_mock_module(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("ORCHESTRATOR_EVAL_BACKEND", "mock")
+    monkeypatch.setenv("ORCHESTRATOR_TRAIN_BACKEND", "mock")
+    monkeypatch.setenv("ORCHESTRATOR_TRANSPORT", "module")
+
+    client = build_loop_client(tmp_path)
+    assert hasattr(client, "learn")
+    assert hasattr(client, "train")
 
 
 def test_live_mode_keeps_urls(monkeypatch: pytest.MonkeyPatch):

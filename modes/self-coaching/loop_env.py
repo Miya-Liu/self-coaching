@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 VALID_MODES = frozenset({"mock-module", "mock-http", "live"})
 
@@ -192,3 +192,49 @@ def default_env_file(repo_root: str | Path) -> Path | None:
     """Return scenarios/demo.env if present."""
     candidate = Path(repo_root) / "scenarios" / "demo.env"
     return candidate if candidate.is_file() else None
+
+
+def _repo_root() -> Path:
+    here = Path(__file__).resolve().parent
+    for candidate in (here.parents[1], here.parents[2], here.parent):
+        if (candidate / "mock-services").is_dir():
+            return candidate
+        if (candidate / "assets" / "mock-services").is_dir():
+            return candidate
+    raise FileNotFoundError(
+        "Could not locate repo root (mock-services/). Install with: pip install -e ."
+    )
+
+
+def build_loop_client(coaching_root: str | Path) -> Any:
+    """Build SelfCoaching loop client with composite eval/train adapters per env."""
+    import sys
+
+    repo_root = _repo_root()
+    mock_services = repo_root / "mock-services"
+    if not mock_services.is_dir():
+        mock_services = repo_root / "assets" / "mock-services"
+    if str(mock_services) not in sys.path:
+        sys.path.insert(0, str(mock_services))
+    import client as client_mod  # noqa: E402
+
+    root = Path(coaching_root).resolve()
+    transport = os.environ.get("ORCHESTRATOR_TRANSPORT", "module").lower()
+    if transport == "http":
+        inner = client_mod.build_client(
+            "http",
+            base_url=os.environ.get("ORCHESTRATOR_BASE_URL", "http://127.0.0.1:8765"),
+            api_key=os.environ.get("MOCK_SERVICE_TOKEN"),
+        )
+    else:
+        inner = client_mod.ModuleClient(root)
+
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from services.adapters import build_composite_client  # noqa: E402
+
+    return build_composite_client(
+        inner,
+        eval_backend=os.environ.get("ORCHESTRATOR_EVAL_BACKEND", "mock"),
+        train_backend=os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock"),
+    )

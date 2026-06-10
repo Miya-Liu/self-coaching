@@ -28,10 +28,17 @@ def _active_buffer_rows(root: Path) -> list[dict]:
     return LoopStore(root).active_buffer_rows()
 
 
+def _mock_holdout_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ORCHESTRATOR_EVAL_BACKEND", "mock")
+    for key in ("AGENTEVALS_BASE_URL", "MOCK_AGENTEVALS_URL"):
+        monkeypatch.delenv(key, raising=False)
+
+
 def test_t_path_trains_and_promotes_when_holdout_passes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AGENT_ID", "demo-agent")
     monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
     monkeypatch.delenv("MOCK_AERL_URL", raising=False)
+    _mock_holdout_env(monkeypatch)
 
     root = tmp_path / "t-path-promote"
     registry = AgentRegistry(root)
@@ -79,6 +86,7 @@ def test_t_path_rejects_bad_candidate_and_preserves_buffer(tmp_path: Path, monke
     monkeypatch.setenv("AGENT_ID", "demo-agent")
     monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
     monkeypatch.delenv("MOCK_AERL_URL", raising=False)
+    _mock_holdout_env(monkeypatch)
 
     root = tmp_path / "t-path-reject"
     registry = AgentRegistry(root)

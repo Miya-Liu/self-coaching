@@ -32,8 +32,14 @@ dev = [
 Homepage = "https://github.com/Miya-Liu/self-coaching"
 Plan = "https://github.com/Miya-Liu/self-coaching/blob/main/docs/project/self-coaching-demo-pipeline-plan.md"
 
+[project.scripts]
+self-coaching-demo = "self_coaching.demo:main"
+
 [tool.setuptools]
-# This is a skill pack, not a Python library. We don't ship
-# importable packages by default. If you want to import
-# `mock_services.*` from outside, add explicit packages here.
-packages = []
+package-dir = { "self_coaching" = "modes/self-coaching" }
+packages = [
+  "self_coaching",
+  "services",
+  "services.adapters",
+  "services.orchestrator",
+]

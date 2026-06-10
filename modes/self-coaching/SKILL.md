@@ -88,14 +88,13 @@ that the gated pipeline works end-to-end on mock services.
 This is the single command:
 
 ```bash
-python <skill_root>/scripts/mock_self_coaching_demo.py
+python -m self_coaching.demo
 ```
 
-`<skill_root>` is wherever you installed this skill — typically
-`~/.hermes/skills/self-coaching/` after running
-`install-skill-pack.sh --hermes --with-mock` (see
-`docs/guides/install-as-hermes-skill.md`), or the repo root
-itself during development.
+Requires `pip install -e .` from the repo clone (the installer
+runs this automatically with `--hermes --with-mock`). See
+`docs/guides/install-as-hermes-skill.md`. During development,
+run from the repository root after `pip install -e .`.
 
 The runner spins up an isolated demo state at
 `mock-services/demo-loop/`, runs `scenarios/full_loop.json`
@@ -120,7 +119,7 @@ what each Cnn check means.
 For HTTP-transport validation (real-service-shaped):
 
 ```bash
-python <skill_root>/scripts/mock_self_coaching_demo.py --with-http
+python -m self_coaching.demo --with-http
 ```
 
 This stands up four mock services on configurable ports and
@@ -163,11 +162,10 @@ in CI on a host with no external network access.
 **Setup:**
 
 ```bash
-python <skill_root>/scripts/mock_self_coaching_demo.py
+python -m self_coaching.demo
 ```
 
-`<skill_root>` is wherever this skill is installed —
-typically `~/.hermes/skills/self-coaching/`.
+Requires `pip install -e .` from the repository clone.
 
 **External services:** none (in-process mocks). Optionally
 `--with-http` spins up four mock HTTP services on
@@ -208,7 +206,7 @@ export SELF_PLAY_BASE_URL="<https://self-play.example.com>"
 export AERL_BASE_URL="<https://aerl.example.com>"
 export LOOP_HOLDOUT_TIMEOUT_S=300
 
-python <skill_root>/scripts/mock_self_coaching_demo.py
+python -m self_coaching.demo
 ```
 
 (Same runner; behavior switches based on which `*_BASE_URL`

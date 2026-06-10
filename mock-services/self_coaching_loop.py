@@ -23,21 +23,33 @@ _candidates = [
     HERE.parents[2] / "modes" / "self-coaching",
 ]
 _SC_ROOT = next((p for p in _candidates if p.exists()), None)
-if _SC_ROOT is None:
-    raise RuntimeError(
-        f"Cannot locate modes/self-coaching from {HERE}. "
-        f"Tried: {_candidates}"
-    )
-REPO_ROOT = _SC_ROOT.parents[1]
-for _entry in (str(_SC_ROOT), str(_SC_ROOT / "self-learning"), str(REPO_ROOT / "mock-services"), str(REPO_ROOT)):
+REPO_ROOT = HERE.parents[1]
+if _SC_ROOT is not None:
+    REPO_ROOT = _SC_ROOT.parents[1]
+for _entry in (
+    str(REPO_ROOT / "mock-services"),
+    str(REPO_ROOT),
+    *(str(p) for p in (_SC_ROOT, _SC_ROOT / "self-learning") if p is not None),
+):
     if _entry not in sys.path:
         sys.path.insert(0, _entry)
 
-from client import ModuleClient  # noqa: E402
-from loop_driver import run_tasks, run_t_path  # noqa: E402
-from loop_store import LoopStore  # noqa: E402
+try:
+    from self_coaching.loop_driver import run_tasks, run_t_path  # noqa: E402
+    from self_coaching.loop_env import build_loop_client  # noqa: E402
+    from self_coaching.loop_store import LoopStore  # noqa: E402
+    from self_coaching.state import LoopStateStore  # noqa: E402
+except ImportError:
+    if _SC_ROOT is None:
+        raise RuntimeError(
+            f"Cannot locate modes/self-coaching from {HERE}. "
+            f"Tried: {_candidates}. Install with: pip install -e ."
+        ) from None
+    from loop_driver import run_tasks, run_t_path  # noqa: E402
+    from loop_env import build_loop_client  # noqa: E402
+    from loop_store import LoopStore  # noqa: E402
+    from state import LoopStateStore  # noqa: E402
 from mock_agent_registry import AgentRegistry  # noqa: E402
-from state import LoopStateStore  # noqa: E402
 
 
 def _resolve_path(path: str | Path) -> Path:
@@ -62,7 +74,7 @@ def run_scenario(
     coaching_root: str | Path,
     scenario: dict[str, Any],
     *,
-    client: ModuleClient | None = None,
+    client: Any | None = None,
 ) -> dict[str, Any]:
     """Run a scenario manifest (full_loop: E-path → buffer fill → T-path promote)."""
     root = Path(coaching_root).resolve()
@@ -81,7 +93,7 @@ def run_scenario(
     os.environ.setdefault("LOOP_AGENT_ID", agent_id)
     os.environ.setdefault("AGENT_ID", agent_id)
 
-    loop_client = client or ModuleClient(root)
+    loop_client = client or build_loop_client(root)
     registry = AgentRegistry(root)
     registry.ensure_agent(agent_id)
 

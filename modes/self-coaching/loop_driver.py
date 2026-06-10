@@ -13,16 +13,23 @@ from typing import Any, Iterator, Protocol, runtime_checkable
 _SC_ROOT = Path(__file__).resolve().parent
 _REPO_ROOT = _SC_ROOT.parents[1]
 _MOCK_SERVICES = _REPO_ROOT / "mock-services"
-for _path in (_SC_ROOT, _SC_ROOT / "self-learning", _MOCK_SERVICES, _REPO_ROOT):
-    _entry = str(_path)
-    if _entry not in sys.path:
-        sys.path.insert(0, _entry)
+if not _MOCK_SERVICES.is_dir():
+    _MOCK_SERVICES = _REPO_ROOT / "assets" / "mock-services"
+_SELF_LEARNING = _SC_ROOT / "self-learning"
+if str(_SELF_LEARNING) not in sys.path:
+    sys.path.insert(0, str(_SELF_LEARNING))
 
-from free_time import FreeTimeSimulator  # noqa: E402
-from loop_store import LoopStore, SupportEntry, read_jsonl  # noqa: E402
-from state import LoopState, LoopStateStore  # noqa: E402
+try:
+    from .free_time import FreeTimeSimulator  # noqa: E402
+    from .loop_store import LoopStore, SupportEntry, read_jsonl  # noqa: E402
+    from .state import LoopState, LoopStateStore  # noqa: E402
+    from .trajectory_simulator import simulate_trajectory  # noqa: E402
+except ImportError:
+    from free_time import FreeTimeSimulator  # noqa: E402
+    from loop_store import LoopStore, SupportEntry, read_jsonl  # noqa: E402
+    from state import LoopState, LoopStateStore  # noqa: E402
+    from trajectory_simulator import simulate_trajectory  # noqa: E402
 from trajectory_scorer import RubricResult, score_trajectory  # noqa: E402
-from trajectory_simulator import simulate_trajectory  # noqa: E402
 
 DEFAULT_TAU_FAIL = 0.75
 DEFAULT_SIGMA_MIN = 3
@@ -295,61 +302,19 @@ def fill_buffer_batch(
 
 
 def _holdout_metrics(
-    agentevals_engine: Any,
+    holdout_engine: Any,
     *,
     agent_id: str,
     version_id: str,
     coaching_root: Path,
 ) -> Any:
-    import time
+    from services.adapters.holdout_engine import collect_holdout_metrics
 
-    from services.orchestrator.eval_metrics import EvalMetrics
-
-    version = agentevals_engine.registry.get_version(agent_id, version_id)
-    model_id = str((version.get("components") or {}).get("model_id", version_id))
-    skill_bundle = str((version.get("components") or {}).get("skill_bundle_version", "unknown"))
-    created = agentevals_engine.create_run(
-        {
-            "suite_id": holdout_suite_id(),
-            "num_trials": 1,
-            "agent_config": {
-                "agent_id": agent_id,
-                "version_id": version_id,
-                "baseline_version_id": version_id,
-            },
-        }
-    )
-    run_id = str(created["id"])
-    deadline = time.time() + 5.0
-    detail: dict[str, Any] = created
-    while time.time() < deadline:
-        detail = agentevals_engine.get_run(run_id)
-        if str(detail.get("status")) == "succeeded":
-            break
-        time.sleep(0.02)
-    if str(detail.get("status")) != "succeeded":
-        raise RuntimeError(f"mock holdout eval run {run_id} did not succeed")
-
-    metrics = detail.get("metrics") or {}
-    num_trials = max(int(detail.get("num_trials") or 1), 1)
-    overall = float(metrics.get("overall", 0.0))
-    return EvalMetrics(
-        run_id=run_id,
+    return collect_holdout_metrics(
+        holdout_engine,
         agent_id=agent_id,
-        skill_bundle_version=skill_bundle,
-        model_checkpoint_id=model_id,
-        score=overall,
-        baseline_score=overall,
-        cost_per_task=float(metrics.get("cost_usd", 0.0)) / num_trials,
-        latency_p95_ms=float(metrics.get("latency_p95_ms", 800.0)),
-        safety_pass_rate=float(metrics.get("safety", 1.0)),
-        task_scores={
-            key: float(value)
-            for key, value in metrics.items()
-            if key not in {"overall", "pass_rate", "cost_usd", "latency_p95_ms", "safety"} and isinstance(value, (int, float))
-        },
-        split="holdout",
-        raw={"run_detail": detail},
+        version_id=version_id,
+        coaching_root=coaching_root,
     )
 
 
@@ -368,7 +333,7 @@ def run_t_path(
     agentevals_engine: Any | None = None,
 ) -> dict[str, Any] | None:
     """T-path: fill B, train, holdout gate, optional hot-swap, consume B."""
-    from mock_agentevals import MockAgentEvalsEngine
+    from services.adapters.holdout_engine import build_holdout_engine
     from services.orchestrator.drop_detector import check_promotion, load_thresholds
 
     batch_size = batch_size_threshold() if beta is None else beta
@@ -406,7 +371,7 @@ def run_t_path(
     )
     candidate_version_id = str(draft["version_id"])
 
-    eval_engine = agentevals_engine or MockAgentEvalsEngine(coaching_root)
+    eval_engine = agentevals_engine or build_holdout_engine(coaching_root)
     current_metrics = _holdout_metrics(
         eval_engine,
         agent_id=agent_id,
@@ -528,9 +493,12 @@ def process_task(
 
 
 def default_client(coaching_root: str | Path) -> LoopClient:
-    from client import ModuleClient
+    try:
+        from .loop_env import build_loop_client
+    except ImportError:
+        from loop_env import build_loop_client
 
-    return ModuleClient(coaching_root)
+    return build_loop_client(coaching_root)
 
 
 def run_tasks(

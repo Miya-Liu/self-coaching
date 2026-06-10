@@ -1,7 +1,7 @@
 ---
 name: self-tuning
 description: "Use when routing curated self-coaching data into SFT, LoRA, preference, or RL training runs, with executable SFT/GRPO pipeline helpers, manifests, split hygiene, evaluation gates, and rollback."
-version: 1.1.0
+version: 0.3.1
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]

@@ -1,7 +1,7 @@
 ---
 name: self-play
 description: "Use when generating, replaying, mutating, critiquing, and curating challenging agent tasks or trajectories for evals, SFT data, or preference/RL data."
-version: 1.1.0
+version: 0.3.1
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]

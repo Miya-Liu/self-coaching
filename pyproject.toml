@@ -30,7 +30,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/Miya-Liu/self-coaching"
-Plan = "https://github.com/Miya-Liu/self-coaching/blob/master/docs/project/self-coaching-demo-pipeline-plan.md"
+Plan = "https://github.com/Miya-Liu/self-coaching/blob/main/docs/project/self-coaching-demo-pipeline-plan.md"
 
 [tool.setuptools]
 # This is a skill pack, not a Python library. We don't ship

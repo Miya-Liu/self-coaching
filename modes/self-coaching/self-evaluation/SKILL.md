@@ -1,7 +1,7 @@
 ---
 name: self-evaluation
 description: "Use when building, triggering, or interpreting an agent/model evaluation pipeline for self-coaching, including regression suites, capability metrics, reports, failure routing, and promotion gates."
-version: 1.1.0
+version: 0.3.1
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]

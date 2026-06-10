@@ -1,7 +1,7 @@
 ---
 name: self-learning
 description: "Use when converting an agent's prior experience, user corrections, resolved bugs, tool failures, or skill changes into durable memory, skill patches, tests, eval cases, reusable runbooks, or experience-log entries."
-version: 1.1.0
+version: 0.3.1
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]

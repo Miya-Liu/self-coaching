@@ -26,6 +26,8 @@ def test_run_scenario_full_loop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
     monkeypatch.delenv("MOCK_SELF_LEARNING_URL", raising=False)
     monkeypatch.delenv("MOCK_AERL_URL", raising=False)
+    monkeypatch.delenv("TRAINER_BASE_URL", raising=False)
+    monkeypatch.setenv("LOOP_SERVICE_MODE", "mock-module")
 
     root = tmp_path / "loop-run"
     scenario = load_scenario(REPO_ROOT / "scenarios" / "full_loop.json")

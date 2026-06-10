@@ -17,8 +17,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-_SC_ROOT = REPO_ROOT / "modes" / "self-coaching"
+HERE = Path(__file__).resolve()
+_candidates = [
+    HERE.parents[1] / "modes" / "self-coaching",
+    HERE.parents[2] / "modes" / "self-coaching",
+]
+_SC_ROOT = next((p for p in _candidates if p.exists()), None)
+if _SC_ROOT is None:
+    raise RuntimeError(
+        f"Cannot locate modes/self-coaching from {HERE}. "
+        f"Tried: {_candidates}"
+    )
+REPO_ROOT = _SC_ROOT.parents[1]
 for _entry in (str(_SC_ROOT), str(_SC_ROOT / "self-learning"), str(REPO_ROOT / "mock-services"), str(REPO_ROOT)):
     if _entry not in sys.path:
         sys.path.insert(0, _entry)

@@ -1,6 +1,14 @@
 ---
 name: self-coaching
-description: Agent-agnostic skill. Coaches any capable agent through Loading Gate, Performance, Data Pool, Local Model, Deploy Gate, Trainer, LOGs, and Results (experience logs); git worktrees; user-authorized merge and model/data updates.
+description: "Agent-agnostic skill. Coaches any capable agent through Loading Gate, Performance, Data Pool, Local Model, Deploy Gate, Trainer, LOGs, and Results (experience logs); git worktrees; user-authorized merge and model/data updates."
+version: 0.3.1
+author: Self-Coaching Skill Pack
+license: MIT
+platforms: [linux, macos, windows]
+metadata:
+  hermes:
+    tags: [self-coaching, agent-evolution, evaluation, training, evolution-loop, gated-pipeline]
+    related_skills: [self-learning, self-play, self-evaluation, self-tuning]
 ---
 
 # Self Coaching
@@ -36,6 +44,52 @@ Do **not** use this skill for:
 - Training on secrets, private data, credentials, or copyrighted/proprietary content without permission.
 - Blindly creating memories or skills after every task.
 - Deploying a newly trained model without evaluation and rollback.
+
+## Validating the Loop on Mocks
+
+Before reasoning about the loop on a real agent, validate
+that the gated pipeline works end-to-end on mock services.
+This is the single command:
+
+```bash
+python <skill_root>/scripts/mock_self_coaching_demo.py
+```
+
+`<skill_root>` is wherever you installed this skill — typically
+`~/.hermes/skills/self-coaching/` after running
+`install-skill-pack.sh --hermes --with-mock` (see
+`docs/guides/install-as-hermes-skill.md`), or the repo root
+itself during development.
+
+The runner spins up an isolated demo state at
+`mock-services/demo-loop/`, runs `scenarios/full_loop.json`
+through the E-path (self-learning) and T-path (self-play +
+training + holdout) phases, then audits via
+`tools/loop_completeness.py`.
+
+**Expected on success:**
+
+- exit code 0
+- `mock-services/demo-loop/.self-coaching/loop/completeness_report.json`
+with `status: "PASS"` covering matrix rows C01–C18
+- `mock-services/demo-loop/.self-coaching/loop/demo_summary.md`
+with a one-paragraph human summary
+- registry version bump in `mock-services/demo-loop/agents/demo-agent/meta.json`
+
+If completeness_report.json status != PASS, do NOT proceed to
+real-API mode. Failing rows tell you exactly which gate broke.
+See `docs/project/self-coaching-demo-pipeline-plan.md` §7 (Completeness Matrix) for
+what each Cnn check means.
+
+For HTTP-transport validation (real-service-shaped):
+
+```bash
+python <skill_root>/scripts/mock_self_coaching_demo.py --with-http
+```
+
+This stands up four mock services on configurable ports and
+exercises the same loop with network I/O instead of in-process
+calls. Same exit conditions, same artifacts.
 
 ## Self-Coaching Loop
 

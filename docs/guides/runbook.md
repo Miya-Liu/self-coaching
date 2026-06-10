@@ -50,12 +50,16 @@ bash scripts/mock-self-coaching-demo.sh
 
 ```powershell
 python scripts/mock_self_coaching_demo.py
+python scripts/mock_self_coaching_demo.py --env-file scenarios/demo.env
 ```
+
+Copy [scenarios/demo.env.example](../../scenarios/demo.env.example) to `scenarios/demo.env` to customize service URLs and `LOOP_SERVICE_MODE` (`mock-module` | `mock-http` | `live`). If `scenarios/demo.env` exists, it is loaded automatically.
 
 Or:
 
 ```powershell
 .\scripts\mock-self-coaching-demo.ps1
+.\scripts\mock-self-coaching-demo.ps1 -EnvFile scenarios\demo.env
 ```
 
 Prints `completeness: PASS` and exits **0** when the loop and audit succeed. Idempotent: recreates `mock-services/demo-loop/` each run.

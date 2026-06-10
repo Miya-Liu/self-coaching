@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "self-coaching"
+version = "0.3.1"
+description = "Portable, agent-agnostic evolution platform — self-coaching skill pack with mock services for end-to-end validation."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Self-Coaching Skill Pack" }
+]
+
+# Mock-mode is stdlib-only. Real-API mode adds httpx + pydantic.
+dependencies = []
+
+[project.optional-dependencies]
+# install with: pip install -e ".[real-api]"
+real-api = [
+  "httpx>=0.27",
+  "pydantic>=2.7",
+]
+# install with: pip install -e ".[dev]"
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.23",
+]
+
+[project.urls]
+Homepage = "https://github.com/Miya-Liu/self-coaching"
+Plan = "https://github.com/Miya-Liu/self-coaching/blob/master/docs/project/self-coaching-demo-pipeline-plan.md"
+
+[tool.setuptools]
+# This is a skill pack, not a Python library. We don't ship
+# importable packages by default. If you want to import
+# `mock_services.*` from outside, add explicit packages here.
+packages = []

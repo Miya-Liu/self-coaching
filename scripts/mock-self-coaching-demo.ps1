@@ -1,8 +1,10 @@
 # Self-coaching loop demo — Windows PowerShell wrapper (no bash required).
 # Usage: .\scripts\mock-self-coaching-demo.ps1
 #        .\scripts\mock-self-coaching-demo.ps1 -WithHttp
+#        .\scripts\mock-self-coaching-demo.ps1 -EnvFile scenarios\demo.env
 param(
-    [switch]$WithHttp
+    [switch]$WithHttp,
+    [string]$EnvFile = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,6 +19,7 @@ if (-not $Py) {
 
 $Args = @("$Root\scripts\mock_self_coaching_demo.py")
 if ($WithHttp) { $Args += "--with-http" }
+if ($EnvFile) { $Args += @("--env-file", $EnvFile) }
 
 & $Py @Args
 exit $LASTEXITCODE

@@ -4,6 +4,7 @@
 
 Usage:
   python scripts/mock_self_coaching_demo.py
+  python scripts/mock_self_coaching_demo.py --env-file scenarios/demo.env
   python scripts/mock_self_coaching_demo.py --with-http
 """
 from __future__ import annotations
@@ -21,8 +22,51 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEMO_DIR = REPO_ROOT / "mock-services" / "demo-loop"
-SCENARIO = REPO_ROOT / "scenarios" / "full_loop.json"
+
+
+def _resolve_asset_root(name: str) -> Path:
+    """Find `name` under repo root or under installed `assets/` layout."""
+    candidates = [
+        REPO_ROOT / name,
+        REPO_ROOT / "assets" / name,
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    raise FileNotFoundError(
+        f"Could not find {name} in {candidates}. "
+        "Run from a repo checkout or install via "
+        "scripts/install-skill-pack.sh --hermes --with-mock."
+    )
+
+
+def _resolve_sc_root() -> Path:
+    candidates = [
+        REPO_ROOT / "modes" / "self-coaching",
+        REPO_ROOT / "assets" / "modes" / "self-coaching",
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    raise FileNotFoundError(
+        f"Could not find modes/self-coaching in {candidates}. "
+        "Run from a repo checkout or install via "
+        "scripts/install-skill-pack.sh --hermes --with-mock."
+    )
+
+
+MOCK_SERVICES = _resolve_asset_root("mock-services")
+SCENARIOS_DIR = _resolve_asset_root("scenarios")
+TOOLS_DIR = _resolve_asset_root("tools")
+SC_ROOT = _resolve_sc_root()
+
+if str(SC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SC_ROOT))
+
+from loop_env import configure_demo_env, format_service_profile  # noqa: E402
+
+DEMO_DIR = MOCK_SERVICES / "demo-loop"
+SCENARIO = SCENARIOS_DIR / "full_loop.json"
 
 REQUIRED_ARTIFACTS = (
     ".self-coaching/loop/state.json",
@@ -59,15 +103,15 @@ def _start_http_stack(demo_dir: Path, agent_id: str) -> list[subprocess.Popen[by
     self_play_port = os.environ.get("MOCK_SELF_PLAY_PORT", "38767")
     aerl_port = os.environ.get("MOCK_AERL_PORT", "38004")
 
-    agentevals_url = f"http://127.0.0.1:{ae_port}"
-    learning_url = f"http://127.0.0.1:{learning_port}"
-    self_play_url = f"http://127.0.0.1:{self_play_port}"
-    aerl_url = f"http://127.0.0.1:{aerl_port}"
+    agentevals_url = os.environ.get("MOCK_AGENTEVALS_URL", f"http://127.0.0.1:{ae_port}")
+    learning_url = os.environ.get("MOCK_SELF_LEARNING_URL", f"http://127.0.0.1:{learning_port}")
+    self_play_url = os.environ.get("MOCK_SELF_PLAY_URL", f"http://127.0.0.1:{self_play_port}")
+    aerl_url = os.environ.get("MOCK_AERL_URL", os.environ.get("TRAINER_BASE_URL", f"http://127.0.0.1:{aerl_port}"))
 
     _run(
         [
             _python(),
-            str(REPO_ROOT / "mock-services" / "mock_agentevals.py"),
+            str(MOCK_SERVICES / "mock_agentevals.py"),
             "init",
             "--data-dir",
             str(demo_dir),
@@ -78,14 +122,14 @@ def _start_http_stack(demo_dir: Path, agent_id: str) -> list[subprocess.Popen[by
 
     procs: list[subprocess.Popen[bytes]] = []
     specs = [
-        (REPO_ROOT / "mock-services" / "mock_agentevals.py", ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", ae_port], {}),
-        (REPO_ROOT / "mock-services" / "mock_self_learning.py", ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", learning_port], {}),
+        (MOCK_SERVICES / "mock_agentevals.py", ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", ae_port], {}),
+        (MOCK_SERVICES / "mock_self_learning.py", ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", learning_port], {}),
         (
-            REPO_ROOT / "mock-services" / "mock_self_play.py",
+            MOCK_SERVICES / "mock_self_play.py",
             ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", self_play_port],
             {"MOCK_AGENTEVALS_URL": agentevals_url},
         ),
-        (REPO_ROOT / "mock-services" / "mock_aerl.py", ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", aerl_port], {}),
+        (MOCK_SERVICES / "mock_aerl.py", ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", aerl_port], {}),
     ]
     for script, args, extra_env in specs:
         env = os.environ.copy()
@@ -120,7 +164,18 @@ def _stop_procs(procs: list[subprocess.Popen[bytes]]) -> None:
             proc.kill()
 
 
-def run_demo(*, with_http: bool = False) -> int:
+def run_demo(
+    *,
+    env_file: Path | None = None,
+    with_http: bool = False,
+) -> int:
+    profile = configure_demo_env(
+        env_file=env_file,
+        with_http=with_http,
+    )
+    print("==> Service profile")
+    print(format_service_profile(profile))
+
     procs: list[subprocess.Popen[bytes]] = []
     try:
         print(f"==> Prepare demo coaching root at {DEMO_DIR}")
@@ -128,34 +183,23 @@ def run_demo(*, with_http: bool = False) -> int:
             shutil.rmtree(DEMO_DIR)
         DEMO_DIR.mkdir(parents=True)
 
-        agent_id = os.environ.get("LOOP_AGENT_ID", "demo-agent")
-        os.environ["AGENT_ID"] = agent_id
-        os.environ["LOOP_AGENT_ID"] = agent_id
-        os.environ.setdefault("LOOP_SIGMA_MIN", "3")
-        os.environ.setdefault("LOOP_SIGMA_PLAY", "0")
-        os.environ.setdefault("LOOP_BATCH_SIZE", "4")
-        os.environ.setdefault("LOOP_TAU_FAIL", "0.75")
-        os.environ.setdefault("LOOP_IDLE_AFTER", "0")
+        agent_id = profile.agent_id
 
-        if with_http:
-            print("==> Start split mock stack (--with-http)")
+        if profile.mode == "live":
+            print("==> Live service mode (no local mock stack)")
+        elif profile.mode == "mock-http" and profile.auto_start_mock_stack:
+            print("==> Start split mock stack (mock-http)")
             procs = _start_http_stack(DEMO_DIR, agent_id)
+        elif profile.mode == "mock-http":
+            print("==> Mock HTTP mode (using URLs from env; stack not auto-started)")
         else:
             print("==> Module transport (in-process mocks)")
-            for key in (
-                "MOCK_SELF_LEARNING_URL",
-                "MOCK_SELF_PLAY_URL",
-                "MOCK_AERL_URL",
-                "MOCK_AGENTEVALS_URL",
-                "AGENTEVALS_BASE_URL",
-            ):
-                os.environ.pop(key, None)
 
         print("==> Run self-coaching loop (scenarios/full_loop.json)")
         _run(
             [
                 _python(),
-                str(REPO_ROOT / "mock-services" / "self_coaching_loop.py"),
+                str(MOCK_SERVICES / "self_coaching_loop.py"),
                 "run",
                 "--root",
                 str(DEMO_DIR),
@@ -170,8 +214,8 @@ def run_demo(*, with_http: bool = False) -> int:
                 raise FileNotFoundError(f"missing artifact {path}")
 
         print("==> Completeness audit (C01–C18)")
-        if str(REPO_ROOT / "tools") not in sys.path:
-            sys.path.insert(0, str(REPO_ROOT / "tools"))
+        if str(TOOLS_DIR) not in sys.path:
+            sys.path.insert(0, str(TOOLS_DIR))
         from loop_completeness import build_context, run_audit, write_report  # noqa: E402
 
         scenario = json.loads(SCENARIO.read_text(encoding="utf-8"))
@@ -186,8 +230,8 @@ def run_demo(*, with_http: bool = False) -> int:
             return 1
 
         state = json.loads((DEMO_DIR / ".self-coaching" / "loop" / "state.json").read_text(encoding="utf-8"))
-        versions_dir = DEMO_DIR / "agents" / "demo-agent" / "versions"
-        version_count = len(list(versions_dir.glob("*.json"))) if versions_dir.is_dir() else 0
+        versions_glob = list((DEMO_DIR / "agents").rglob("versions/*.json"))
+        version_count = len(versions_glob)
         print(f"generation: {state.get('generation')}")
         print(f"registry versions: {version_count}")
         print("mock-self-coaching-demo: PASS")
@@ -199,9 +243,27 @@ def run_demo(*, with_http: bool = False) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Self-coaching mock loop demo (cross-platform)")
-    parser.add_argument("--with-http", action="store_true", help="Use split HTTP mock stack")
+    parser.add_argument(
+        "--env-file",
+        type=Path,
+        default=None,
+        help="Dotenv service profile (default: scenarios/demo.env if it exists)",
+    )
+    parser.add_argument(
+        "--with-http",
+        action="store_true",
+        help="Shorthand for LOOP_SERVICE_MODE=mock-http (overrides env file mode)",
+    )
     args = parser.parse_args(argv)
-    return run_demo(with_http=args.with_http)
+
+    env_file = args.env_file
+    if env_file is None:
+        default_env = SCENARIOS_DIR / "demo.env"
+        if default_env.is_file():
+            env_file = default_env
+            print(f"==> Using default env file: {env_file}")
+
+    return run_demo(env_file=env_file, with_http=args.with_http)
 
 
 if __name__ == "__main__":

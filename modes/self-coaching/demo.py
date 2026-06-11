@@ -89,15 +89,31 @@ if str(SC_ROOT) not in sys.path:
 from loop_env import configure_demo_env, format_service_profile  # noqa: E402
 
 DEMO_DIR = MOCK_SERVICES / "demo-loop"
-SCENARIO = SCENARIOS_DIR / "full_loop.json"
+DEFAULT_SCENARIO = SCENARIOS_DIR / "full_loop.json"
+LIVE_SCENARIO = SCENARIOS_DIR / "full_loop_live.json"
 
-REQUIRED_ARTIFACTS = (
-    ".self-coaching/loop/state.json",
-    ".self-coaching/loop/support.jsonl",
-    ".self-coaching/loop/tuning_buffer.jsonl",
-    ".self-coaching/loop/demo_summary.md",
-    "agents/demo-agent/meta.json",
-)
+
+def _agent_dir_name(agent_id: str) -> str:
+    import re
+
+    return re.sub(r"[^a-zA-Z0-9._-]+", "-", agent_id).strip("-") or "agent"
+
+
+def _resolve_scenario_path(mode: str) -> Path:
+    if mode == "live" and LIVE_SCENARIO.is_file():
+        return LIVE_SCENARIO
+    return DEFAULT_SCENARIO
+
+
+def _required_artifacts(agent_id: str) -> tuple[str, ...]:
+    agent_dir = _agent_dir_name(agent_id)
+    return (
+        ".self-coaching/loop/state.json",
+        ".self-coaching/loop/support.jsonl",
+        ".self-coaching/loop/tuning_buffer.jsonl",
+        ".self-coaching/loop/demo_summary.md",
+        f"agents/{agent_dir}/meta.json",
+    )
 
 
 def _python() -> str:
@@ -191,11 +207,13 @@ def run_demo(
     *,
     env_file: Path | None = None,
     with_http: bool = False,
+    scenario: Path | None = None,
 ) -> int:
     profile = configure_demo_env(
         env_file=env_file,
         with_http=with_http,
     )
+    scenario_path = scenario or _resolve_scenario_path(profile.mode)
     print("==> Service profile")
     print(format_service_profile(profile))
 
@@ -218,7 +236,7 @@ def run_demo(
         else:
             print("==> Module transport (in-process mocks)")
 
-        print("==> Run self-coaching loop (scenarios/full_loop.json)")
+        print(f"==> Run self-coaching loop ({scenario_path.relative_to(REPO_ROOT)})")
         _run(
             [
                 _python(),
@@ -227,11 +245,11 @@ def run_demo(
                 "--root",
                 str(DEMO_DIR),
                 "--scenario",
-                str(SCENARIO),
+                str(scenario_path),
             ]
         )
 
-        for rel in REQUIRED_ARTIFACTS:
+        for rel in _required_artifacts(agent_id):
             path = DEMO_DIR / rel
             if not path.is_file():
                 raise FileNotFoundError(f"missing artifact {path}")
@@ -241,8 +259,8 @@ def run_demo(
             sys.path.insert(0, str(TOOLS_DIR))
         from loop_completeness import build_context, run_audit, write_report  # noqa: E402
 
-        scenario = json.loads(SCENARIO.read_text(encoding="utf-8"))
-        report = run_audit(build_context(DEMO_DIR, scenario))
+        scenario_doc = json.loads(scenario_path.read_text(encoding="utf-8"))
+        report = run_audit(build_context(DEMO_DIR, scenario_doc))
         write_report(DEMO_DIR, report)
 
         status = report.get("status")
@@ -277,6 +295,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Shorthand for LOOP_SERVICE_MODE=mock-http (overrides env file mode)",
     )
+    parser.add_argument(
+        "--scenario",
+        type=Path,
+        default=None,
+        help="Scenario manifest (default: full_loop_live.json in live mode, else full_loop.json)",
+    )
     args = parser.parse_args(argv)
 
     env_file = args.env_file
@@ -286,7 +310,7 @@ def main(argv: list[str] | None = None) -> int:
             env_file = default_env
             print(f"==> Using default env file: {env_file}")
 
-    return run_demo(env_file=env_file, with_http=args.with_http)
+    return run_demo(env_file=env_file, with_http=args.with_http, scenario=args.scenario)
 
 
 if __name__ == "__main__":

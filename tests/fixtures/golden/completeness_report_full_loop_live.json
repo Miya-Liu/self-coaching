@@ -1,0 +1,9 @@
+{
+  "scenario": "full_loop_live",
+  "status": "PASS",
+  "required_rows": ["C12", "C18"],
+  "rows": [
+    {"id": "C12", "invocation": "pass", "semantic": null},
+    {"id": "C18", "invocation": null, "semantic": "pass"}
+  ]
+}

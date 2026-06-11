@@ -1,0 +1,30 @@
+{
+  "name": "full_loop_live",
+  "description": "Live AgentEvals holdout on T-path (M1 exit); E-path + train stay on mocks",
+  "agent_id": "6ed953f5-ca52-45ff-a137-9d2d1b2e1d8d",
+  "task_streams": {
+    "e_path": "mock-services/fixtures/task_stream/e_path_v1.jsonl",
+    "t_path": "mock-services/fixtures/task_stream/t_path_v1.jsonl"
+  },
+  "e_path": {
+    "expect_sparse_self_play": false,
+    "min_generation_bump": 1
+  },
+  "t_path": {
+    "outcome": "promote",
+    "semantic_checks": ["C18"]
+  },
+  "loop": {
+    "e_path_limit": 10,
+    "t_path_limit": 4,
+    "sigma_min": 3,
+    "sigma_play": 0,
+    "beta": 4,
+    "tau_fail": 0.75,
+    "enable_t_path": true
+  },
+  "completeness": {
+    "require_pass": ["C12", "C18"],
+    "notes": "C14 hot-swap may fail when live holdout scores tie (min_candidate_improvement); not required for M1"
+  }
+}

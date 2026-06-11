@@ -17,7 +17,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 | **Self-play** | M2 | **Mock stub** | `mock_self_play.py` (`generate-suite` → AgentEvals) | Remote generator adapter |
 | **Skill learning** | M3 | **Mock stub** | `mock_self_learning.py` (classify + registry drafts) | Git-tagged bundle in run manifest |
 | **Model training** | M2 | **Mock stub** | `mock_aerl.py` + `aerl_client.py` / `train_adapter.py` | Live AERL staging smoke |
-| **Candidate evaluation** | M1 | **Partial** | Holdout gate on mocks; live holdout factory + `MemoryArena_Preview` smoke | Full T-path on live holdout (`demo.agentevals.env`); cost/latency from suite |
+| **Candidate evaluation** | M1 | **Done (holdout)** | Live holdout via `full_loop_live.json` (C12+C18); mock promote path unchanged | Cost/latency from suite when available; full live promote (M4) |
 | **Deployment** | M1 dry / M4 live | **Dry-run** | `deploy_manifest.json` (`canary_fraction: 0`) | Canary + rollback via agent API |
 | **Version management** | M1 | **Mock stub** | `mock_agent_registry.py` | Production agent API adapter |
 | **Coach mode shell** | M5 | **Started** | `modes/coach/registry.py`, `agents.example.yaml` | Scheduler examples + validation CLI |
@@ -34,7 +34,7 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 
 ## Completed (integration layer)
 
-- **2026-06-10:** AgentEvals live integration **PASS** (migration M1 read-path) — `holdout_engine.py`, `LOOP_HOLDOUT_TIMEOUT_S`, `build_loop_client()`; MemoryArena `RunDetail` mapping (`overall_pass_rate`, `model.name`); live smoke vs `http://localhost:8080` (agent `6ed953f5-ca52-45ff-a137-9d2d1b2e1d8d`, suite `MemoryArena_Preview`, model `gpt-4o`); profile `scenarios/demo.agentevals.env.example`; R5 mock-module CI unchanged
+- **2026-06-10:** AgentEvals live integration **PASS** (migration M1) — holdout factory + MemoryArena mapping; `full_loop_live.json` + C12/C18 golden; `scripts/full_loop_live_smoke.py`; live E2E vs `localhost:8080` (agent `6ed953f5-…`, `MemoryArena_Preview`, `gpt-4o`); R5 mock-module unchanged
 - **2026-06-09:** Self-coaching demo loop **P0–P2** — deterministic task-stream driver under `modes/self-coaching/`:
   - **P0:** `trajectory_scorer.py` (§3.2.1 rubric), `trajectory_simulator.py`, `state.py`, `loop_driver.py` skeleton, fixtures in `mock-services/fixtures/task_stream/tool_use_v1.jsonl`, tests `test_trajectory_scorer.py`, `test_loop_driver_skeleton.py`
   - **P1:** E-path — `support.jsonl` / `tuning_buffer.jsonl` / trajectory artifacts; `client.learn()` via `ModuleClient`; registry draft+activate; `g++` + A6 `meta.generation` mirror; fixtures `e_path_v1.jsonl`; tests `test_loop_e_path.py`

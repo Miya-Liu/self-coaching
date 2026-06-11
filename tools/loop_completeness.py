@@ -438,11 +438,22 @@ CHECKERS: list[Callable[[AuditContext], MatrixRow]] = [
 ]
 
 
+def _required_row_ids(scenario: dict[str, Any]) -> frozenset[str] | None:
+    completeness = scenario.get("completeness") or {}
+    required = completeness.get("require_pass")
+    if not required:
+        return None
+    return frozenset(str(row_id) for row_id in required)
+
+
 def run_audit(ctx: AuditContext) -> dict[str, Any]:
     rows = [checker(ctx) for checker in CHECKERS]
     failures: list[str] = []
+    required_rows = _required_row_ids(ctx.scenario)
 
     for row in rows:
+        if required_rows is not None and row.id not in required_rows:
+            continue
         if row.invocation == "fail":
             failures.append(f"{row.id} invocation")
         if row.semantic == "fail":
@@ -450,7 +461,7 @@ def run_audit(ctx: AuditContext) -> dict[str, Any]:
 
     generation = int(ctx.state.get("generation", 0))
     min_bump = int((ctx.scenario.get("e_path") or {}).get("min_generation_bump", 1))
-    if generation < min_bump:
+    if required_rows is None and generation < min_bump:
         failures.append("generation bump")
 
     status = "PASS" if not failures else "FAIL"

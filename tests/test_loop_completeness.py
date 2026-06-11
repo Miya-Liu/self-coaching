@@ -30,6 +30,7 @@ TPATH_FIXTURE = MOCK_SERVICES / "fixtures" / "task_stream" / "t_path_v1.jsonl"
 SPARSE_SCENARIO = REPO_ROOT / "scenarios" / "sparse_failures.json"
 DENSE_SCENARIO = REPO_ROOT / "scenarios" / "dense_failures.json"
 FULL_LOOP_SCENARIO = REPO_ROOT / "scenarios" / "full_loop.json"
+FULL_LOOP_LIVE_SCENARIO = REPO_ROOT / "scenarios" / "full_loop_live.json"
 
 
 def _write_eval_pair(run_dir: Path, *, current: float, candidate: float) -> None:
@@ -307,3 +308,24 @@ def test_e2e_full_loop_completeness_pass(tmp_path: Path, monkeypatch: pytest.Mon
 
     exit_code = main(["--root", str(root), "--expect-json", str(FULL_LOOP_SCENARIO), "--json"])
     assert exit_code == 0
+
+
+def test_full_loop_live_require_pass_ignores_c14_fail(tmp_path: Path):
+    """Live scenario only requires C12 + C18; C14 promote failure is allowed."""
+    root = tmp_path / "live-audit"
+    scenario = json.loads(FULL_LOOP_LIVE_SCENARIO.read_text(encoding="utf-8"))
+    _bootstrap_synthetic_pass_root(root, promote=False)
+
+    run_dir = root / ".self-coaching" / "loop" / "runs" / "t_path"
+    _write_eval_pair(run_dir, current=0.5, candidate=0.5)
+    (root / ".self-coaching" / "loop" / "t_path_last.json").write_text(
+        json.dumps({"promoted": False, "train_result": {"run_id": "train-1", "status": "ok"}}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    report = run_audit(build_context(root, scenario))
+    rows = {row["id"]: row for row in report["rows"]}
+    assert rows["C12"]["invocation"] == "pass"
+    assert rows["C18"]["semantic"] == "pass"
+    assert rows["C14"]["invocation"] == "fail"
+    assert report["status"] == "PASS"

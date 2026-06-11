@@ -125,10 +125,12 @@ def apply_service_mode(mode: str) -> None:
         os.environ.setdefault("TRAINER_BASE_URL", f"http://127.0.0.1:{aerl_port}")
         return
 
-    # live — keep URLs from env file; upgrade mock backends unless explicitly set
-    if os.environ.get("ORCHESTRATOR_EVAL_BACKEND", "mock") == "mock":
+    # live — upgrade backends only when a matching service URL is configured
+    ae_url = os.environ.get("AGENTEVALS_BASE_URL") or os.environ.get("MOCK_AGENTEVALS_URL")
+    train_url = os.environ.get("TRAINER_BASE_URL") or os.environ.get("MOCK_AERL_URL")
+    if os.environ.get("ORCHESTRATOR_EVAL_BACKEND", "mock") == "mock" and ae_url:
         os.environ["ORCHESTRATOR_EVAL_BACKEND"] = "agentevals"
-    if os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock") == "mock":
+    if os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock") == "mock" and train_url:
         os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = "aerl"
     os.environ.setdefault("LOOP_HOLDOUT_TIMEOUT_S", "300")
 

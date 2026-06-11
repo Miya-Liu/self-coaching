@@ -63,6 +63,16 @@ def test_build_loop_client_mock_module(tmp_path: Path, monkeypatch: pytest.Monke
     assert hasattr(client, "train")
 
 
+def test_live_agentevals_only_keeps_mock_train(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("LOOP_SERVICE_MODE", "live")
+    monkeypatch.setenv("AGENTEVALS_BASE_URL", "http://localhost:8080")
+    monkeypatch.delenv("TRAINER_BASE_URL", raising=False)
+    monkeypatch.delenv("MOCK_AERL_URL", raising=False)
+    profile = configure_demo_env()
+    assert profile.eval_backend == "agentevals"
+    assert profile.train_backend == "mock"
+
+
 def test_live_mode_keeps_urls(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("LOOP_SERVICE_MODE", "live")
     monkeypatch.setenv("AGENTEVALS_BASE_URL", "https://agentevals.example")

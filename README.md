@@ -11,12 +11,25 @@ bash scripts/install-skill-pack.sh --hermes        # minimal: 5 skills only
 bash scripts/install-skill-pack.sh --hermes --with-mock   # + runnable mock demo
 ```
 
+After the initial install, pull the repo and refresh skills when we ship updates (**Hermes only**):
+
+```bash
+git pull
+bash scripts/update-skill-pack.sh --hermes --dry-run   # preview diffs
+bash scripts/update-skill-pack.sh --hermes             # apply upstream changes
+bash scripts/update-skill-pack.sh --hermes --force     # overwrite local skill edits
+```
+
+**Other agents** (repo clone, Cursor, pack copy): `git pull`, compare `modes/self-coaching/SKILL_PACK_VERSION`, re-copy or re-run `bash scripts/install-skill-pack.sh <root>` — see [`deploy-skill-pack.md`](docs/guides/deploy-skill-pack.md#upgrade).
+
 `pyproject.toml` is for the **Python mock runtime only** — it does not install skills into Hermes. Use the table below to pick the right path:
 
 | You want to… | Run |
 | --- | --- |
 | Just use the skills in Hermes | `bash scripts/install-skill-pack.sh --hermes` |
 | Also run the mock demo locally | `bash scripts/install-skill-pack.sh --hermes --with-mock` |
+| Update Hermes skills after `git pull` | `bash scripts/update-skill-pack.sh --hermes` |
+| Update repo clone / Cursor / pack copy | `git pull` + compare `SKILL_PACK_VERSION` + re-copy or `install-skill-pack.sh <root>` |
 | Develop / modify the runtime | `pip install -e .` (from a repo clone; skills still need `--hermes` if you use Hermes) |
 
 **Windows:** use **Git Bash** or **WSL** — `install-skill-pack.sh` is POSIX bash only (no `install-skill-pack.ps1`). The script resolves paths via `$HOME` (e.g. `C:\Users\you\.hermes\skills`). For the mock demo from PowerShell after install, use `.\scripts\mock-self-coaching-demo.ps1`.
@@ -142,12 +155,12 @@ The experiment loop runs autonomously inside the **Deploy Gate**; **Replace loca
 
 ## Installation paths
 
-| Where | Example |
-|--------|---------|
-| **Hermes Agent** | `bash scripts/install-skill-pack.sh --hermes` → `~/.hermes/skills/self-coaching/` (sub-skills nested inside) |
-| Full repo clone | Agent loads `modes/self-coaching/SKILL.md`; scripts at repo root |
-| Pack copy | `~/skills/self-coaching/` ← contents of `modes/self-coaching/` |
-| Cursor | `~/.cursor/skills/self-coaching/` |
+| Where | Install | Upgrade |
+|--------|---------|---------|
+| **Hermes Agent** | `bash scripts/install-skill-pack.sh --hermes` → `~/.hermes/skills/self-coaching/` | `bash scripts/update-skill-pack.sh --hermes [--dry-run]` |
+| Full repo clone | Agent loads `modes/self-coaching/SKILL.md`; `bash scripts/install-skill-pack.sh . --with-mock` | `git pull`; compare `SKILL_PACK_VERSION`; re-run install script |
+| Pack copy | `~/skills/self-coaching/` ← contents of `modes/self-coaching/` | Re-copy after `git pull` |
+| Cursor | `~/.cursor/skills/self-coaching/` | Re-copy after `git pull` |
 
 Hooks: `references/hooks-setup.md` (illustrative; map events to your host).
 

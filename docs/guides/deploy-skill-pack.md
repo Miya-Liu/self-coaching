@@ -51,7 +51,8 @@ Arguments:
 
 | Location | Example |
 |----------|---------|
-| Full repo | Clone repo; agent loads `modes/self-coaching/SKILL.md` |
+| Full repo | Clone repo; agent loads `modes/self-coaching/SKILL.md`; `bash scripts/install-skill-pack.sh . --with-mock` |
+| **Hermes Agent** | `bash scripts/install-skill-pack.sh --hermes` → `~/.hermes/skills/self-coaching/` — [install-as-hermes-skill.md](install-as-hermes-skill.md) |
 | Pack copy | `~/skills/self-coaching/` ← contents of `modes/self-coaching/` |
 | Cursor | `~/.cursor/skills/self-coaching/` |
 
@@ -73,10 +74,25 @@ bash scripts/doctor.sh --json
 
 ## Upgrade
 
+### Hermes Agent
+
+From your repo clone after `git pull`:
+
+```bash
+bash scripts/update-skill-pack.sh --hermes --dry-run
+bash scripts/update-skill-pack.sh --hermes
+```
+
+See [install-as-hermes-skill.md](install-as-hermes-skill.md#updating-an-existing-install).
+
+### Repo clone, pack copy, Cursor
+
 1. Pull or replace the tree.
 2. Compare `modes/self-coaching/SKILL_PACK_VERSION` before/after.
-3. Re-run `bash scripts/install-skill-pack.sh <root>`.
+3. Re-copy `modes/self-coaching/` into your agent skill directory, or re-run `bash scripts/install-skill-pack.sh <root>`.
 4. Re-read `modes/self-coaching/SKILL.md` if minor version changed.
+
+Do **not** use `update-skill-pack.sh` without `--hermes` — it only targets `~/.hermes/skills/`.
 
 ## Out of scope for T1
 

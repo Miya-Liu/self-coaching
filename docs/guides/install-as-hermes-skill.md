@@ -24,6 +24,7 @@ Hermes skills. Pick your path:
 | --- | --- |
 | Just use the skills in Hermes | `bash scripts/install-skill-pack.sh --hermes` |
 | Also run the mock demo locally | `bash scripts/install-skill-pack.sh --hermes --with-mock` |
+| Update skills after `git pull` | `bash scripts/update-skill-pack.sh --hermes` |
 | Develop / modify the runtime | `pip install -e .` (from a repo clone) |
 
 ## One-command install (mock-ready)
@@ -39,6 +40,27 @@ the skills root), runs `pip install -e .` for the Python
 runtime, and bundles mock-service assets under
 `~/.hermes/skills/self-coaching/assets/` (with neutralized
 `name:` frontmatter so Hermes does not see duplicate skills).
+
+The installer records the repo git SHA in
+`~/.hermes/skills/self-coaching/SKILL_PACK_VERSION` as
+`installed_sha=…` (Hermes install copy only — the repo's
+`modes/self-coaching/SKILL_PACK_VERSION` stays semver-only).
+
+## Updating an existing install
+
+From your repo clone after `git pull`:
+
+```bash
+bash scripts/update-skill-pack.sh --hermes --dry-run   # preview file diffs + commits
+bash scripts/update-skill-pack.sh --hermes               # apply upstream skill changes
+bash scripts/update-skill-pack.sh --hermes --force       # overwrite local skill edits
+```
+
+- **`--dry-run`** — lists upstream vs local-modified files and prints unified diffs; writes nothing.
+- **Default** — updates files that only changed upstream; aborts if you edited managed skill files locally (unless `--force`).
+- **`--force`** — overwrites local edits to managed skill files with the repo copy.
+
+Legacy installs (no `installed_sha` line) require `--force` on the first update.
 
 ## Verify
 

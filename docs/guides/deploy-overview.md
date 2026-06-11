@@ -49,7 +49,9 @@ Adopt T2/T3 when you need HTTP integration or coach-mode supervision; T1 remains
 
 **Secrets:** Never commit `modes/self-coaching/self-tuning/services/.env`.
 
-**Upgrade:** Pull tree → compare `modes/self-coaching/SKILL_PACK_VERSION` → re-run install script; see [changelog-skills.md](../project/changelog-skills.md).
+**Upgrade (Hermes Agent):** `git pull` in your clone → `bash scripts/update-skill-pack.sh --hermes [--dry-run]`. Installed copy records `installed_sha` in `~/.hermes/skills/self-coaching/SKILL_PACK_VERSION`. See [install-as-hermes-skill.md](install-as-hermes-skill.md).
+
+**Upgrade (repo clone / pack copy / Cursor):** Pull or replace the tree → compare `modes/self-coaching/SKILL_PACK_VERSION` → re-copy `modes/self-coaching/` or re-run `bash scripts/install-skill-pack.sh <root>`. See [deploy-skill-pack.md#upgrade](deploy-skill-pack.md#upgrade) and [changelog-skills.md](../project/changelog-skills.md).
 
 ---
 

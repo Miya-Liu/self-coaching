@@ -8,6 +8,8 @@ Use `bash scripts/install-skill-pack.sh --hermes` to copy them into `~/.hermes/s
 | --- | --- |
 | Just use the skills in Hermes | `bash scripts/install-skill-pack.sh --hermes` |
 | Also run the mock demo locally | `bash scripts/install-skill-pack.sh --hermes --with-mock` |
+| Update Hermes skills after `git pull` | `bash scripts/update-skill-pack.sh --hermes` |
+| Update repo clone / Cursor / pack copy | See [deploy-skill-pack.md#upgrade](docs/guides/deploy-skill-pack.md#upgrade) |
 | Develop / modify the runtime | `pip install -e .` |
 
 `pip install` does **not** copy skills into `~/.hermes/skills/` — use the bash installer for that.

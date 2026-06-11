@@ -252,7 +252,7 @@ fi
 section "Skill pack (T1)"
 
 if [[ -f "${ROOT}/modes/self-coaching/SKILL_PACK_VERSION" ]]; then
-  ver="$(tr -d '\r\n' < "${ROOT}/modes/self-coaching/SKILL_PACK_VERSION")"
+  ver="$(head -n 1 "${ROOT}/modes/self-coaching/SKILL_PACK_VERSION" | tr -d '\r\n')"
   emit PASS "skill_pack.version" "SKILL_PACK_VERSION=${ver}"
 else
   emit FAIL "skill_pack.version" "modes/self-coaching/SKILL_PACK_VERSION missing"

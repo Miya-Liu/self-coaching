@@ -1,5 +1,28 @@
 # self-coaching
 
+> **Skill pack + mock runtime.** This repo ships five Hermes-discoverable skills under `modes/self-coaching/` (see [`SKILLS.md`](SKILLS.md)). The repo root also contains the mock demo runtime (`mock-services/`, `services/`, `tools/`, `tests/`, …). To install **only** the skill bits into Hermes, run `bash scripts/install-skill-pack.sh --hermes`.
+
+## Install (Hermes Agent users)
+
+```bash
+git clone https://github.com/Miya-Liu/self-coaching.git
+cd self-coaching
+bash scripts/install-skill-pack.sh --hermes        # minimal: 5 skills only
+bash scripts/install-skill-pack.sh --hermes --with-mock   # + runnable mock demo
+```
+
+`pyproject.toml` is for the **Python mock runtime only** — it does not install skills into Hermes. Use the table below to pick the right path:
+
+| You want to… | Run |
+| --- | --- |
+| Just use the skills in Hermes | `bash scripts/install-skill-pack.sh --hermes` |
+| Also run the mock demo locally | `bash scripts/install-skill-pack.sh --hermes --with-mock` |
+| Develop / modify the runtime | `pip install -e .` (from a repo clone; skills still need `--hermes` if you use Hermes) |
+
+**Windows:** use **Git Bash** or **WSL** — `install-skill-pack.sh` is POSIX bash only (no `install-skill-pack.ps1`). The script resolves paths via `$HOME` (e.g. `C:\Users\you\.hermes\skills`). For the mock demo from PowerShell after install, use `.\scripts\mock-self-coaching-demo.ps1`.
+
+See also [`docs/guides/install-as-hermes-skill.md`](docs/guides/install-as-hermes-skill.md).
+
 A **portable, agent-agnostic evolution platform** for coaching any LLM or coding **agent** that can follow markdown skills and run Bash. The contract is **`modes/self-coaching/SKILL.md`** (orchestration policy) plus on-disk **Experience** — not tied to a single IDE or product.
 
 **Purpose:** a gated loop from **observation** through **self-learning** (memory/skills), **self-play** data, **self-evaluation**, optional **self-tuning** (AERL SFT/GRPO), and **user-authorized** merge or promotion. The same submodules and evolution engine serve two **modes**:
@@ -121,6 +144,7 @@ The experiment loop runs autonomously inside the **Deploy Gate**; **Replace loca
 
 | Where | Example |
 |--------|---------|
+| **Hermes Agent** | `bash scripts/install-skill-pack.sh --hermes` → `~/.hermes/skills/self-coaching/` (sub-skills nested inside) |
 | Full repo clone | Agent loads `modes/self-coaching/SKILL.md`; scripts at repo root |
 | Pack copy | `~/skills/self-coaching/` ← contents of `modes/self-coaching/` |
 | Cursor | `~/.cursor/skills/self-coaching/` |

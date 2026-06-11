@@ -4,6 +4,14 @@
 # Usage:
 #   bash scripts/install-skill-pack.sh [target-root] [--hermes] [--with-mock] [--with-trainer]
 #
+# Flags:
+#   --hermes        Install into ~/.hermes/skills/ (Hermes Agent default skills dir)
+#   --with-mock     Also install mock-services + pip install -e . for the demo
+#   --with-trainer  Run preflight against an external trainer repo (needs uv + AUTORESEARCH_ROOT)
+#
+# Windows: POSIX bash only — run via Git Bash or WSL (no install-skill-pack.ps1).
+#          Demo after install: scripts/mock-self-coaching-demo.ps1
+#
 # Examples:
 #   bash scripts/install-skill-pack.sh .              # current repo as skill root
 #   bash scripts/install-skill-pack.sh ~/skills/self-coaching --with-mock
@@ -24,7 +32,7 @@ for arg in "$@"; do
     --with-mock) WITH_MOCK=1 ;;
     --with-trainer|--with-upstream) WITH_TRAINER=1 ;;
     -h|--help)
-      sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     --*)
@@ -97,29 +105,38 @@ check_duplicate_skill_names() {
   return 0
 }
 
+remove_legacy_hermes_flat_siblings() {
+  local skills_root="$1"
+  local sub legacy
+  for sub in self-learning self-play self-evaluation self-tuning; do
+    legacy="${skills_root}/${sub}"
+    if [[ -f "${legacy}/SKILL.md" ]] && grep -q 'self-coaching' "${legacy}/SKILL.md" 2>/dev/null; then
+      echo "==> Removing legacy flat install: ${legacy}"
+      rm -rf "${legacy}"
+    fi
+  done
+}
+
 install_hermes_skills() {
   local skills_root="$1"
-  local src dst sub kind
+  local src dst umbrella sub kind
 
-  if ! check_duplicate_skill_names "${skills_root}"; then
-    exit 1
-  fi
+  umbrella="${skills_root}/self-coaching"
+  mkdir -p "${umbrella}"
 
   # Umbrella — Hermes-discoverable markdown + metadata only.
   src="${ROOT}/modes/self-coaching"
-  dst="${skills_root}/self-coaching"
-  mkdir -p "${dst}"
   for f in SKILL.md DESCRIPTION.md SKILL_PACK_VERSION; do
-    [[ -f "${src}/${f}" ]] && cp -f "${src}/${f}" "${dst}/${f}"
+    [[ -f "${src}/${f}" ]] && cp -f "${src}/${f}" "${umbrella}/${f}"
   done
   for kind in references templates scripts; do
-    [[ -d "${src}/${kind}" ]] && cp -rf "${src}/${kind}" "${dst}/"
+    [[ -d "${src}/${kind}" ]] && cp -rf "${src}/${kind}" "${umbrella}/"
   done
 
-  # Flat sibling submodules — Hermes-discoverable.
+  # Nested submodules — under self-coaching/ to avoid top-level name collisions.
   for sub in self-learning self-play self-evaluation self-tuning; do
     src="${ROOT}/modes/self-coaching/${sub}"
-    dst="${skills_root}/${sub}"
+    dst="${umbrella}/${sub}"
     mkdir -p "${dst}"
     cp -f "${src}/SKILL.md" "${dst}/SKILL.md"
     for kind in references templates scripts; do
@@ -180,7 +197,12 @@ if [[ "${HERMES_MODE:-0}" == "1" ]]; then
   fi
   mkdir -p "${TARGET}"
 
+  remove_legacy_hermes_flat_siblings "${TARGET}"
   install_hermes_skills "${TARGET}"
+
+  if ! check_duplicate_skill_names "${TARGET}"; then
+    exit 1
+  fi
 
   if [[ "${WITH_MOCK}" == "1" ]]; then
     pip_install_runtime
@@ -190,10 +212,16 @@ if [[ "${HERMES_MODE:-0}" == "1" ]]; then
     fi
   fi
 
-  echo "==> Hermes skill pack installed to ${TARGET}"
-  echo "    Skills:  hermes skill list | grep self-coaching"
+  echo "==> Hermes skill pack installed to ${TARGET}/self-coaching"
+  echo "==> Installed 5 skills (nested under self-coaching/):"
+  echo "    - self-coaching/SKILL.md (umbrella)"
+  echo "    - self-coaching/self-learning/"
+  echo "    - self-coaching/self-play/"
+  echo "    - self-coaching/self-evaluation/"
+  echo "    - self-coaching/self-tuning/"
+  echo "==> Verify: hermes skill list | grep -E '^(self-coaching|self-learning|self-play|self-evaluation|self-tuning)$'"
   if [[ "${WITH_MOCK}" == "1" ]]; then
-    echo "    Demo:    python -m self_coaching.demo"
+    echo "==> Demo:    python -m self_coaching.demo"
   fi
   exit 0
 fi

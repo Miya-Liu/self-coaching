@@ -12,13 +12,28 @@ The **Coaching API** is the HTTP contract spine for pipeline stages: learn, self
 
 ## Endpoints (summary)
 
+**In `openapi.yaml` today** (mock CI / T2 facade):
+
 | Tag | Method | Path | Stage |
 |-----|--------|------|-------|
-| self-learning | POST | `/learning/events` | self-learning submodule |
+| self-learning | POST | `/learning/events` | Sync event (mock + legacy) |
 | self-play | POST | `/self-play/generate` | Self-play |
 | evaluation | POST | `/eval/runs` | Eval |
 | training | POST | `/training/runs` | Train |
 | pipeline | POST | `/pipeline/run-all` | End-to-end mock |
+
+**Spec only** — production learner + migration M2; not in `openapi.yaml` until M2.0-T02:
+
+| Tag | Method | Path | Stage |
+|-----|--------|------|-------|
+| self-learning | POST | `/learning/evolve` | Targeted session review |
+| self-learning | POST | `/learning/evolve/recent` | Auto-learn trailing window |
+| self-learning | GET | `/learning/status/{job_id}` | Poll async review job |
+| self-learning | GET | `/learn/sessions` | Discover candidate sessions |
+| self-learning | POST | `/learning/optout` | Per-session learn opt-out |
+| self-learning | GET | `/learning/health` | Learner readiness |
+
+Source: [self-learning-review-agent-plan.md](../../project/self-learning-review-agent-plan.md) §4.
 
 ## Client transports
 
@@ -51,13 +66,14 @@ One `SelfCoachingClient` interface — see [integrations/README.md](README.md).
 
 Idempotency: `Idempotency-Key` header → `.self-coaching/idempotency/`.
 
-## Mock vs production (M2)
+## Mock vs production (migration phases)
 
-| Mock today | Real backend (env-selected) |
-|------------|----------------------------|
-| Deterministic eval | AgentEvals adapter |
-| Dry-run train | AERL HTTP (`TRAINER_BASE_URL`) |
-| Local self-play | Remote generator (M3) |
+| Mock today | Real backend (env-selected) | Migration phase |
+|------------|----------------------------|-----------------|
+| Deterministic eval | AgentEvals adapter | **M1 PASS** |
+| Sync `POST /learning/events` | Evolve API (`/learning/evolve*`) | **M2** (planned) |
+| Local self-play | Remote generator | **M3** |
+| Dry-run train | AERL HTTP (`TRAINER_BASE_URL`) | **M4** |
 
 Deploy guide: [deploy-overview.md#t2--coaching-api](../../guides/deploy-overview.md#t2--coaching-api).
 
@@ -66,3 +82,4 @@ Deploy guide: [deploy-overview.md#t2--coaching-api](../../guides/deploy-overview
 - [pipelines.md](../pipelines.md) — stage semantics
 - [aerl.md](aerl.md) — train backend
 - [agentevals.md](agentevals.md) — eval backend
+- [self-learning-review-agent-plan.md](../../project/self-learning-review-agent-plan.md) — M2 review agent API (DRAFT)

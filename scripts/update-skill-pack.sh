@@ -213,6 +213,7 @@ fi
 
 remove_legacy_hermes_flat_siblings "${TARGET}"
 install_hermes_skills "${TARGET}"
+install_hermes_bundle_assets "${UMBRELLA}"
 write_hermes_installed_version "${UMBRELLA}" "${REPO_SHA}"
 
 if ! check_duplicate_skill_names "${TARGET}"; then

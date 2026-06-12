@@ -91,10 +91,12 @@ This is the single command:
 python -m self_coaching.demo
 ```
 
-Requires `pip install -e .` from the repo clone (the installer
-runs this automatically with `--hermes --with-mock`). See
-`docs/guides/install-as-hermes-skill.md`. During development,
-run from the repository root after `pip install -e .`.
+Requires `pip install -e .` from the repo clone for
+`python -m self_coaching.demo` (the installer runs this with
+`--hermes --with-mock`). The mock harness itself is always
+installed at `$SKILL_ROOT/mock-services/` by
+`bash scripts/install-skill-pack.sh --hermes`. See
+`docs/guides/install-as-hermes-skill.md`.
 
 The runner spins up an isolated demo state at
 `mock-services/demo-loop/`, runs `scenarios/full_loop.json`

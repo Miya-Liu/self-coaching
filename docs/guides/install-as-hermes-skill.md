@@ -23,7 +23,7 @@ Hermes skills. Pick your path:
 | You want to… | Run |
 | --- | --- |
 | Just use the skills in Hermes | `bash scripts/install-skill-pack.sh --hermes` |
-| Also run the mock demo locally | `bash scripts/install-skill-pack.sh --hermes --with-mock` |
+| Run `python -m self_coaching.demo` | `bash scripts/install-skill-pack.sh --hermes --with-mock` |
 | Update skills after `git pull` | `bash scripts/update-skill-pack.sh --hermes` |
 | Develop / modify the runtime | `pip install -e .` (from a repo clone) |
 
@@ -36,10 +36,12 @@ bash scripts/install-skill-pack.sh ~/.hermes/skills --hermes --with-mock
 This installs five Hermes-discoverable skills nested under
 `~/.hermes/skills/self-coaching/` (submodules in
 `self-coaching/self-learning/`, etc. — not flat siblings at
-the skills root), runs `pip install -e .` for the Python
-runtime, and bundles mock-service assets under
-`~/.hermes/skills/self-coaching/assets/` (with neutralized
-`name:` frontmatter so Hermes does not see duplicate skills).
+the skills root), **plus** the mock harness at
+`self-coaching/mock-services/` (and `scenarios/`, `tools/`).
+With `--with-mock`, also runs `pip install -e .` from your
+repo clone so `python -m self_coaching.demo` works.
+Neutralized runtime copies under `self-coaching/assets/` are
+not Hermes-discoverable skills.
 
 The installer records the repo git SHA in
 `~/.hermes/skills/self-coaching/SKILL_PACK_VERSION` as
@@ -61,6 +63,11 @@ bash scripts/update-skill-pack.sh --hermes --force       # overwrite local skill
 - **`--force`** — overwrites local edits to managed skill files with the repo copy.
 
 Legacy installs (no `installed_sha` line) require `--force` on the first update.
+
+**Mock harness:** `bash scripts/install-skill-pack.sh --hermes` always installs
+`mock-services/`, `scenarios/`, and `tools/` under the skill root. For
+`python -m self_coaching.demo`, also run from your repo clone with
+`--with-mock` (or `export SELF_COACHING_SKILL_ROOT=~/.hermes/skills/self-coaching`).
 
 ## Verify
 

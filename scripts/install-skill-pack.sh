@@ -6,7 +6,8 @@
 #
 # Flags:
 #   --hermes        Hermes Agent ONLY — copy skills to ~/.hermes/skills/self-coaching/
-#   --with-mock     Also install mock-services + pip install -e . for the demo
+#   --with-mock     Hermes: pip install -e . for python -m self_coaching.demo
+#                   Non-Hermes: run mock-run-all.sh dry run
 #   --with-trainer  Run preflight against an external trainer repo (needs uv + AUTORESEARCH_ROOT)
 #
 # Without --hermes: initialize coaching root at [target-root] (experience/, doctor,
@@ -71,6 +72,7 @@ if [[ "${HERMES_MODE:-0}" == "1" ]]; then
 
   remove_legacy_hermes_flat_siblings "${TARGET}"
   install_hermes_skills "${TARGET}"
+  install_hermes_bundle_assets "${TARGET}/self-coaching"
   write_hermes_installed_version "${TARGET}/self-coaching" "$(get_repo_sha)"
 
   if ! check_duplicate_skill_names "${TARGET}"; then
@@ -79,10 +81,6 @@ if [[ "${HERMES_MODE:-0}" == "1" ]]; then
 
   if [[ "${WITH_MOCK}" == "1" ]]; then
     pip_install_runtime
-    install_hermes_mock_assets "${TARGET}/self-coaching"
-    if ! check_duplicate_skill_names "${TARGET}"; then
-      exit 1
-    fi
   fi
 
   print_hermes_install_success "${TARGET}" "${WITH_MOCK}"

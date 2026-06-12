@@ -7,15 +7,21 @@ HERMES_ASSET_KINDS=(references templates scripts)
 
 copy_tree_excluding() {
   local src="$1" dst="$2"
+  shift 2
+  local extra exclude
   mkdir -p "${dst}"
-  tar -C "${src}" \
-    --exclude='__pycache__' \
-    --exclude='*.pyc' \
-    --exclude='*.pyo' \
-    --exclude='.pytest_cache' \
-    --exclude='*.egg-info' \
-    --exclude='.egg-info' \
-    -cf - . | tar -C "${dst}" -xf -
+  local tar_args=( -C "${src}"
+    --exclude='__pycache__'
+    --exclude='*.pyc'
+    --exclude='*.pyo'
+    --exclude='.pytest_cache'
+    --exclude='*.egg-info'
+    --exclude='.egg-info'
+  )
+  for exclude in "$@"; do
+    tar_args+=( "--exclude=${exclude}" )
+  done
+  tar "${tar_args[@]}" -cf - . | tar -C "${dst}" -xf -
 }
 
 neutralize_skill_frontmatter() {
@@ -161,23 +167,29 @@ install_hermes_skills() {
   done
 }
 
-install_hermes_mock_assets() {
+install_hermes_bundle_assets() {
   local umbrella_dst="$1"
-  local assets="${umbrella_dst}/assets"
-  local skill_md
+  local skill_md assets="${umbrella_dst}/assets"
 
-  mkdir -p "${assets}/mock-services" \
-           "${assets}/scenarios" \
-           "${assets}/tools" \
-           "${assets}/services" \
-           "${assets}/modes/self-coaching"
+  # Legacy layout: mock-services lived under assets/ only — migrate to SKILL.md paths.
+  if [[ -d "${assets}/mock-services" && ! -d "${umbrella_dst}/mock-services" ]]; then
+    mkdir -p "${umbrella_dst}"
+    mv "${assets}/mock-services" "${umbrella_dst}/mock-services"
+  fi
+  if [[ -d "${assets}/scenarios" && ! -d "${umbrella_dst}/scenarios" ]]; then
+    mv "${assets}/scenarios" "${umbrella_dst}/scenarios"
+  fi
 
-  copy_tree_excluding "${ROOT}/mock-services" "${assets}/mock-services"
-  copy_tree_excluding "${ROOT}/scenarios" "${assets}/scenarios"
-  mkdir -p "${assets}/tools"
-  cp -f "${ROOT}/tools/loop_completeness.py" "${assets}/tools/"
+  # Paths referenced in SKILL.md (mock-services/README.md, scenarios/, tools/).
+  copy_tree_excluding "${ROOT}/mock-services" "${umbrella_dst}/mock-services" \
+    production-readiness-runs demo-loop demo-run 'ci-mock-*'
+  copy_tree_excluding "${ROOT}/scenarios" "${umbrella_dst}/scenarios"
+  mkdir -p "${umbrella_dst}/tools"
+  cp -f "${ROOT}/tools/loop_completeness.py" "${umbrella_dst}/tools/"
+
+  # Python loop runtime + service adapters — not Hermes-discoverable.
+  mkdir -p "${assets}/services" "${assets}/modes/self-coaching"
   copy_tree_excluding "${ROOT}/services" "${assets}/services"
-
   copy_tree_excluding "${ROOT}/modes/self-coaching" "${assets}/modes/self-coaching"
   while IFS= read -r -d '' skill_md; do
     rel="${skill_md#${assets}/modes/self-coaching/}"
@@ -185,6 +197,11 @@ install_hermes_mock_assets() {
     bundle="${bundle%.md}"
     neutralize_skill_frontmatter "${skill_md}" "${bundle}"
   done < <(find "${assets}/modes/self-coaching" -name 'SKILL.md' -print0)
+}
+
+# Back-compat alias
+install_hermes_mock_assets() {
+  install_hermes_bundle_assets "$1"
 }
 
 pip_install_runtime() {
@@ -213,9 +230,13 @@ print_hermes_install_success() {
   echo "    - self-coaching/self-play/"
   echo "    - self-coaching/self-evaluation/"
   echo "    - self-coaching/self-tuning/"
+  echo "==> Mock harness: ${target}/self-coaching/mock-services/ (see mock-services/README.md)"
   echo "==> Update later: bash scripts/update-skill-pack.sh --hermes [--dry-run]"
   echo "==> Verify: hermes skill list | grep -E '^(self-coaching|self-learning|self-play|self-evaluation|self-tuning)$'"
   if [[ "${with_mock}" == "1" ]]; then
-    echo "==> Demo:    python -m self_coaching.demo"
+    echo "==> Demo:    python -m self_coaching.demo  (requires pip install -e . from repo clone)"
+  else
+    echo "==> CLI smoke: cd \"${target}/self-coaching\" && python mock-services/mock_self_coaching.py --help"
+    echo "    Full demo: bash scripts/install-skill-pack.sh --hermes --with-mock  (adds pip install -e .)"
   fi
 }

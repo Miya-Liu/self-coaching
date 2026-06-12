@@ -1,14 +1,14 @@
 # self-coaching
 
-> **Skill pack + mock runtime.** This repo ships five Hermes-discoverable skills under `modes/self-coaching/` (see [`SKILLS.md`](SKILLS.md)). The repo root also contains the mock demo runtime (`mock-services/`, `services/`, `tools/`, `tests/`, …). To install **only** the skill bits into Hermes, run `bash scripts/install-skill-pack.sh --hermes`.
+> **Skill pack + mock runtime.** This repo ships five Hermes-discoverable skills under `modes/self-coaching/` (see [`SKILLS.md`](SKILLS.md)). The repo root also contains the mock demo runtime (`mock-services/`, `services/`, `tools/`, `tests/`, …). Hermes install: `bash scripts/install-skill-pack.sh --hermes` (skills + mock harness).
 
 ## Install (Hermes Agent users)
 
 ```bash
 git clone https://github.com/Miya-Liu/self-coaching.git
 cd self-coaching
-bash scripts/install-skill-pack.sh --hermes        # minimal: 5 skills only
-bash scripts/install-skill-pack.sh --hermes --with-mock   # + runnable mock demo
+bash scripts/install-skill-pack.sh --hermes        # skills + mock-services harness
+bash scripts/install-skill-pack.sh --hermes --with-mock   # + pip install -e . for python -m self_coaching.demo
 ```
 
 After the initial install, pull the repo and refresh skills when we ship updates (**Hermes only**):
@@ -26,8 +26,8 @@ bash scripts/update-skill-pack.sh --hermes --force     # overwrite local skill e
 
 | You want to… | Run |
 | --- | --- |
-| Just use the skills in Hermes | `bash scripts/install-skill-pack.sh --hermes` |
-| Also run the mock demo locally | `bash scripts/install-skill-pack.sh --hermes --with-mock` |
+| Install skills + mock-services harness in Hermes | `bash scripts/install-skill-pack.sh --hermes` |
+| Run full loop demo (`python -m self_coaching.demo`) | `bash scripts/install-skill-pack.sh --hermes --with-mock` |
 | Update Hermes skills after `git pull` | `bash scripts/update-skill-pack.sh --hermes` |
 | Update repo clone / Cursor / pack copy | `git pull` + compare `SKILL_PACK_VERSION` + re-copy or `install-skill-pack.sh <root>` |
 | Develop / modify the runtime | `pip install -e .` (from a repo clone; skills still need `--hermes` if you use Hermes) |

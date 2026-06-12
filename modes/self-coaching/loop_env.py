@@ -196,7 +196,20 @@ def default_env_file(repo_root: str | Path) -> Path | None:
     return candidate if candidate.is_file() else None
 
 
+def _skill_root_from_env() -> Path | None:
+    raw = os.environ.get("SELF_COACHING_SKILL_ROOT")
+    if not raw:
+        return None
+    root = Path(raw).expanduser().resolve()
+    if (root / "mock-services").is_dir() or (root / "assets" / "mock-services").is_dir():
+        return root
+    return None
+
+
 def _repo_root() -> Path:
+    from_env = _skill_root_from_env()
+    if from_env is not None:
+        return from_env
     here = Path(__file__).resolve().parent
     for candidate in (here.parents[1], here.parents[2], here.parent):
         if (candidate / "mock-services").is_dir():
@@ -204,7 +217,9 @@ def _repo_root() -> Path:
         if (candidate / "assets" / "mock-services").is_dir():
             return candidate
     raise FileNotFoundError(
-        "Could not locate repo root (mock-services/). Install with: pip install -e ."
+        "Could not locate repo root (mock-services/). "
+        "Set SELF_COACHING_SKILL_ROOT to your Hermes install (~/.hermes/skills/self-coaching), "
+        "or: pip install -e ."
     )
 
 

@@ -25,8 +25,21 @@ def _package_root() -> Path:
     return Path(__file__).resolve().parent
 
 
+def _skill_root_from_env() -> Path | None:
+    raw = os.environ.get("SELF_COACHING_SKILL_ROOT")
+    if not raw:
+        return None
+    root = Path(raw).expanduser().resolve()
+    if (root / "mock-services").is_dir() or (root / "assets" / "mock-services").is_dir():
+        return root
+    return None
+
+
 def _repo_root() -> Path:
     """Repo checkout root (editable install) or install prefix with bundled data."""
+    from_env = _skill_root_from_env()
+    if from_env is not None:
+        return from_env
     here = _package_root()
     for candidate in (here.parents[1], here.parents[2], here.parent):
         if (candidate / "mock-services").is_dir():
@@ -41,8 +54,8 @@ def _repo_root() -> Path:
         pass
     raise FileNotFoundError(
         "Could not locate repo root (mock-services/). "
-        "Install with: pip install -e .  or  "
-        "bash scripts/install-skill-pack.sh --hermes --with-mock"
+        "Set SELF_COACHING_SKILL_ROOT to your Hermes install (~/.hermes/skills/self-coaching), "
+        "or: pip install -e .  or  bash scripts/install-skill-pack.sh --hermes --with-mock"
     )
 
 

@@ -2,7 +2,9 @@
 
 **Status:** **M1 AgentEvals PASS** (2026-06-10) — live holdout E2E (`full_loop_live.json`, C12+C18)  
 **Ground truth:** tag **`v0.3.1-hermes-installable`** — mocks-only “it works” pin (Hermes pack + loop demo)  
-**Related:** [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md), [integration-plan.md](integration-plan.md), [integration/mapping.md](../integration/mapping.md), [mock-platform-design.md](mock-platform-design.md), [install-as-hermes-skill.md](../guides/install-as-hermes-skill.md)
+**Related:** [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md), [integration-plan.md](integration-plan.md), [integration/mapping.md](../integration/mapping.md), [mock-platform-design.md](mock-platform-design.md), [install-as-hermes-skill.md](../guides/install-as-hermes-skill.md), [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md)
+
+> **Milestone naming:** **Migration M0–M6** (this doc) = loop mock→live adapter phases. **[Roadmap](roadmap.md) M0–M5** = deploy targets (T1 skill pack, T2 Coaching API, …). **[Integration plan](integration-plan.md) Phase 0–5** = adapter implementation steps. Example: migration **M1** (AgentEvals holdout) ≠ roadmap **M1** (evolution engine dry loop).
 
 ---
 
@@ -63,7 +65,7 @@ On **`main` / feature branches**, run the same commands at **`LOOP_SERVICE_MODE=
 |----|------|-------------|
 | **M-W1** | Scorer 3-band collapse | Revisit if `LOOP_TAU_FAIL` (τ_fail) is tuned away from `0.75`, or before **P5** multi-scenario manifests ship — online rubric bands must stay derivable from fixtures. |
 | **M-W2** | Golden-audit regeneration cadence | When a migration phase **flips** a completeness row (invocation or semantic), land **one** dedicated commit that refreshes `completeness_report_full_loop.json` — no drive-by golden edits. |
-| **M-W3** | `LOOP_HOLDOUT_TIMEOUT_S` | Declared in [demo.env.example](../../scenarios/demo.env.example); **implement in M1** — `_holdout_metrics` hardcodes 5s today and is the first failure mode on real AgentEvals. |
+| ~~**M-W3**~~ | ~~`LOOP_HOLDOUT_TIMEOUT_S`~~ | **Done (migration M1)** — `holdout_engine.py` + env knob; was hardcoded 5s in `_holdout_metrics`. |
 | **M-W4** | Per-phase commit discipline | Same discipline as M-W2 through M0–M6: phase-scoped PRs, R5 green before merge, golden refresh only when that phase changes mock audit shape. |
 
 ---
@@ -80,7 +82,7 @@ On **`main` / feature branches**, run the same commands at **`LOOP_SERVICE_MODE=
 **Golden policy:**
 
 - **Mock CI:** diff against `completeness_report_full_loop.json` (status + per-row invocation/semantic only).
-- **Staging/live:** use scenario `full_loop_live.json` (future) and a **separate** golden or checklist — do not require identical scores/evidence strings to the mock golden.
+- **Staging/live:** use scenario `full_loop_live.json` and opt-in smoke `scripts/full_loop_live_smoke.py` (separate golden/checklist) — do not require identical scores/evidence strings to the mock golden.
 
 ---
 
@@ -107,7 +109,7 @@ Reuse **existing** repo names — no parallel `SELF_*_BASE_URL` tree.
 | Mode | `LOOP_SERVICE_MODE` | `mock-module` | `live` |
 | Agent / loop | `LOOP_AGENT_ID`, `LOOP_TAU_FAIL`, `LOOP_SIGMA_MIN`, `LOOP_SIGMA_PLAY`, `LOOP_BATCH_SIZE`, `LOOP_IDLE_AFTER` | see [demo.env.example](../../scenarios/demo.env.example) | same |
 | Holdout timeout | `LOOP_HOLDOUT_TIMEOUT_S` | `5` (mock) | `300`–`600` (real) |
-| Self-learning | `MOCK_SELF_LEARNING_URL` | unset (in-process) | `https://…` |
+| Self-learning | `MOCK_SELF_LEARNING_URL`, `SELF_LEARNING_BASE_URL`, `LOOP_LEARN_MODE` | unset (in-process); `sync` | learner URL; `evolve` / `evolve_recent` for production API — see [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md) |
 | Self-play | `MOCK_SELF_PLAY_URL` | unset | `https://…` |
 | Training (AERL) | `MOCK_AERL_URL`, `TRAINER_BASE_URL` | unset / local mock | staging trainer URL |
 | AgentEvals | `AGENTEVALS_BASE_URL`, `MOCK_AGENTEVALS_URL` | unset / local mock | staging AgentEvals |
@@ -125,8 +127,9 @@ Reuse **existing** repo names — no parallel `SELF_*_BASE_URL` tree.
 | Low-level HTTP | `services/adapters/agentevals_client.py`, `aerl_client.py` | REST to external APIs |
 | Orchestrator-shaped | `services/adapters/eval_adapter.py`, `train_adapter.py` | `evaluate` / `train` contract |
 | Composite | `services/adapters/composite_client.py` | `build_composite_client()` |
-| Loop (to add) | `modes/self-coaching/loop_env.py`, `build_loop_client()` | Load `.env`, apply mode, same as orchestrator |
-| Holdout (to add) | `services/adapters/holdout_engine.py` or factory in `loop_driver` | `create_run` / `get_run` for `_holdout_metrics` |
+| Loop env | `modes/self-coaching/loop_env.py`, `build_loop_client()` | Load `.env`, apply mode (**shipped**, migration M1) |
+| Holdout | `services/adapters/holdout_engine.py` | `create_run` / `get_run` for `_holdout_metrics` (**shipped**, migration M1) |
+| Learn (planned) | `services/adapters/self_learning_client.py`, `learn_adapter.py` | Review API + `learn()` mapping (**migration M2**) |
 
 **Do not** add a parallel `integrations/*/http_client.py` tree; extend `services/adapters/`.
 
@@ -164,21 +167,21 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 
 **Per-phase checklist (all phases):** R5 green on `mock-module` · scoped PR (R4) · golden refresh only if a row flips (M-W2/M-W4) · phase exit criteria met.
 
-### M0 — Snapshot + contract freeze (~3 days)
+### M0 — Snapshot + contract freeze (~3 days) — **partial** (overlapped M1)
 
 **Goal:** Real OpenAPI shapes and fixtures; no live calls in CI.
 
 **Build:**
 
-- `docs/integration/api-snapshots/agentevals-openapi.json` (pending)
-- `docs/integration/api-snapshots/self-learning-openapi.json`
-- `docs/integration/api-snapshots/self-play-openapi.json`
-- `docs/integration/api-snapshots/aerl-openapi.json`
-- Replace placeholder `tests/fixtures/agentevals/run_detail_succeeded.json` with captured shape
-- Walk [mapping.md](../integration/mapping.md); fix mappers, not contracts
-- Document auth per service (Bearer, API keys)
+- [x] `docs/integration/api-snapshots/agentevals-openapi.json` (2026-06-10)
+- [x] `tests/fixtures/agentevals/run_detail_memoryarena_succeeded.json` (live capture)
+- [x] [mapping.md](../integration/mapping.md) — AgentEvals `RunDetail` → `EvalMetrics` (active)
+- [ ] `docs/integration/api-snapshots/self-learning-openapi.json` — **migration M2.0**
+- [ ] `docs/integration/api-snapshots/self-play-openapi.json`
+- [ ] `docs/integration/api-snapshots/aerl-openapi.json`
+- [ ] Document auth per service in one place (Bearer, API keys) — partial via env templates
 
-**Exit:** Every mapped field has a real-shape fixture. **R5** mock golden audit still passes. No live calls in default CI.
+**Exit:** Every **shipped** adapter has a real-shape fixture. **R5** mock golden audit still passes. No live calls in default CI. Remaining snapshots gate M2–M4.
 
 **Mapping rule:** R7 — reject unmapped **required** fields; **warn** on extra API fields.
 
@@ -207,11 +210,14 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 
 ### M2 — Self-learning real adapter (~3 days)
 
+**Spec (DRAFT):** [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md) — independent review agent (`POST /learning/evolve`, `/learning/evolve/recent`, `GET /learning/status`), adapter-backed `learn()`. **Tasks:** spec §11 (M2.0–M2.5).
+
 **Build:**
 
-- Factory in learn path (`MOCK_SELF_LEARNING_URL` or live URL)
+- Factory in learn path (`MOCK_SELF_LEARNING_URL` / `SELF_LEARNING_BASE_URL`; `LOOP_LEARN_MODE=sync|evolve|evolve_recent`)
 - Preserve `source="loop-e-path"` verbatim
-- Mapper: real response → `draft_version_id` + `components` for `registry.activate`
+- Mapper: review job terminal response → `draft_version_id` + `components` for `registry.activate`
+- Mock extension: production learner routes on `mock_self_learning.py` (§8 of spec)
 
 **Tests:** E-path against staging self-learning + M1 AgentEvals; mock self-play + mock AERL.
 
@@ -299,14 +305,17 @@ M6 (staging-default profile + tag)
 
 ---
 
-## 8. Prerequisites before M1 (small, recommended)
+## 8. Completed prerequisites (migration M1)
 
-| Item | Path | Purpose |
-|------|------|---------|
-| Env template | `scenarios/demo.env.example` | Document all knobs; copy → `demo.env` |
-| Loop env loader | `modes/self-coaching/loop_env.py` | `load_demo_env()`, `apply_service_mode()`, `build_loop_client()` |
-| Demo `--env-file` | `scripts/mock_self_coaching_demo.py` | Load profile before run |
-| Live scenario | `scenarios/full_loop_live.json` | Staging completeness expectations (M1+) |
+Shipped before / during migration M1; retained for reference.
+
+| Item | Path | Status |
+|------|------|--------|
+| Env template | `scenarios/demo.env.example` | shipped |
+| Loop env loader | `modes/self-coaching/loop_env.py` | shipped |
+| Demo `--env-file` | `scripts/mock_self_coaching_demo.py` | shipped |
+| Live scenario | `scenarios/full_loop_live.json` | shipped |
+| Holdout smoke | `scripts/full_loop_live_smoke.py` | shipped |
 
 ---
 
@@ -320,4 +329,4 @@ M6 (staging-default profile + tag)
 
 ---
 
-*Last updated: 2026-06-09. Track progress in [progress.md](progress.md).*
+*Last updated: 2026-06-12. Track progress in [progress.md](progress.md). Next: migration **M2** ([self-learning-review-agent-plan.md](self-learning-review-agent-plan.md) §11).*

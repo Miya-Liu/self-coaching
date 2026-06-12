@@ -2,7 +2,9 @@
 
 Step-wise plan for wiring **real** production systems into the shared **evolution engine** without breaking the mock spine. Applies primarily to **Coach mode** (supervise external agents); Self-coaching mode can use the same eval/train adapters when automating locally.
 
-Design: [architecture.md](../design/architecture.md), [coach_mode.md](../design/coach_mode.md), [integrations/](../design/integrations/). Milestones: [roadmap.md](roadmap.md). Status: [progress.md](progress.md).
+Design: [architecture.md](../design/architecture.md), [coach_mode.md](../design/coach_mode.md), [integrations/](../design/integrations/). Milestones: [roadmap.md](roadmap.md) (deploy M0–M5). Status: [progress.md](progress.md). Loop migration: [mock-to-real-migration.md](mock-to-real-migration.md) (migration M0–M6).
+
+> **Milestone naming:** **Integration Phase 0–5** (this doc) ≠ **[roadmap](roadmap.md) M0–M5** ≠ **[migration](mock-to-real-migration.md) M0–M6**. Example: Phase 1 AgentEvals adapter shipped; migration **M1 PASS**; roadmap **M2** Coaching API deploy still open.
 
 **External API references (FastAPI / OpenAPI):**
 
@@ -111,7 +113,7 @@ The production agent API is a **large** platform (agents, tasks, versions, skill
 
 **Do not** replace AgentEvals with agent `/api/agent/start` for scheduled canary scoring — eval stays on AgentEvals; the agent API supplies **runtime identity** and **deployment**.
 
-### 2.3 What remains mock until AERL (M2 train)
+### 2.3 What remains mock until AERL (migration M4 train)
 
 | Mock endpoint | Real backend (later) |
 |---------------|----------------------|
@@ -152,7 +154,7 @@ curl -s -H "Authorization: Bearer ${AGENT_API_TOKEN}" \
 
 ---
 
-### Phase 1 — AgentEvals eval adapter (M2, ~3–5 days)
+### Phase 1 — AgentEvals eval adapter (~3–5 days) — **shipped** (migration M1 PASS)
 
 **Goal:** `record-eval` and orchestrator eval steps use real benchmarks; CI stays on mock by default.
 
@@ -213,7 +215,7 @@ curl -s -H "Authorization: Bearer ${AGENT_API_TOKEN}" \
 
 ---
 
-### Phase 5 — AERL training adapter (M2, parallel)
+### Phase 5 — AERL training adapter (migration M4, parallel)
 
 | Step | Action |
 |------|--------|
@@ -337,7 +339,7 @@ python -m services.orchestrator run \
 7. **Phase 4** — activate/rollback (staging only)  
 8. **Layer D/E** — CI and acceptance  
 
-Aligns with roadmap: **M1 done** (mock dry loop) → **Phase 0 smoke** (M2 gate; not M1 exit) → **M2 adapters** → **M3 curation/gates** → **M4 deploy**.
+Aligns with **[roadmap](roadmap.md)**: M1 dry loop done → Phase 0 smoke done → roadmap M2 Coaching API deploy → M3–M4 improvement/deploy. **[Migration](mock-to-real-migration.md)** M1 PASS (AgentEvals); **M2** self-learning next.
 
 ---
 
@@ -359,7 +361,9 @@ Aligns with roadmap: **M1 done** (mock dry loop) → **Phase 0 smoke** (M2 gate;
 - [design/integrations/](../design/integrations/) — adapter design per system
 - [evaluators.md](../design/evaluators.md) — metrics and trigger policy
 - [pipelines.md](../design/pipelines.md) — evolution engine loop
-- [roadmap.md](roadmap.md) — M0–M5 milestones
+- [roadmap.md](roadmap.md) — deploy milestones (roadmap M0–M5)
+- [mock-to-real-migration.md](mock-to-real-migration.md) — loop adapter phases (migration M0–M6)
+- [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md) — migration M2 self-learning review API
 - [progress.md](progress.md) — component matrix
 - [deploy-overview.md](../guides/deploy-overview.md) — T1 / T2 / T3 + Coach mode
 - [runbook.md](../guides/runbook.md) — day-to-day operator commands

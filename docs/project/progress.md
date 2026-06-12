@@ -10,12 +10,12 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 |-----------|-----------|--------|-------------|------------------|
 | **Production agent** | M3–M4 | Adapter planned | `client.py` consumers | Trajectory + deploy adapter |
 | **Trajectory store** | M3 | Not wired | `.self-coaching/events/*.jsonl` | `POST /trajectories` or extended learn payload |
-| **Auto-evaluation** | M1–M2 | **Done (AgentEvals)** | Mock + **live AgentEvals** adapter (`holdout_engine`, `agentevals_mapping`); `scripts/agentevals_live_smoke.py` PASS vs `localhost:8080` | `full_loop_live` E2E holdout; opt-in CI job |
+| **Auto-evaluation** | M1–M2 | **Done (AgentEvals)** | Mock + **live AgentEvals** adapter (`holdout_engine`, `agentevals_mapping`); `full_loop_live.json` + `scripts/full_loop_live_smoke.py` PASS | Opt-in CI job; cost/latency from suite when available |
 | **Drop detector** | M1 | **Done** | `python -m services.orchestrator check-drop` | Wire to coach scheduler (M5) |
 | **Evolution engine** | M1 | **Done** | `services/orchestrator/`, `scripts/run-orchestrator.sh` | Real `pipeline.yaml` shell hooks (M2+) |
 | **Curation** | M3 | **Mock wired** | `curate_data.py` via self-play + orchestrator | Trajectory ingest + production export |
 | **Self-play** | M2 | **Mock stub** | `mock_self_play.py` (`generate-suite` → AgentEvals) | Remote generator adapter |
-| **Skill learning** | M3 | **Mock stub** | `mock_self_learning.py` (classify + registry drafts) | Git-tagged bundle in run manifest |
+| **Skill learning** | M2 | **In progress** | `mock_self_learning.py` (sync events only); review API **not wired** | M2.1 mock routes → M2.2 adapter — [task list](self-learning-review-agent-plan.md#11-implementation-task-lists) |
 | **Model training** | M2 | **Mock stub** | `mock_aerl.py` + `aerl_client.py` / `train_adapter.py` | Live AERL staging smoke |
 | **Candidate evaluation** | M1 | **Done (holdout)** | Live holdout via `full_loop_live.json` (C12+C18); mock promote path unchanged | Cost/latency from suite when available; full live promote (M4) |
 | **Deployment** | M1 dry / M4 live | **Dry-run** | `deploy_manifest.json` (`canary_fraction: 0`) | Canary + rollback via agent API |
@@ -31,6 +31,23 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 | **T1 — Self-coaching pack** | Self-coaching | **Active** | `install-skill-pack.sh --hermes`, `SKILL_PACK_VERSION` 0.3.1 (`v0.3.1-hermes-installable`) |
 | **T2 — Coaching API** | Coach | Mock complete | M2 production deploy deferred; adopt mock for coach mode |
 | **T3 — Evolution engine** | Coach (+ self-coaching optional) | M1 done | Not required for T1-only Self-coaching mode |
+
+## M2 self-learning (remote review agent)
+
+Spec: [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md). **Status:** not started (docs only).
+
+| Phase | Status |
+|-------|--------|
+| M2.0 Spec + OpenAPI draft | not started |
+| M2.1 Mock production routes | not started |
+| M2.2 Adapters (`self_learning_client`, `learn_adapter`) | not started |
+| M2.3 Loop env + facade wiring | not started |
+| M2.4 Staging smoke | not started |
+| M2.5 R5 regression | not started |
+
+**Skill pack (parallel):** [self-learning-review-agent-plan.md §11.8](self-learning-review-agent-plan.md#118-skill-pack--skillmd-alignment-l-series) — L1–L8 (scripts path, SKILL.md alignment). **not started**
+
+---
 
 ## Completed (integration layer)
 
@@ -67,10 +84,37 @@ Status of **evolution engine** components against [roadmap.md](roadmap.md). Desi
 
 **One evolution engine, one `SelfCoachingClient`, many adapters:** orchestrator → client → OpenAPI service → {mock | AgentEvals | AERL | production agent API}. Do not add parallel integration APIs per component.
 
+## Documentation debt (audit 2026-06-12)
+
+Cross-doc cleanup **2026-06-12** — milestone naming, stale statuses, contract vs spec split.
+
+| ID | Status | Fix applied |
+|----|--------|-------------|
+| D1 | **fixed** | Naming callout in `mock-to-real-migration.md`, `roadmap.md`, `integration-plan.md` |
+| D2 | **fixed** | `docs/integration/README.md` — AgentEvals captured; pending snapshots listed |
+| D3 | **fixed** | `mock-to-real-migration.md` §4.3 — loop/holdout marked shipped |
+| D4 | **fixed** | M0 section — partial; AgentEvals snapshot checked off |
+| D5 | **fixed** | Golden policy — `full_loop_live.json` no longer "(future)" |
+| D6 | **fixed** | `roadmap.md` M2 — AgentEvals adapter `[x]` + migration M1 note |
+| D7 | **fixed** | Component table Auto-evaluation "Next" updated |
+| D8 | **fixed** | `coaching_api.md` — split in-yaml vs spec-only (M2) endpoints |
+| D9 | **fixed** | Cross-links in `integration-plan.md` |
+| D10 | **fixed** | Migration doc footer date + M2 pointer |
+| D11 | **fixed** | M-W3 struck through / done |
+| D12 | **fixed** | `docs/README.md` index |
+| D13 | **fixed** | M2.0 tracker → in progress |
+| D14 | **fixed** | §8 renamed "Completed prerequisites (M1)" |
+| D15 | **fixed** | `integration/README.md` mapping status |
+
+**Open (not doc-debt):** Skill pack tasks **SP/L1–L8** — implementation tracked in [self-learning-review-agent-plan.md §11.8](self-learning-review-agent-plan.md#118-skill-pack--skillmd-alignment-l-series); optional: one-line pointer in `changelog-skills.md` on next skill pack release.
+
+---
+
 ## Related
 
 - [Documentation index](../README.md)
 - [design/README.md](../design/README.md) — design index
 - [Integration plan](integration-plan.md) — adapter implementation
-- [Roadmap](roadmap.md) — M0–M5 milestones
+- [Roadmap](roadmap.md) — deploy milestones (roadmap M0–M5)
+- [Mock→real migration](mock-to-real-migration.md) — loop adapters (migration M0–M6)
 - [pipelines.md](../design/pipelines.md) — evolution engine specification

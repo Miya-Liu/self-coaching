@@ -2,6 +2,8 @@
 
 Execution plan from **skill demo + Coaching API mock** to a **deployable evolution platform**. Design: [`architecture.md`](../design/architecture.md), [`pipelines.md`](../design/pipelines.md).
 
+> **Milestone naming:** **Roadmap M0–M5** (this doc) = deploy/platform milestones. **[Mock→real migration](mock-to-real-migration.md) M0–M6** = loop adapter phases (e.g. migration M1 = AgentEvals holdout PASS). **[Integration plan](integration-plan.md) Phase 0–5** = adapter work breakdown. Do not conflate the three.
+
 ## Deployment modes
 
 See [deploy-overview.md — Deployment modes](../guides/deploy-overview.md#deployment-modes).
@@ -13,10 +15,10 @@ We ship three deploy targets in order. Each has a clear audience and exit criter
 | Target | What gets deployed | Mode | Status |
 |--------|-------------------|------|--------|
 | **T1 — Self-coaching pack** | Markdown skills + `scripts/` + `experience/` layout | Self-coaching | **Active — ship now** |
-| **T2 — Coaching API** | `mock_self_coaching.py serve` → real eval/train adapters | Coach (+ self-coaching optional) | **Mock complete**; M2 production deploy deferred |
+| **T2 — Coaching API** | `mock_self_coaching.py serve` → real eval/train adapters | Coach (+ self-coaching optional) | **Mock complete**; roadmap M2 production deploy deferred; AgentEvals adapter live ([migration M1 PASS](mock-to-real-migration.md)) |
 | **T3 — Evolution engine** | `services/orchestrator/` + metrics + drop detector | Coach (+ self-coaching optional) | **Built (M1)** |
 
-**Primary focus:** **T1 / M0** — Self-coaching mode install. See [`deploy-skill-pack.md`](../guides/deploy-skill-pack.md).
+**Primary focus:** **T1** skill pack + **migration M2** (self-learning review adapter). See [`deploy-skill-pack.md`](../guides/deploy-skill-pack.md), [`self-learning-review-agent-plan.md`](self-learning-review-agent-plan.md).
 
 ```text
 [T1 self-coaching pack]      Self-coaching mode — host reads modes/self-coaching/SKILL.md
@@ -53,7 +55,7 @@ One evolution engine, one `SelfCoachingClient`, many adapters.
 
 **Exit:** `bash scripts/install-skill-pack.sh . --with-mock` succeeds on a clean machine with bash + python.
 
-**Next focus:** M1 — evolution engine + dry loop (done); M2 next (Phase 0 smoke is the first M2 gate).
+**Next focus:** Roadmap M2 (deployable Coaching API) — Phase 0 smoke done; AgentEvals eval path live per migration M1.
 
 ### M1 — Evolution engine + dry loop (pipeline Phase 1) ✓
 
@@ -66,22 +68,22 @@ One evolution engine, one `SelfCoachingClient`, many adapters.
 
 **Exit:** Synthetic or real eval drop creates `{run_dir}/` with `current_eval.json`, `candidate_eval.json`, `decision.json`, and `deploy_manifest.json`.
 
-Phase-0 integration smoke (`mapping.md` confirmed against a live succeeded `RunDetail`) is an **M2 prerequisite**, not part of M1 exit.
+Phase-0 integration smoke (`mapping.md` confirmed against a live succeeded `RunDetail`) is a **roadmap M2 prerequisite** — **met** (2026-06-10).
 
-**Next focus:** M2 (deployable Coaching API) + Coach mode adapters.
+**Next focus:** Roadmap M2 (deployable Coaching API) + [migration M2](mock-to-real-migration.md) self-learning adapter.
 
 ### M2 — Deployable Coaching API
 
-**Prerequisite:** Phase 0 integration smoke (see [`integration-plan.md`](integration-plan.md) § Phase 0).
+**Prerequisite:** Phase 0 integration smoke — **done** ([`integration-plan.md`](integration-plan.md) § Phase 0, [migration M1 PASS](mock-to-real-migration.md)).
 
 - [ ] Dockerfile / process model for `serve`
 - [ ] sqlite persistence (runs, idempotency, events)
 - [ ] Async `POST /training/runs` + poll (`202` + status GET)
-- [ ] AERL train adapter (HTTP contract from `_lib.sh`)
-- [ ] AgentEvals eval adapter → `EvalMetrics`
+- [ ] AERL train adapter (HTTP contract from `_lib.sh`) — mock + client exist; live loop = migration M4
+- [x] AgentEvals eval adapter → `EvalMetrics` — **live** (`holdout_engine`, orchestrator `ORCHESTRATOR_EVAL_BACKEND=agentevals`)
 - [ ] `/metrics`, structured logs, rate limits
 
-**Exit:** Staging URL with `MOCK_SERVICE_TOKEN`; real train/eval behind env flags.
+**Exit:** Staging URL with `MOCK_SERVICE_TOKEN`; real train/eval behind env flags. Eval path: **partial** (holdout + orchestrator; full loop E+T = migration M2–M4).
 
 ### M3 — Real improvement value
 
@@ -130,6 +132,8 @@ See `services/orchestrator/eval_metrics.py` for the schema and `normalize_from_m
 - [design/README.md](../design/README.md) — design index
 - [self_coaching_mode.md](../design/self_coaching_mode.md) · [coach_mode.md](../design/coach_mode.md)
 - [integration-plan.md](integration-plan.md) — adapter implementation
+- [mock-to-real-migration.md](mock-to-real-migration.md) — loop mock→live (migration M0–M6)
+- [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md) — migration M2 spec + tasks
 - [pipelines.md](../design/pipelines.md) — evolution engine
 - [progress.md](progress.md) — component status
 - [deploy-overview.md](../guides/deploy-overview.md) — T1 / T2 / T3 how-to

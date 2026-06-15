@@ -14,7 +14,7 @@
 
 ## Prerequisites
 
-**bash**, **git** (required). **python** 3.10+ (recommended for mock demo). **uv** only if using external autoresearch (`AUTORESEARCH_ROOT`).
+**bash**, **git** (required). **python** 3.10+ (recommended for mock demo).
 
 ## Install
 
@@ -26,7 +26,6 @@ bash scripts/install-skill-pack.sh . --with-mock
 
 - `[target-root]` — coaching root for `experience/`, `logs/`, `worktrees/` (default: repo root)
 - `--with-mock` — run mock pipeline smoke
-- `--with-trainer` — `preflight.sh` (needs `uv` + `AUTORESEARCH_ROOT`)
 
 ### Hermes Agent
 

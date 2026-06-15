@@ -9,11 +9,10 @@ Version is tracked in [`modes/self-coaching/SKILL_PACK_VERSION`](../../modes/sel
 
 ## 0.2.0
 
-- External autoresearch: no vendored `upstream/autoresearch`; use `AUTORESEARCH_ROOT` (see `upstream/README.md`)
+- AERL pipelines via `run-pipeline.sh`; mock loop via `python -m self_coaching.demo`
 - T1 deploy path: `scripts/install-skill-pack.sh`, `docs/guides/deploy-skill-pack.md`
 - `doctor.sh` skill-pack checks and `SKILL_PACK_VERSION`
-- `run-once.sh` falls back to `python train.py` when `uv` is absent
-- `preflight.sh` validates `AERL_ROOT` when set
+- `preflight.sh` validates `.env` / `AERL_ROOT` when set
 - Mock services and HTTP client hardening (optional; not required for T1)
 
 ## 0.1.0

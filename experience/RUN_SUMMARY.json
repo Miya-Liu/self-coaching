@@ -1,7 +1,7 @@
 {
   "project": "",
   "goal": "",
-  "entrypoint": "bash scripts/run-once.sh",
+  "entrypoint": "bash scripts/run-pipeline.sh",
   "metric_name": "val_bpb",
   "direction": "lower",
   "time_budget": "5m",

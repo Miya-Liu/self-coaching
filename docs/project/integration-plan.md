@@ -1,5 +1,7 @@
 # Integration plan: AgentEvals, production agent API, and Coaching API
 
+> **Implementation reference** — adapter work breakdown. Status: [progress.md](progress.md). Architecture: [architecture.md](../design/architecture.md).
+
 Step-wise plan for wiring **real** production systems into the shared **evolution engine** without breaking the mock spine. Applies primarily to **Coach mode** (supervise external agents); Self-coaching mode can use the same eval/train adapters when automating locally.
 
 Design: [architecture.md](../design/architecture.md), [coach_mode.md](../design/coach_mode.md), [integrations/](../design/integrations/). Milestones: [roadmap.md](roadmap.md) (deploy M0–M5). Status: [progress.md](progress.md). Loop migration: [mock-to-real-migration.md](mock-to-real-migration.md) (migration M0–M6).

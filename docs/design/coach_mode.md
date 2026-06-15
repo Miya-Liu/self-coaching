@@ -41,7 +41,7 @@ Inbound post drives one evolution tick (E → sparse/batch play → T):
 
 ```bash
 python modes/coach/service.py serve \
-  --registry modes/coach/agents.yaml --bind 0.0.0.0:8768
+  --registry modes/coach/agents.clock.yaml --bind 127.0.0.1:8768
 ```
 
 `POST /coach/post`:

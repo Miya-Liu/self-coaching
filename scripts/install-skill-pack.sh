@@ -8,7 +8,6 @@
 #   --hermes        Hermes Agent ONLY — copy skills to ~/.hermes/skills/self-coaching/
 #   --with-mock     Hermes: pip install -e . for python -m self_coaching.demo
 #                   Non-Hermes: run mock-run-all.sh dry run
-#   --with-trainer  Run preflight against an external trainer repo (needs uv + AUTORESEARCH_ROOT)
 #
 # Without --hermes: initialize coaching root at [target-root] (experience/, doctor,
 # optional mock dry-run). Skills remain in modes/self-coaching/ (repo clone) or are
@@ -31,14 +30,16 @@ source "${ROOT}/scripts/lib/hermes-skill-pack.sh"
 TARGET="${ROOT}"
 HERMES_MODE=0
 WITH_MOCK=0
-WITH_TRAINER=0
 
 POSITIONAL=""
 for arg in "$@"; do
   case "${arg}" in
     --hermes) HERMES_MODE=1 ;;
     --with-mock) WITH_MOCK=1 ;;
-    --with-trainer|--with-upstream) WITH_TRAINER=1 ;;
+    --with-trainer|--with-upstream)
+      echo "install-skill-pack.sh: --with-trainer removed (autoresearch path dropped); use AERL: bash scripts/preflight.sh" >&2
+      exit 2
+      ;;
     -h|--help)
       sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
@@ -93,15 +94,6 @@ echo "    Target: ${TARGET}"
 
 bash "${ROOT}/scripts/init-experience.sh" "${TARGET}"
 
-if [[ "${WITH_TRAINER}" -eq 1 ]]; then
-  if command -v uv >/dev/null 2>&1; then
-    echo "==> Syncing external trainer repo (preflight)..."
-    bash "${ROOT}/scripts/preflight.sh"
-  else
-    echo "WARN: --with-trainer requires uv and AUTORESEARCH_ROOT; skipped preflight" >&2
-  fi
-fi
-
 echo "==> Running doctor.sh..."
 if ! bash "${ROOT}/scripts/doctor.sh" --quiet; then
   echo "doctor.sh reported failures — run: bash scripts/doctor.sh" >&2
@@ -126,7 +118,6 @@ Next steps:
   1. Point your agent at: ${ROOT}/modes/self-coaching/SKILL.md
   2. Mock demo: python -m self_coaching.demo  (or: pip install -e . first)
   3. Read: ${ROOT}/docs/guides/deploy-skill-pack.md
-  4. Optional AERL: cp modes/self-coaching/self-tuning/services/example.env -> modes/self-coaching/self-tuning/services/.env
-  5. Optional autoresearch: clone karpathy/autoresearch, export AUTORESEARCH_ROOT, see upstream/README.md
+  4. Optional AERL: cp modes/self-coaching/self-tuning/services/example.env -> modes/self-coaching/self-tuning/services/.env; bash scripts/preflight.sh
 
 EOF

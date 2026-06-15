@@ -1,5 +1,7 @@
 # Self-coaching demo pipeline plan
 
+> **Implementation reference** — not required for skill-pack users. Status: [progress.md](progress.md). User docs: [runbook.md](../guides/runbook.md).
+
 **Status:** P0–P4 implemented (2026-06-09); P5 not started  
 **Goal:** Deploy a **demo-ready, deterministic pipeline** that shows how **self-coaching mode** runs continuously on top of the **mock platform**, and doubles as a **mock-completeness harness** beyond one-shot `run-all` / `production_readiness.py`.
 

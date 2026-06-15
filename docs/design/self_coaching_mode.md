@@ -58,7 +58,7 @@ E-path takes precedence over T-path on the same tick. Thresholds and routing det
 
 ## Worktree experiments
 
-Integration line: trainer repo `main` (`AUTORESEARCH_ROOT`). Experiment line: `worktrees/<id>/`. Follow `SKILL.md` for merge gate.
+Integration line: promoted model/skills after eval gate and user approval. Artifacts: `.self-coaching/` under coaching root.
 
 ## Optional automation (scheduler)
 

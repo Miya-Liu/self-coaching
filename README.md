@@ -57,7 +57,7 @@ sequenceDiagram
     end
 ```
 
-Gate → implementation mapping: [architecture.md](docs/design/architecture.md#conceptual-to-concrete-mapping). Experiment iterations run inside the **Deploy Gate**; merge to `main` or weight swap requires **human approval**.
+Gate → implementation mapping: [architecture.md](docs/design/architecture.md#conceptual-mapping). Experiment iterations run inside the **Deploy Gate**; merge to `main` or weight swap requires **human approval**.
 
 ## Try the mock loop
 
@@ -79,7 +79,7 @@ Expected: `completeness: PASS` (C01–C18 audit). More: [runbook](docs/guides/ru
 | `scripts/` | Install, doctor, demos |
 | `docs/` | [Documentation index](docs/README.md) |
 
-Default trainer target: external [autoresearch](https://github.com/karpathy/autoresearch) clone (`AUTORESEARCH_ROOT`).
+Default trainer path: AERL HTTP pipelines (`scripts/run-pipeline.sh`) or mock loop (`python -m self_coaching.demo`).
 
 ## Scope
 

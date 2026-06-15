@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
-# Install deps for an external autoresearch trainer clone (AUTORESEARCH_ROOT).
+# Validate AERL / trainer pipeline configuration (HTTP or local source tree).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# shellcheck source=lib-trainer-repo.sh
-source "${ROOT}/scripts/lib-trainer-repo.sh"
+ENV_FILE="${ROOT}/modes/self-coaching/self-tuning/services/.env"
+EXAMPLE="${ROOT}/modes/self-coaching/self-tuning/services/example.env"
 
-if ! command -v uv >/dev/null 2>&1; then
-  echo "uv is required. Install from https://docs.astral.sh/uv/" >&2
-  exit 1
-fi
-
-if ! TRAINER_REPO="$(resolve_autoresearch_root "${ROOT}")"; then
-  autoresearch_root_hint
+if [[ -f "${ENV_FILE}" ]]; then
+  # shellcheck disable=SC1090
+  source "${ENV_FILE}"
+  echo "Loaded ${ENV_FILE}"
+elif [[ -f "${EXAMPLE}" ]]; then
+  echo "No .env yet — copy example.env and set TRAINER_BASE_URL for HTTP pipelines."
+else
+  echo "Missing services/example.env under modes/self-coaching/self-tuning/" >&2
   exit 1
 fi
 
@@ -22,13 +23,14 @@ if [[ -n "${AERL_ROOT:-}" ]]; then
     exit 1
   fi
   echo "AERL_ROOT ok: ${AERL_ROOT}"
+  if command -v uv >/dev/null 2>&1; then
+    echo "Syncing Python environment in ${AERL_ROOT}..."
+    uv --directory "${AERL_ROOT}" sync
+  else
+    echo "WARN: uv not found — skip sync; install from https://docs.astral.sh/uv/" >&2
+  fi
 fi
 
-echo "Syncing Python environment in ${TRAINER_REPO}..."
-uv --directory "${TRAINER_REPO}" sync
-echo "Done."
-echo "If data/tokenizer cache is missing, run once:"
-echo "  uv --directory \"${TRAINER_REPO}\" run prepare.py"
-echo "Create a worktree (see modes/self-coaching/SKILL.md), then:"
-echo "  bash \"${ROOT}/scripts/run-once.sh\" <worktree-path> [log]"
-echo "AERL HTTP pipelines: set TRAINER_BASE_URL in modes/self-coaching/self-tuning/services/.env (default port 8004)."
+echo "HTTP pipelines: TRAINER_BASE_URL=${TRAINER_BASE_URL:-http://localhost:8004} (default from registry.yaml)"
+echo "Run: bash scripts/run-pipeline.sh sft logs/my-run.log"
+echo "Mock loop: python -m self_coaching.demo"

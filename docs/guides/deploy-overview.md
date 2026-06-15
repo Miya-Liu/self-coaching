@@ -61,7 +61,7 @@ Supervise external agents — one coaching root per agent. Full layout, clock se
 
 | Concern | T1 | T2 | T3 |
 |---------|----|----|-----|
-| Python | optional | 3.11+ server | 3.11+ CLI |
+| Python | optional | 3.10+ server | 3.10+ CLI |
 | Network | none | inbound HTTP | optional HTTP + AgentEvals |
 | Auth | N/A | Bearer token | inherits T2 if HTTP |
 

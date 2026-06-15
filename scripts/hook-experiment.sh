@@ -3,16 +3,16 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-EXPERIMENT_ID="${EXPERIMENT_ID:-run-01}"
-WT="${EXPERIMENT_WORKTREE:-$ROOT/worktrees/${EXPERIMENT_ID}}"
-LOG="${EXPERIMENT_LOG_FILE:-$ROOT/logs/${EXPERIMENT_ID}.log}"
+RUN_ID="${RUN_ID:-${EXPERIMENT_ID:-run-01}}"
+LOG="${TRAIN_LOG_FILE:-${EXPERIMENT_LOG_FILE:-$ROOT/logs/${RUN_ID}.log}}"
+PIPELINE="${TRAIN_PIPELINE:-sft}"
 
 cat <<EOF
 [self-coaching / experiment command — run in Bash, not in chat]
-Experiment worktree (edits only here): ${WT}
 Full training output MUST go to a file (never paste full logs into context):
   mkdir -p "${ROOT}/logs"
-  ( cd "${WT}" && uv run train.py ) > "${LOG}" 2>&1
-Then Read "${LOG}" in small sections to parse val_bpb / peak_vram_mb.
-Set EXPERIMENT_ID / EXPERIMENT_WORKTREE / EXPERIMENT_LOG_FILE to override defaults.
+  bash "${ROOT}/scripts/run-pipeline.sh" ${PIPELINE} "${LOG}"
+Or validate on mocks: python -m self_coaching.demo
+Then Read "${LOG}" in small sections to parse metrics.
+Set RUN_ID / TRAIN_PIPELINE / TRAIN_LOG_FILE to override defaults.
 EOF

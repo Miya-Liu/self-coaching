@@ -100,7 +100,7 @@ for bin in bash git python jq curl uv shellcheck; do
     case "${bin}" in
       bash|git|python) emit FAIL "bin.${bin}" "missing (required)" ;;
       jq|curl)         emit FAIL "bin.${bin}" "missing (required for AERL HTTP pipelines)" ;;
-      uv)              emit WARN "bin.${bin}" "missing (only needed for local trainer preflight)" ;;
+      uv)              emit WARN "bin.${bin}" "missing (optional for local AERL sync in preflight)" ;;
       shellcheck)      emit WARN "bin.${bin}" "missing (CI lints scripts; local dev can skip)" ;;
     esac
   fi

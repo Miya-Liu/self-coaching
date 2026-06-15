@@ -3,8 +3,9 @@ set -euo pipefail
 
 cat <<'EOF'
 [self-coaching reminder]
-- Use git + Bash: worktree for experiments; only edit inside worktrees/<id>/; merge to upstream/main only after user authorizes.
-- Run training with stdout/stderr redirected to logs/<id>.log; parse metrics with Read, do not flood context.
-- Experience: outcomes in experience/EXPERIMENT_LOG.md; bugs in experience/ERROR.md; training/model insights in experience/LEARNINGS.md.
+- Run training via scripts/run-pipeline.sh or python -m self_coaching.demo; redirect stdout/stderr to logs/<id>.log.
+- Parse metrics from log files with Read (small ranges); do not flood context with full train output.
+- Experience: outcomes in experience/EXPERIMENT_LOG.md; bugs in experience/ERROR.md; insights in experience/LEARNINGS.md.
+- Promote model or skill changes only after eval gates and explicit user approval.
 - See references/hooks-setup.md for experiment / learnings / errors hook commands.
 EOF

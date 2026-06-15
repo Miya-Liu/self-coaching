@@ -1,5 +1,7 @@
 # Self-learning review agent — API & migration plan
 
+> **Implementation reference** — migration M2 spec. Status: [progress.md](progress.md). User docs: [deploy-skill-pack.md](../guides/deploy-skill-pack.md).
+
 **Status:** **DRAFT** — for review and edit (API shapes from Hermes learner service, 2026-06-12)  
 **Goal:** Define the **real self-learning backend** as an **independent review agent** (Dream / Auto Dream–style), exposed via **POST/GET HTTP APIs**, while preserving the existing loop and orchestrator **`learn()`** contract through adapters.
 

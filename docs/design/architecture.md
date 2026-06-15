@@ -19,6 +19,8 @@ modes/coach/             # Coach shell (M5)
 services/orchestrator/   # T3 evolution engine
 services/adapters/       # AgentEvals, AERL, agent API
 mock-services/           # T2 Coaching API mock
+tools/                   # loop_completeness.py (C01–C18 audit harness)
+scenarios/               # loop scenarios + env examples (full_loop.json, …)
 scripts/  experience/  docs/
 ```
 
@@ -32,7 +34,7 @@ scripts/  experience/  docs/
 | 4 | Coaching root | `{root}/experience/` + `{root}/.self-coaching/` |
 | 5 | Experiment isolation | `worktrees/<id>/`, branch `experiment/<id>` |
 | 6 | Execution logs | `logs/<id>.log` (full train output; not in agent context) |
-| 7 | Trainer (optional) | `run-once.sh` or AERL via `self-tuning/pipelines/` |
+| 7 | Trainer (optional) | AERL via `self-tuning/pipelines/` or mock loop |
 
 **Rule:** one evolution engine, one `SelfCoachingClient`, many adapters — [integrations/](integrations/).
 
@@ -52,7 +54,7 @@ scripts/  experience/  docs/
 | Data Pool | cache + curated / self-play data |
 | Local Model | admin-chosen checkpoint; unchanged on `main` until approval |
 | Deploy Gate | worktree isolation + human merge decision |
-| Trainer | `run-once.sh` or AERL pipelines |
+| Trainer | AERL pipelines or mock `train()` |
 | Results | `experience/*.md`; `.self-coaching/` artifacts |
 
 ## Evolution engine (T3)

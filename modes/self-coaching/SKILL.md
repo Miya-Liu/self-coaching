@@ -1,6 +1,6 @@
 ---
 name: self-coaching
-description: "Agent-agnostic skill. Coaches any capable agent through Loading Gate, Performance, Data Pool, Local Model, Deploy Gate, Trainer, LOGs, and Results (experience logs); git worktrees; user-authorized merge and model/data updates."
+description: "Agent-agnostic skill. Coaches any capable agent through Loading Gate, Performance, Data Pool, Local Model, Deploy Gate, Trainer, LOGs, and Results (experience logs); user-authorized promotion and model/data updates."
 version: 0.3.1
 author: Self-Coaching Skill Pack
 license: MIT
@@ -70,7 +70,7 @@ Use this skill when:
 - A skill was extended, created, patched, or found stale.
 - An evaluation identifies low-performance categories or regressions.
 - The agent needs to generate harder synthetic tasks or adversarial self-play cases.
-- You are building an autoresearch-style loop: propose tasks, solve them, critique them, curate trajectories, train, evaluate, repeat.
+- You need a gated loop: learn → self-play → evaluate → train (mock or AERL) → promote with human approval.
 - You need a safe process for turning agent experience into memory, skills, tests, eval datasets, SFT data, or RL preference data.
 
 Do **not** use this skill for:
@@ -96,7 +96,7 @@ Requires `pip install -e .` from the repo clone for
 `--hermes --with-mock`). The mock harness itself is always
 installed at `$SKILL_ROOT/mock-services/` by
 `bash scripts/install-skill-pack.sh --hermes`. See
-`docs/guides/install-as-hermes-skill.md`.
+`docs/guides/deploy-skill-pack.md`.
 
 The runner spins up an isolated demo state at
 `mock-services/demo-loop/`, runs `scenarios/full_loop.json`
@@ -795,150 +795,58 @@ Train only if all are true:
 Otherwise, prefer a skill, tool, prompt, test, or memory update.
 
 
-## Tooling: Git and Bash (required)
+## Tooling: Bash (required)
 
 The agent **must** use Bash for:
 
-- Creating and managing worktrees, branches, and merges (`git` commands below).
-- Running training with **shell redirection** so output goes to a file, e.g.  
-  `(cd "<worktree-path>" && uv run train.py) > "logs/<run-id>.log" 2>&1`  
+- Running training via `scripts/run-pipeline.sh` (AERL SFT/GRPO) or validating the loop on mocks (`python -m self_coaching.demo`).
+- **Shell redirection** so pipeline output goes to `logs/<run-id>.log`.
 - Inspecting results with `Read` on the log file (prefer `offset` / small ranges), not streaming unbounded output into the model context.
 
 ## Runtime inputs
 
-Collect once per session (or per experiment branch):
+Collect per training or mock-loop run:
 
-- `goal`: optimization objective
-- `experiment_id`: short id (e.g. `20250424-01`) for branch and paths
-- `metric_name` (default: `val_bpb`), `direction` (default: `lower`)
-- `time_budget` / `max_iterations` / guardrails: as in **Strict guardrails**
-- `trainer_git_dir` / `AUTORESEARCH_ROOT`: absolute path to your autoresearch (or compatible) clone — must be a git repo
-- `experiment_worktree`: e.g. `worktrees/<experiment_id>` (path under skill root; **only** this tree is edited during the loop)
-- `train_log_file`: e.g. `logs/<experiment_id>.log`
+- `run_id` / `experiment_id` for logs and manifests
+- `metric_name`, `direction`, guardrails from **Strict guardrails**
+- `TRAINER_BASE_URL` for AERL HTTP pipelines (see `self-tuning/services/example.env`)
+- Mock loop: `LOOP_SERVICE_MODE`, scenario under `scenarios/` (see **Validating the Loop on Mocks**)
 
 ## Non-negotiable constraints
 
-1. **Worktree boundary**: apply experiment edits and commits **only** inside `experiment_worktree` until the user approves merge. Do not change tracked files in the trainer repo on `main` during the loop except via the merge step after approval.
-2. **Training command**: use the **exact pattern** in **Run one training experiment (log to file)**. Redirect **all** stdout and stderr to `logs/…`; parse metrics from that file. For `self-tuning/pipelines` (SFT/GRPO), use `scripts/run-pipeline.sh` or the per-pipeline `run.sh` so output still goes to the given log path (`LOG_FILE`)—same discipline, different entrypoint.
+1. **Log discipline**: redirect **all** stdout/stderr from training to `logs/…`; parse metrics from that file only.
+2. **Pipeline entrypoints**: use `scripts/run-pipeline.sh` or per-pipeline `run.sh` under `self-tuning/pipelines/`.
 3. Experiments may run autonomously within guardrails until stop conditions.
-4. One clear hypothesis per iteration; small, attributable commits in the **experiment** branch.
-5. **Merge**: `git merge` of the experiment branch into `main` in the trainer repo (`AUTORESEARCH_ROOT`) **only after explicit user authorization**.
-6. External deployment/promotion (artifacts, production pointers) also requires explicit approval (same or separate confirmation as merge, per user).
+4. **Promotion**: deploy trained weights, swap production models, or merge skill changes **only after explicit user authorization** and eval gates (**self-evaluation** submodule).
 
----
+## Training (AERL HTTP / mock loop)
 
-## One-time: trainer repo (`AUTORESEARCH_ROOT`)
+**Primary paths in this repo:**
 
-Clone [karpathy/autoresearch](https://github.com/karpathy/autoresearch) **outside** this skill pack (see `upstream/README.md`). Export an absolute path:
-
-```bash
-export AUTORESEARCH_ROOT="${AUTORESEARCH_ROOT:-$HOME/src/autoresearch}"
-```
-
-If that directory is not yet a git repository, initialize once:
+1. **Mock loop (validation):** `python -m self_coaching.demo` — E-path + T-path on mock services; completeness audit C01–C18.
+2. **AERL pipelines (real train):** copy `self-tuning/services/example.env` → `.env`, set `TRAINER_BASE_URL`, then:
 
 ```bash
-cd "${AUTORESEARCH_ROOT}"
-git init
-git add -A
-git commit -m "baseline"
-git branch -M main
+bash scripts/run-pipeline.sh sft logs/<run-id>.log
+bash scripts/run-pipeline.sh grpo logs/<run-id>-grpo.log scheduler.type=local
 ```
 
-If it is already a repo, skip this block.
+Optional local AERL source: `PIPELINE_MODE=local` + `AERL_ROOT`. Run `bash scripts/preflight.sh` once to validate `.env` / `AERL_ROOT`.
 
-## Create the experiment worktree (fork for this session)
-
-From **skill root** (directory containing `SKILL.md`), with `EXPERIMENT_ID` and `AUTORESEARCH_ROOT` set. Use an **absolute** worktree path under the skill root:
-
-```bash
-EXPERIMENT_ID="run-01"
-SKILL_ROOT="$(pwd)"
-AUTORESEARCH_ROOT="${AUTORESEARCH_ROOT:?set AUTORESEARCH_ROOT to your autoresearch clone}"
-EXPERIMENT_BRANCH="experiment/${EXPERIMENT_ID}"
-WT_PATH="${SKILL_ROOT}/worktrees/${EXPERIMENT_ID}"
-
-git -C "${AUTORESEARCH_ROOT}" worktree add -b "${EXPERIMENT_BRANCH}" "${WT_PATH}"
-```
-
-- All subsequent training edits use files under `"${WT_PATH}/"` (e.g. `train.py` in that worktree).
-- The worktree at `worktrees/<experiment_id>/` is the only tree the agent should modify for this experiment.
-
-## Run one training experiment (log to file)
-
-Always capture full process output in a file (default layout):
-
-```bash
-# From skill root; set EXPERIMENT_ID to match the worktree you created
-EXPERIMENT_ID="run-01"
-SKILL_ROOT="$(pwd)"
-WT_PATH="${SKILL_ROOT}/worktrees/${EXPERIMENT_ID}"
-LOG_FILE="${SKILL_ROOT}/logs/${EXPERIMENT_ID}.log"
-
-mkdir -p logs
-( cd "${WT_PATH}" && uv run train.py ) > "${LOG_FILE}" 2>&1
-```
-
-- Parse `metric_name` and `peak_vram_mb` (or equivalent) from `"${LOG_FILE}"` with `Read`, not from raw terminal flood.
-- If `uv` / env must run from a specific cwd, only `cd` to **`WT_PATH`**, not to the trainer repo on `main`.
-
-**Dependency / data prep** (run against `AUTORESEARCH_ROOT`, typically once):
-
-```bash
-AUTORESEARCH_ROOT="${AUTORESEARCH_ROOT:?set AUTORESEARCH_ROOT}"
-uv --directory "${AUTORESEARCH_ROOT}" sync
-uv --directory "${AUTORESEARCH_ROOT}" run prepare.py
-```
-
-(The worktree shares the trainer repo’s git metadata; experiment files live in `WT_PATH`.)
-
-## Training pipelines (SFT, GRPO, **AERL** trainer API)
-
-For **LLM / agent** stages beyond the default vendored `train.py` loop, this pack includes `self-tuning/pipelines/` (same file bundle as **Layout** in `README.md`: **AERL** `registry.yaml` with `service.url`, `_lib.sh`, per-pipeline `pipeline.yaml` + `run.sh`):
-
-- **Registry:** `self-tuning/pipelines/registry.yaml` lists pipeline ids (`sft`, `grpo`, …) and **AERL** `service.url` (default trainer base, typically `http://localhost:8004`).
-- **Per pipeline:** `self-tuning/pipelines/<id>/pipeline.yaml` (HTTP + optional local entrypoints) and `self-tuning/pipelines/<id>/run.sh` (redirects **all** stdout/stderr to `LOG_FILE`).
-- **Shared helpers:** `self-tuning/pipelines/_lib.sh` (sourced by runners; not invoked directly).
-- **Service contract (env):** copy `self-tuning/services/example.env` to `self-tuning/services/.env` (ignored by git). Set `TRAINER_BASE_URL` / `TRAINER_API_KEY` for the trainer HTTP API; set `OPENAI_BASE_URL` / `OPENAI_API_KEY` for OpenAI-compatible **rollout** endpoints used by your agent loop (same “replace `base_url`” pattern as **AERL** and other OpenAI-compatible stacks).
-
-**Default (HTTP trainer):** `run.sh` issues `POST {TRAINER_BASE_URL}/v1/pipelines/<id>/run` with JSON `{"argv":[…]}` (see each `pipeline.yaml`). Ensure your trainer implements that contract or adapt `_lib.sh`.
-
-**Local AERL trainer tree (optional):** `export PIPELINE_MODE=local` (or `aerl`) and `export AERL_ROOT=/path/to/AERL` after your **AERL** trainer layout is installed; then the same `run.sh` paths execute the `examples/math/…` entrypoints inside `AERL_ROOT`.
-
-```bash
-bash scripts/run-pipeline.sh grpo logs/<experiment_id>-grpo.log scheduler.type=local
-bash scripts/run-pipeline.sh sft logs/<experiment_id>-sft.log
-```
-
-Use the **same log redirection discipline** as **Run one training experiment**: parse metrics from `logs/…` with `Read` in small ranges; do not paste full training transcripts into chat. If an experiment branch needs **forked YAML or launchers**, keep those files under the active **`experiment_worktree`** (or a path your policy allows) and pass their paths through `argv` / trainer config consistently.
+Registry and HTTP contract: `self-tuning/pipelines/registry.yaml`, `self-tuning/SKILL.md`, `docs/design/integrations/aerl.md`.
 
 ## Stage-gated workflow (strict)
 
-For each iteration:
+For each training iteration:
 
-1. Propose one experiment (hypothesis, files/lines, risk).
-2. Edit **only** under `experiment_worktree` (e.g. `worktrees/<id>/train.py`).
-3. Commit in the **experiment** branch if your workflow uses commits (recommended for auditable diffs).
-4. Run training using **Run one training experiment** (redirect to `logs/<experiment_id>.log`).
-5. Parse metrics from the log file; decide keep / discard vs best.
-6. Append a row to `experience/EXPERIMENT_LOG.md` for every completed attempt (outcomes and key metrics).
-7. Stop when **Stop conditions** hit.
+1. Propose one hypothesis (data change, pipeline args, or skill patch).
+2. Run training via **Training** above (log to `logs/<run_id>.log`).
+3. Parse metrics from the log file; decide keep / discard vs baseline.
+4. Run **self-evaluation** holdout gate before promotion.
+5. Append a row to `experience/EXPERIMENT_LOG.md` for every completed attempt.
+6. Stop when **Stop conditions** hit.
 
-**After** the user explicitly authorizes integrating the branch:
-
-```bash
-# From skill root; EXPERIMENT_ID and branch must match what you created
-EXPERIMENT_ID="run-01"
-SKILL_ROOT="$(pwd)"
-EXPERIMENT_BRANCH="experiment/${EXPERIMENT_ID}"
-WT_PATH="${SKILL_ROOT}/worktrees/${EXPERIMENT_ID}"
-
-git -C "${AUTORESEARCH_ROOT}" checkout main
-git -C "${AUTORESEARCH_ROOT}" merge --no-ff "${EXPERIMENT_BRANCH}" -m "merge experiment ${EXPERIMENT_ID}"
-git -C "${AUTORESEARCH_ROOT}" worktree remove "${WT_PATH}"   # optional cleanup when finished
-```
-
-Do not run the merge block without user approval.
+Do not promote without user approval and passing eval gates.
 
 ### Stop conditions
 
@@ -950,14 +858,14 @@ Do not run the merge block without user approval.
 ### Strict guardrails
 
 - **VRAM / risk**: keep conservative caps unless user opts out.  
-- **Keep threshold**: e.g. for `val_bpb`, only keep clear wins (e.g. ≥ 0.0010) unless user overrides.  
-- **Stagnation**: if there is no meaningful improvement across iterations, consult **experience/LEARNINGS.md** and prior **experience/EXPERIMENT_LOG.md** before proposing the next change.
+- **Keep threshold**: only keep clear metric wins unless user overrides.  
+- **Stagnation**: consult **experience/LEARNINGS.md** and **experience/EXPERIMENT_LOG.md** before the next change.
 
 ---
 
 ## Experience (persistent logs)
 
-**Experience** is the name for this skill’s durable log set: what happened in experiments, what broke, and what the agent learned about training the model. It is separate from raw `logs/*.log` files (execution) and from the trainer git repo (`AUTORESEARCH_ROOT`).
+**Experience** is the durable log set: what happened in experiments, what broke, and what the agent learned. It is separate from raw `logs/*.log` files (execution output).
 
 Write to these paths under the skill root (bootstrap with `bash scripts/init-experience.sh` if needed):
 
@@ -991,9 +899,9 @@ commit	val_bpb	memory_gb	status	description
 
 ```markdown
 ### Experiment proposal
-- experiment_id:
+- run_id:
 - hypothesis:
-- worktree: worktrees/…
+- pipeline or mock scenario:
 - planned change:
 - risk:
 
@@ -1007,7 +915,7 @@ commit	val_bpb	memory_gb	status	description
 - experience/EXPERIMENT_LOG.md updated: yes | no
 - experience/LEARNINGS.md (if optimization insight): yes | no
 - experience/ERROR.md (if failure): yes | no
-- merge to trainer main: not requested | pending user auth | user authorized
+- promote: not requested | pending user auth | user authorized
 ```
 
 ---

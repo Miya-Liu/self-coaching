@@ -1,5 +1,7 @@
 # Self-tuning trainer — API & migration plan
 
+> **Implementation reference** — migration M4 spec. Status: [progress.md](progress.md). User docs: [deploy-skill-pack.md](../guides/deploy-skill-pack.md).
+
 **Status:** **DRAFT** — for review and edit (API shapes from AERL trainer service + in-repo `mock_aerl.py`, 2026-06-15)  
 **Goal:** Define the **real AERL / trainer backend** for the **model path** (SFT, GRPO, preference RL), exposed via **POST/GET HTTP APIs**, while preserving the existing loop and orchestrator **`train()`** contract through adapters.
 

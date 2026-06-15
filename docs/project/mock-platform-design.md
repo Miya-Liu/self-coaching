@@ -1,5 +1,7 @@
 # Mock platform design (M1.5)
 
+> **Implementation reference** — mock T2 internals. Operator guide: [mock-services/README.md](../../mock-services/README.md).
+
 Deterministic mock services for the full self-coaching / coach evolution loop **without** real AgentEvals, AERL, or production agent APIs.
 
 **Status:** Phases 0–4 implemented (mock T2 stack — facade + split services). Production T2 (M2) deploy deferred. Live staging smoke remains.

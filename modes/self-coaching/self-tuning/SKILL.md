@@ -17,7 +17,7 @@ metadata:
 
 Training is the most expensive self-coaching path. Use it only when skills, prompts, tools, and eval fixes are insufficient or when the explicit goal is model improvement.
 
-This skill now includes executable pipeline helpers for SFT and GRPO-style RL under `self-tuning/pipelines/`, plus category-level scripts under `../scripts/` for preflight, one-off experiments, and named pipeline runs.
+This skill includes executable pipeline helpers for SFT and GRPO-style RL under `self-tuning/pipelines/`, plus category-level scripts under `../scripts/` for preflight, named pipeline runs, and the mock loop demo.
 
 ## When to Use
 
@@ -33,13 +33,12 @@ Do not train when fewer examples, clearer instructions, a skill patch, or a tool
 
 ## Folder Map
 
-The category root (`SKILL_ROOT`) is wherever the `self-coaching` skill is installed — see the umbrella `README.md` → **Installation paths** (e.g. `$(pwd)/.hermes/skills/self-coaching`, `$HOME/.hermes/skills/self-coaching`, or your IDE's skill directory). All paths below are relative to `SKILL_ROOT`:
+The category root (`SKILL_ROOT`) is wherever the `self-coaching` skill is installed. All paths below are relative to `SKILL_ROOT`:
 
 ```text
 $SKILL_ROOT/
   scripts/
     preflight.sh
-    run-once.sh
     run-pipeline.sh
     hook-experiment.sh
     hook-inject-errors.sh
@@ -64,25 +63,21 @@ Copy `self-tuning/services/example.env` to `self-tuning/services/.env` only when
 
 ## Preflight and Environment
 
-Run preflight before using an external autoresearch trainer:
+Validate trainer configuration before first pipeline run:
 
 ```bash
 bash "$SKILL_ROOT/scripts/preflight.sh"
 ```
 
-Current preflight expects `uv` and `AUTORESEARCH_ROOT` pointing at a clone of [karpathy/autoresearch](https://github.com/karpathy/autoresearch) (see `upstream/README.md` at the skill root).
+Checks `self-tuning/services/.env` (from `example.env`) and optional `AERL_ROOT` for local source mode.
 
-If you do not use autoresearch, skip `preflight.sh` and use the HTTP AERL pipeline mode below.
-
-For HTTP pipeline mode, configure a local service compatible with this contract:
+For HTTP pipeline mode, configure a service compatible with this contract:
 
 ```text
 POST {TRAINER_BASE_URL}/v1/pipelines/{sft|grpo}/run
 body: {"argv": ["scheduler.type=local", "..."]}
 response body: training log stream/text
 ```
-
-Environment file shape:
 
 ```bash
 cp "$SKILL_ROOT/self-tuning/services/example.env" \
@@ -91,8 +86,6 @@ cp "$SKILL_ROOT/self-tuning/services/example.env" \
 ```
 
 ## Running a Named Pipeline
-
-Use the category-level wrapper (set `SKILL_ROOT` first; see Folder Map):
 
 ```bash
 bash "$SKILL_ROOT/scripts/run-pipeline.sh" \
@@ -104,13 +97,9 @@ bash "$SKILL_ROOT/scripts/run-pipeline.sh" \
   scheduler.type=local
 ```
 
-Pipeline IDs are listed in:
+Pipeline IDs: `self-tuning/pipelines/registry.yaml`
 
-```text
-self-tuning/pipelines/registry.yaml
-```
-
-Default mode is HTTP via `TRAINER_BASE_URL` (default `http://localhost:8004`). For local AERL source mode:
+Default mode is HTTP via `TRAINER_BASE_URL` (default `http://localhost:8004`). Local AERL source:
 
 ```bash
 PIPELINE_MODE=local AERL_ROOT=/path/to/AERL \
@@ -120,18 +109,15 @@ PIPELINE_MODE=local AERL_ROOT=/path/to/AERL \
 
 All stdout/stderr must go to log files. Read only relevant line ranges back into context.
 
-## Running One Experiment Worktree
+## Mock loop (end-to-end validation)
 
-For autoresearch-style experiments, keep edits isolated in `worktrees/<id>/` and log the full run:
+Before live training, validate the gated loop on mocks:
 
 ```bash
-bash "$SKILL_ROOT/scripts/hook-experiment.sh"
-bash "$SKILL_ROOT/scripts/run-once.sh" \
-  "$SKILL_ROOT/worktrees/exp-001" \
-  "$SKILL_ROOT/logs/exp-001.log"
+python -m self_coaching.demo
 ```
 
-`run-once.sh` expects `uv run train.py` to work inside the experiment worktree.
+See umbrella `SKILL.md` § Validating the Loop on Mocks.
 
 ## SFT Procedure
 
@@ -178,12 +164,10 @@ Training manifest:
 
 After each run, update:
 
-- `experience/EXPERIMENT_LOG.md` with run id, worktree/branch, hypothesis, files changed, metric value, best-before, decision, and log path.
+- `experience/EXPERIMENT_LOG.md` with run id, hypothesis, metric value, best-before, decision, and log path.
 - `experience/ERROR.md` for crashes, OOMs, parse errors, environment failures, or logic bugs.
 - `experience/LEARNINGS.md` for reusable optimization or process lessons.
 - `experience/RUN_SUMMARY.json` when a machine-readable run summary is useful.
-
-Use bounded hooks to inspect prior context:
 
 ```bash
 bash "$SKILL_ROOT/scripts/hook-inject-errors.sh"
@@ -204,7 +188,7 @@ python scripts/run_agent_evals.py \
 
 Record the eval report path in the training manifest. Promote only if target metrics improve and safety/tool-use regressions do not appear.
 
-## Autoresearch-Style Loop
+## Self-coaching loop
 
 ```text
 mine failures -> hypothesize -> generate self-play tasks -> solve -> critique -> curate -> train or patch skills -> evaluate -> promote/rollback -> archive postmortem
@@ -216,7 +200,7 @@ Prefer cheap improvements first. Training should be gated by evidence, not by th
 
 1. **Training before eval exists.** Build or select the eval runner first.
 2. **Wrong service path.** Pipeline scripts live under `self-tuning/pipelines/`, not `training/pipelines/`.
-3. **Missing trainer clone.** `preflight.sh` needs `AUTORESEARCH_ROOT`; HTTP-only AERL mode does not.
+3. **Skipping mock validation.** Run `python -m self_coaching.demo` before live APIs.
 4. **Pasting full logs.** Logs belong in `logs/*.log`; summarize key metrics and line ranges.
 5. **Leaking secrets.** Keep `.env` values out of chat, memory, skills, and source control.
 6. **No rollback.** Record the baseline model/config before training.

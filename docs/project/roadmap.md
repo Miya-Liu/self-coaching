@@ -1,12 +1,10 @@
 # Self-coaching deployment roadmap
 
-Execution plan from **skill demo + Coaching API mock** to a **deployable evolution platform**. Design: [`architecture.md`](../design/architecture.md), [`pipelines.md`](../design/pipelines.md).
+> **Implementation reference** — deploy milestones M0–M5. Status: [progress.md](progress.md). User docs: [docs/README.md](../README.md).
 
-> **Milestone naming:** **Roadmap M0–M5** (this doc) = deploy/platform milestones. **[Mock→real migration](mock-to-real-migration.md) M0–M6** = loop adapter phases (e.g. migration M1 = AgentEvals holdout PASS). **[Integration plan](integration-plan.md) Phase 0–5** = adapter work breakdown. Do not conflate the three.
+Execution plan from skill demo to deployable evolution platform. Design: [architecture.md](../design/architecture.md).
 
-## Deployment modes
-
-See [deploy-overview.md — Deployment modes](../guides/deploy-overview.md#deployment-modes).
+Milestone families: [design glossary](../design/README.md#glossary) (roadmap M0–M5 · migration M0–M6 · integration Phase 0–5).
 
 ## Deploy targets (artifacts)
 
@@ -48,7 +46,7 @@ One evolution engine, one `SelfCoachingClient`, many adapters.
 - [x] CI: doctor, shellcheck, pytest, mock smoke `run-all`
 - [x] `scripts/install-skill-pack.sh` + `docs/guides/deploy-skill-pack.md`
 - [x] `modes/self-coaching/SKILL_PACK_VERSION` + `project/changelog-skills.md`
-- [x] Shell strictness on shipped scripts; `run-once.sh` python fallback
+- [x] Shell strictness on shipped scripts; `run-pipeline.sh` + mock loop demo
 - [x] `preflight.sh` AERL_ROOT sanity; registry documents `TRAINER_BASE_URL`
 - [x] `docs/guides/deploy-overview.md` — T1 as active target
 - [x] Git tag `v0.2.0-skills` on release

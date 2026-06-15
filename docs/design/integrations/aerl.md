@@ -2,8 +2,6 @@
 
 **AERL** is the training backend for the **model path** in [pipelines.md](../pipelines.md): SFT and GRPO-style runs over curated data from learn / self-play / curation.
 
-Self-coaching-mode worktree training (`AUTORESEARCH_ROOT`, `run-once.sh`) is a separate path for autoresearch-style experiments.
-
 ## Repo layout
 
 | Path | Role |
@@ -52,4 +50,3 @@ export AERL_ROOT=/path/to/AERL
 - [self-tuning-trainer-api-plan.md](../../project/self-tuning-trainer-api-plan.md) — full trainer API (M4)
 - [coaching_api.md](coaching_api.md) — `POST /training/runs`
 - [pipelines.md](../pipelines.md) — model vs skill path routing
-- [self_coaching_mode.md](../self_coaching_mode.md) — worktree / autoresearch path

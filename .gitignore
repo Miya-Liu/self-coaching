@@ -1,7 +1,5 @@
 logs/
 worktrees/
-upstream/*
-!upstream/README.md
 **/__pycache__/
 *.pyc
 .pytest_cache/

@@ -61,14 +61,15 @@ Triggers improvement when degradation is real — not on noise.
 
 **Default thresholds** (`services/orchestrator/config/thresholds.json`):
 
-```yaml
-thresholds:
-  min_score: 0.80
-  max_drop: 0.03
-  min_candidate_improvement: 0.01
-  min_safety_pass_rate: 0.995
-  max_latency_p95_ms: 10000
-  max_cost_per_task: 0.05
+```json
+{
+  "min_score": 0.8,
+  "max_drop": 0.03,
+  "min_candidate_improvement": 0.01,
+  "min_safety_pass_rate": 0.995,
+  "max_latency_p95_ms": 10000,
+  "max_cost_per_task": 0.05
+}
 ```
 
 **Trigger if:**

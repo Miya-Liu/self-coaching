@@ -1,8 +1,10 @@
 # Mock → real API migration plan
 
+> **Implementation reference** — adapter migration M0–M6. Status: [progress.md](progress.md). User docs: [docs/README.md](../README.md).
+
 **Status:** **M1 AgentEvals PASS** (2026-06-10) — live holdout E2E (`full_loop_live.json`, C12+C18)  
 **Ground truth:** tag **`v0.3.1-hermes-installable`** — mocks-only “it works” pin (Hermes pack + loop demo)  
-**Related:** [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md), [integration-plan.md](integration-plan.md), [integration/mapping.md](../integration/mapping.md), [mock-platform-design.md](mock-platform-design.md), [install-as-hermes-skill.md](../guides/install-as-hermes-skill.md), [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md), [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md)
+**Related:** [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md), [integration-plan.md](integration-plan.md), [integration/mapping.md](../integration/mapping.md), [mock-platform-design.md](mock-platform-design.md), [deploy-skill-pack.md](../guides/deploy-skill-pack.md), [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md), [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md)
 
 > **Milestone naming:** **Migration M0–M6** (this doc) = loop mock→live adapter phases. **[Roadmap](roadmap.md) M0–M5** = deploy targets (T1 skill pack, T2 Coaching API, …). **[Integration plan](integration-plan.md) Phase 0–5** = adapter implementation steps. Example: migration **M1** (AgentEvals holdout) ≠ roadmap **M1** (evolution engine dry loop).
 

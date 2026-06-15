@@ -1,0 +1,19 @@
+{
+  "status": "completed",
+  "duration_ms": 18432,
+  "results": [
+    {
+      "session_id": "sess_smoke_001",
+      "status": "ok",
+      "actions": {
+        "memory_writes": 0,
+        "skills_created": 0,
+        "skills_patched": 1,
+        "summary": "Mock review routed to skill_patch"
+      },
+      "fork_iterations": 3,
+      "tokens": { "input": 1200, "output": 180 },
+      "draft_version_id": "ver-abc123"
+    }
+  ]
+}

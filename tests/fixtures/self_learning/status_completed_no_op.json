@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "duration_ms": 0,
+  "results": [
+    {
+      "session_id": "sess_smoke_optout",
+      "status": "skipped",
+      "reason": "session has learn_optout=true"
+    }
+  ]
+}

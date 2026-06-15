@@ -17,9 +17,9 @@ services/orchestrator/
        v
 SelfCoachingClient  <-- mock-services/client.py
        |
-       +-- evaluate / eval_report  -> AgentEvals adapter
-       +-- learn / self_play       -> Coaching API (mock -> future)
-       +-- train                   -> AERL adapter
+       +-- evaluate / eval_report  -> AgentEvals adapter (live: migration M1 PASS)
+       +-- learn / self_play       -> Coaching API mock; learn evolve API migration M2 (spec only)
+       +-- train                   -> mock_aerl + partial aerl_client/train_adapter; production trainer migration M4 (spec only)
        +-- (trajectory / deploy)    -> Production agent adapter (planned)
 ```
 

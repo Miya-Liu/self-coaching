@@ -15,6 +15,15 @@ except ImportError:  # pragma: no cover - optional at runtime
 
 
 @dataclass(frozen=True)
+class CoachClockConfig:
+    """Per-agent coach clock (24×7 post → evolution tick)."""
+
+    enabled: bool = True
+    scenario: str | None = None
+    agent_chat_url: str | None = None
+
+
+@dataclass(frozen=True)
 class AgentEvalConfig:
     suite_id_canary: str
     suite_id_holdout: str | None = None
@@ -35,6 +44,7 @@ class SupervisedAgent:
     prefer_skill_first: bool = True
     eval: AgentEvalConfig | None = None
     improvement: AgentImprovementConfig | None = None
+    coach_clock: CoachClockConfig | None = None
 
 
 class RegistryError(ValueError):
@@ -96,6 +106,24 @@ def _parse_agent(raw: dict[str, Any]) -> SupervisedAgent:
     if not isinstance(prefer_skill_first, bool):
         raise RegistryError(f"agent {agent_id!r}: prefer_skill_first must be a boolean")
 
+    coach_clock_cfg: CoachClockConfig | None = None
+    if "coach_clock" in raw and raw["coach_clock"] is not None:
+        cc = _require_mapping(raw["coach_clock"], f"agent {agent_id}.coach_clock")
+        enabled = cc.get("enabled", True)
+        if not isinstance(enabled, bool):
+            raise RegistryError(f"agent {agent_id!r}: coach_clock.enabled must be a boolean")
+        scenario = cc.get("scenario")
+        if scenario is not None and not isinstance(scenario, str):
+            raise RegistryError(f"agent {agent_id!r}: coach_clock.scenario must be a string")
+        chat_url = cc.get("agent_chat_url")
+        if chat_url is not None and not isinstance(chat_url, str):
+            raise RegistryError(f"agent {agent_id!r}: coach_clock.agent_chat_url must be a string")
+        coach_clock_cfg = CoachClockConfig(
+            enabled=enabled,
+            scenario=scenario,
+            agent_chat_url=chat_url,
+        )
+
     return SupervisedAgent(
         id=agent_id,
         coaching_root=Path(coaching_root),
@@ -103,6 +131,7 @@ def _parse_agent(raw: dict[str, Any]) -> SupervisedAgent:
         prefer_skill_first=prefer_skill_first,
         eval=eval_cfg,
         improvement=improvement_cfg,
+        coach_clock=coach_clock_cfg,
     )
 
 

@@ -638,7 +638,7 @@ python tools/loop_completeness.py --root mock-services/demo-loop \
 
 - Real LLM inference or live agent API
 - SQLite / async Coaching API (M2)
-- Coach scheduler / cron (M5)
+- Coach shell scheduler **examples** (roadmap M5) — loop **scheduler** execution mode is [documented](../design/self_coaching_mode.md#loop-execution-modes); this demo does not ship cron wiring
 - Git-tagged skill bundle apply (M3) — record draft only
 - Canary deploy to production agent API
 - Replacing `services/orchestrator/run` for coach mode

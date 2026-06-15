@@ -143,6 +143,11 @@ class MockAERLEngine:
             "agent_id": agent_id,
             "dataset_refs": [str(dataset_path)] if dataset_path else list(dataset_refs or []),
             "coaching_root": str(root) if root else None,
+            "agent_snapshot": body.get("agent_snapshot"),
+            "labels": body.get("labels") or {},
+            "hyperparameters": body.get("hyperparameters") or {},
+            "rollout": body.get("rollout"),
+            "reward_spec": body.get("reward_spec"),
             "metrics": None,
             "candidate_model_id": None,
             "log_file": None,
@@ -187,11 +192,13 @@ class MockAERLEngine:
                     "candidate": candidate,
                     "candidate_model_id": candidate,
                     "method": pipeline_id,
-                    "hyperparameters": {"epochs": 1, "learning_rate": 1e-5},
+                    "hyperparameters": run.get("hyperparameters") or {"epochs": 1, "learning_rate": 1e-5},
+                    "agent_snapshot": run.get("agent_snapshot"),
+                    "labels": run.get("labels") or {},
                     "log_file": str(log_file),
                     "metrics": {"val_loss": metric},
                     "rollback_target": base_model,
-                    "eval_run_id": None,
+                    "eval_run_id": (run.get("agent_snapshot") or {}).get("eval_run_id"),
                     "registry_version_id": registry_version_id,
                 }
                 write_json(manifests / "training_run_manifest.json", manifest)
@@ -231,6 +238,9 @@ class MockAERLEngine:
             "candidate_model_id": run.get("candidate_model_id"),
             "log_file": run.get("log_file"),
             "registry_version_id": run.get("registry_version_id"),
+            "agent_snapshot": run.get("agent_snapshot"),
+            "labels": run.get("labels") or {},
+            "hyperparameters": run.get("hyperparameters") or {},
         }
 
     def run_pipeline_argv(self, pipeline_id: str, argv: list[str]) -> str:

@@ -17,6 +17,8 @@ import http.server
 import json
 import re
 import sys
+import time
+import uuid
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -46,6 +48,36 @@ NEXT_ARTIFACT = {
     "training_candidate": "training_manifest",
     "error_log": "none",
 }
+
+_FIXTURE_SESSIONS: list[dict[str, Any]] = [
+    {
+        "session_id": "sess_smoke_001",
+        "title": "Verify config.yaml side effects",
+        "last_active": "2026-06-15T10:00:00Z",
+        "message_count": 18,
+        "platform": "cli",
+        "learn_optout": False,
+        "review_event": "Agent claimed success without reading back config.yaml",
+    },
+    {
+        "session_id": "sess_smoke_002",
+        "title": "Lint and report findings",
+        "last_active": "2026-06-15T11:30:00Z",
+        "message_count": 24,
+        "platform": "cli",
+        "learn_optout": False,
+        "review_event": "Skill patch: require explicit lint evidence before summarizing",
+    },
+    {
+        "session_id": "sess_smoke_optout",
+        "title": "Opted-out session",
+        "last_active": "2026-06-15T09:00:00Z",
+        "message_count": 6,
+        "platform": "cli",
+        "learn_optout": True,
+        "review_event": "Should not be reviewed",
+    },
+]
 
 
 def _now() -> str:
@@ -84,6 +116,10 @@ class MockSelfLearningEngine:
     def __init__(self, data_dir: str | Path):
         self.data_dir = Path(data_dir).resolve()
         self.registry = AgentRegistry(self.data_dir)
+        self._jobs: dict[str, dict[str, Any]] = {}
+        self._optout: set[str] = {
+            str(s["session_id"]) for s in _FIXTURE_SESSIONS if s.get("learn_optout")
+        }
 
     def _paths(self, root: Path) -> dict[str, Path]:
         base = root / ".self-coaching"
@@ -234,6 +270,241 @@ class MockSelfLearningEngine:
         kind = classify_event(event, classification)
         return {"classification": kind, "next_artifact": NEXT_ARTIFACT[kind]}
 
+    def _session_index(self) -> dict[str, dict[str, Any]]:
+        index = {str(s["session_id"]): dict(s) for s in _FIXTURE_SESSIONS}
+        for sid in self._optout:
+            if sid in index:
+                index[sid]["learn_optout"] = True
+        return index
+
+    def list_sessions(
+        self,
+        *,
+        hours: float = 24.0,
+        limit: int = 50,
+        include_optout: bool = False,
+    ) -> dict[str, Any]:
+        now = _dt.datetime.now(UTC)
+        window_from = now - _dt.timedelta(hours=max(1.0, float(hours)))
+        sessions = []
+        for session in self._session_index().values():
+            if not include_optout and session.get("learn_optout"):
+                continue
+            sessions.append(
+                {
+                    "session_id": session["session_id"],
+                    "title": session["title"],
+                    "last_active": session["last_active"],
+                    "message_count": session["message_count"],
+                    "platform": session["platform"],
+                    "learn_optout": bool(session.get("learn_optout")),
+                }
+            )
+        sessions.sort(key=lambda row: row["last_active"], reverse=True)
+        return {
+            "window": {
+                "hours": hours,
+                "from": window_from.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+                "to": now.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+            },
+            "sessions": sessions[: max(1, int(limit))],
+        }
+
+    def set_optout(self, session_id: str, optout: bool = True) -> dict[str, Any]:
+        if optout:
+            self._optout.add(session_id)
+        else:
+            self._optout.discard(session_id)
+        return {
+            "session_id": session_id,
+            "optout": optout,
+            "updated_at": _now(),
+        }
+
+    def _review_session(
+        self,
+        *,
+        coaching_root: Path | None,
+        session: dict[str, Any],
+        agent_id: str,
+        evolve_memory: bool,
+        evolve_skills: bool,
+        dry_run: bool,
+    ) -> dict[str, Any]:
+        sid = str(session["session_id"])
+        if session.get("learn_optout") or sid in self._optout:
+            return {
+                "session_id": sid,
+                "status": "skipped",
+                "reason": "session has learn_optout=true",
+            }
+
+        event = str(session.get("review_event") or session.get("title") or sid)
+        classification = None
+        if evolve_skills and not evolve_memory:
+            classification = "skill_patch"
+        elif evolve_memory and not evolve_skills:
+            classification = "memory"
+
+        if dry_run:
+            kind = classify_event(event, classification)
+            return {
+                "session_id": sid,
+                "status": "ok",
+                "actions": {
+                    "memory_writes": 1 if kind == "memory" else 0,
+                    "skills_created": 0,
+                    "skills_patched": 1 if kind == "skill_patch" else 0,
+                    "summary": f"(dry_run) would route to {NEXT_ARTIFACT[kind]}",
+                },
+                "fork_iterations": 0,
+                "tokens": {"input": 0, "output": 0},
+            }
+
+        record = self.record_event(
+            coaching_root=coaching_root,
+            event=event,
+            source="mock-evolve",
+            capability="tool_use",
+            agent_id=agent_id,
+            classification=classification,
+        )
+        kind = str(record.get("classification") or "eval_case_candidate")
+        actions = {
+            "memory_writes": 1 if kind == "memory" else 0,
+            "skills_created": 0,
+            "skills_patched": 1 if kind == "skill_patch" else 0,
+            "summary": f"Mock review routed to {NEXT_ARTIFACT.get(kind, kind)}",
+        }
+        return {
+            "session_id": sid,
+            "status": "ok",
+            "actions": actions,
+            "fork_iterations": 3,
+            "tokens": {"input": 1200, "output": 180},
+            "draft_version_id": record.get("draft_version_id"),
+        }
+
+    def evolve_sessions(
+        self,
+        *,
+        coaching_root: Path | None = None,
+        session_ids: list[str],
+        agent_id: str = "example-agent",
+        evolve_memory: bool = True,
+        evolve_skills: bool = True,
+        dry_run: bool = False,
+        wait: bool | None = None,
+    ) -> dict[str, Any]:
+        if not evolve_memory and not evolve_skills:
+            raise ValueError("invalid_request: evolve_memory and evolve_skills cannot both be false")
+        if not session_ids:
+            raise ValueError("invalid_request: session_ids must be non-empty")
+
+        index = self._session_index()
+        missing = [sid for sid in session_ids if sid not in index]
+        if missing:
+            raise KeyError(f"session_not_found: {missing}")
+
+        auto_wait = len(session_ids) <= 5
+        block = auto_wait if wait is None else bool(wait)
+        started = time.perf_counter()
+        results = [
+            self._review_session(
+                coaching_root=coaching_root,
+                session=index[sid],
+                agent_id=agent_id,
+                evolve_memory=evolve_memory,
+                evolve_skills=evolve_skills,
+                dry_run=dry_run,
+            )
+            for sid in session_ids
+        ]
+        completed = {
+            "status": "completed",
+            "duration_ms": int((time.perf_counter() - started) * 1000),
+            "results": results,
+        }
+        if block:
+            return completed
+
+        job_id = f"learn_{_now().replace(':', '-')}_{uuid.uuid4().hex[:4]}"
+        job = {
+            **completed,
+            "job_id": job_id,
+            "started_at": _now(),
+            "completed_at": _now(),
+        }
+        self._jobs[job_id] = job
+        return {
+            "status": "queued",
+            "job_id": job_id,
+            "session_count": len(session_ids),
+            "poll_url": f"/learning/status/{job_id}",
+        }
+
+    def evolve_recent(
+        self,
+        *,
+        coaching_root: Path | None = None,
+        hours: float = 24.0,
+        max_sessions: int = 10,
+        agent_id: str = "example-agent",
+        evolve_memory: bool = True,
+        evolve_skills: bool = True,
+        dry_run: bool = False,
+        wait: bool | None = None,
+    ) -> dict[str, Any]:
+        listing = self.list_sessions(hours=hours, limit=max(1, int(max_sessions) * 2))
+        candidates = [s for s in listing["sessions"] if not s.get("learn_optout")]
+        selected = candidates[: max(1, int(max_sessions))]
+        skipped = [
+            {"session_id": s["session_id"], "reason": "max_sessions cap"}
+            for s in candidates[max(1, int(max_sessions)) :]
+        ]
+        skipped.extend(
+            {"session_id": s["session_id"], "reason": "learn_optout"}
+            for s in listing["sessions"]
+            if s.get("learn_optout")
+        )
+        if not selected:
+            return {
+                "status": "completed",
+                "duration_ms": 0,
+                "window": listing["window"],
+                "sessions_found": len(listing["sessions"]),
+                "sessions_reviewed": 0,
+                "sessions_skipped": skipped,
+                "results": [],
+            }
+
+        result = self.evolve_sessions(
+            coaching_root=coaching_root,
+            session_ids=[str(s["session_id"]) for s in selected],
+            agent_id=agent_id,
+            evolve_memory=evolve_memory,
+            evolve_skills=evolve_skills,
+            dry_run=dry_run,
+            wait=wait,
+        )
+        metadata = {
+            "window": listing["window"],
+            "sessions_found": len(listing["sessions"]),
+            "sessions_reviewed": len(selected),
+            "sessions_skipped": skipped,
+        }
+        result.update(metadata)
+        job_id = result.get("job_id")
+        if job_id and job_id in self._jobs:
+            self._jobs[job_id].update(metadata)
+        return result
+
+    def get_job_status(self, job_id: str) -> dict[str, Any]:
+        job = self._jobs.get(job_id)
+        if job is None:
+            raise KeyError(f"job_not_found: {job_id}")
+        return job
+
 
 def learn_via_http(
     base_url: str,
@@ -291,8 +562,27 @@ class _SelfLearningHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         path = urllib.parse.urlparse(self.path).path
-        if path == "/health":
+        if path == "/health" or path == "/learning/health":
             self._json(200, {"status": "ok", "version": VERSION, "data_dir": str(self.engine.data_dir)})
+            return
+        m_status = re.fullmatch(r"/learning/status/([^/]+)", path)
+        if m_status:
+            try:
+                result = self.engine.get_job_status(m_status.group(1))
+            except KeyError as exc:
+                self._json(404, {"error": str(exc), "code": "job_not_found"})
+                return
+            self._json(200, result)
+            return
+        if path == "/learn/sessions":
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            hours = float((query.get("hours") or ["24"])[0])
+            limit = int((query.get("limit") or ["50"])[0])
+            include_optout = (query.get("include_optout") or ["false"])[0].lower() in {"1", "true", "yes"}
+            self._json(
+                200,
+                self.engine.list_sessions(hours=hours, limit=limit, include_optout=include_optout),
+            )
             return
         self._json(404, {"error": "not found"})
 
@@ -318,6 +608,60 @@ class _SelfLearningHandler(http.server.BaseHTTPRequestHandler):
                 str(data.get("event", "")),
                 classification=data.get("classification"),
             )
+            self._json(200, result)
+            return
+        if path == "/learning/evolve":
+            coaching_root = data.get("coaching_root")
+            root = Path(coaching_root) if coaching_root else None
+            session_ids = data.get("session_ids") or []
+            if not isinstance(session_ids, list):
+                self._json(400, {"error": "session_ids must be a list", "code": "invalid_request"})
+                return
+            try:
+                result = self.engine.evolve_sessions(
+                    coaching_root=root,
+                    session_ids=[str(sid) for sid in session_ids],
+                    agent_id=str(data.get("agent_id", "example-agent")),
+                    evolve_memory=bool(data.get("evolve_memory", True)),
+                    evolve_skills=bool(data.get("evolve_skills", True)),
+                    dry_run=bool(data.get("dry_run", False)),
+                    wait=data.get("wait"),
+                )
+            except ValueError as exc:
+                self._json(400, {"error": str(exc), "code": "invalid_request"})
+                return
+            except KeyError as exc:
+                self._json(404, {"error": str(exc), "code": "session_not_found"})
+                return
+            code = 200 if result.get("status") == "completed" else 202
+            self._json(code, result)
+            return
+        if path == "/learning/evolve/recent":
+            coaching_root = data.get("coaching_root")
+            root = Path(coaching_root) if coaching_root else None
+            try:
+                result = self.engine.evolve_recent(
+                    coaching_root=root,
+                    hours=float(data.get("hours", 24)),
+                    max_sessions=int(data.get("max_sessions", 10)),
+                    agent_id=str(data.get("agent_id", "example-agent")),
+                    evolve_memory=bool(data.get("evolve_memory", True)),
+                    evolve_skills=bool(data.get("evolve_skills", True)),
+                    dry_run=bool(data.get("dry_run", False)),
+                    wait=data.get("wait"),
+                )
+            except ValueError as exc:
+                self._json(400, {"error": str(exc), "code": "invalid_request"})
+                return
+            code = 200 if result.get("status") == "completed" else 202
+            self._json(code, result)
+            return
+        if path == "/learning/optout":
+            session_id = str(data.get("session_id", ""))
+            if not session_id:
+                self._json(400, {"error": "session_id required", "code": "invalid_request"})
+                return
+            result = self.engine.set_optout(session_id, optout=bool(data.get("optout", True)))
             self._json(200, result)
             return
         self._json(404, {"error": "not found"})
@@ -350,6 +694,18 @@ def main(argv: list[str] | None = None) -> int:
     p_record.add_argument("--agent-id", default="example-agent")
     p_record.add_argument("--classification")
 
+    p_evolve = sub.add_parser("evolve")
+    add_data(p_evolve)
+    p_evolve.add_argument("--session-id", action="append", dest="session_ids", required=True)
+    p_evolve.add_argument("--agent-id", default="example-agent")
+    p_evolve.add_argument("--wait", action="store_true", default=True)
+
+    p_recent = sub.add_parser("evolve-recent")
+    add_data(p_recent)
+    p_recent.add_argument("--hours", type=float, default=24.0)
+    p_recent.add_argument("--max-sessions", type=int, default=10)
+    p_recent.add_argument("--agent-id", default="example-agent")
+
     p_serve = sub.add_parser("serve")
     add_data(p_serve)
     p_serve.add_argument("--host", default="127.0.0.1")
@@ -364,6 +720,23 @@ def main(argv: list[str] | None = None) -> int:
             capability=args.capability,
             agent_id=args.agent_id,
             classification=args.classification,
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+    if args.cmd == "evolve":
+        result = engine.evolve_sessions(
+            session_ids=args.session_ids,
+            agent_id=args.agent_id,
+            wait=args.wait,
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+    if args.cmd == "evolve-recent":
+        result = engine.evolve_recent(
+            hours=args.hours,
+            max_sessions=args.max_sessions,
+            agent_id=args.agent_id,
+            wait=False,
         )
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0

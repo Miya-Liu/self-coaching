@@ -17,21 +17,18 @@ The **Coaching API** is the HTTP contract spine for pipeline stages: learn, self
 | Tag | Method | Path | Stage |
 |-----|--------|------|-------|
 | self-learning | POST | `/learning/events` | Sync event (mock + legacy) |
+| self-learning | POST | `/learning/evolve` | Targeted session review (M2) |
+| self-learning | POST | `/learning/evolve/recent` | Auto-learn trailing window (M2) |
+| self-learning | GET | `/learning/status/{job_id}` | Poll async review job (M2) |
+| self-learning | GET | `/learn/sessions` | Discover candidate sessions (M2) |
+| self-learning | POST | `/learning/optout` | Per-session learn opt-out (M2) |
+| self-learning | GET | `/learning/health` | Learner readiness (M2) |
 | self-play | POST | `/self-play/generate` | Self-play |
 | evaluation | POST | `/eval/runs` | Eval |
 | training | POST | `/training/runs` | Train |
 | pipeline | POST | `/pipeline/run-all` | End-to-end mock |
 
-**Spec only** — production learner + migration M2; not in `openapi.yaml` until M2.0-T02:
-
-| Tag | Method | Path | Stage |
-|-----|--------|------|-------|
-| self-learning | POST | `/learning/evolve` | Targeted session review |
-| self-learning | POST | `/learning/evolve/recent` | Auto-learn trailing window |
-| self-learning | GET | `/learning/status/{job_id}` | Poll async review job |
-| self-learning | GET | `/learn/sessions` | Discover candidate sessions |
-| self-learning | POST | `/learning/optout` | Per-session learn opt-out |
-| self-learning | GET | `/learning/health` | Learner readiness |
+**Mock implementation:** review routes are served by `mock_self_learning.py serve` (port 8766). The T2 facade (`mock_self_coaching.py`) proxies only `/learning/events` today; full facade wiring is migration **M2.3**.
 
 Source: [self-learning-review-agent-plan.md](../../project/self-learning-review-agent-plan.md) §4.
 
@@ -71,7 +68,7 @@ Idempotency: `Idempotency-Key` header → `.self-coaching/idempotency/`.
 | Mock today | Real backend (env-selected) | Migration phase |
 |------------|----------------------------|-----------------|
 | Deterministic eval | AgentEvals adapter | **M1 PASS** |
-| Sync `POST /learning/events` | Evolve API (`/learning/evolve*`) | **M2** (planned) |
+| Sync `POST /learning/events` | Evolve API (`/learning/evolve*`) | **M2.1 mock done** — adapter M2.2–M2.3 |
 | Local self-play | Remote generator | **M3** |
 | Dry-run train | AERL HTTP (`TRAINER_BASE_URL`) | **M4** |
 

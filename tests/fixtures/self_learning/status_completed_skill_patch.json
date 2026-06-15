@@ -1,0 +1,21 @@
+{
+  "status": "completed",
+  "job_id": "learn_2026-06-15T10-00-00Z_ab12",
+  "started_at": "2026-06-15T10:00:00Z",
+  "completed_at": "2026-06-15T10:00:05Z",
+  "duration_ms": 5000,
+  "results": [
+    {
+      "session_id": "sess_smoke_002",
+      "status": "ok",
+      "actions": {
+        "memory_writes": 0,
+        "skills_created": 0,
+        "skills_patched": 1,
+        "summary": "Mock review routed to skill_patch"
+      },
+      "fork_iterations": 3,
+      "tokens": { "input": 1200, "output": 180 }
+    }
+  ]
+}

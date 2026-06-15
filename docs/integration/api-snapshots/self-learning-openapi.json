@@ -1,0 +1,45 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Self-learning review agent API (placeholder)",
+    "version": "0.1.0-draft",
+    "description": "DRAFT snapshot for migration M2. Canonical spec: docs/project/self-learning-review-agent-plan.md §4. Replace with export from the live learner service when available (scripts/export-integration-snapshots.sh)."
+  },
+  "servers": [
+    { "url": "http://127.0.0.1:8766", "description": "Mock self-learning (mock_self_learning.py serve)" }
+  ],
+  "paths": {
+    "/learning/events": {
+      "post": { "summary": "Sync learning event (mock / thin path)", "tags": ["learning"] }
+    },
+    "/learning/evolve": {
+      "post": { "summary": "Targeted session review", "tags": ["learning"] }
+    },
+    "/learning/evolve/recent": {
+      "post": { "summary": "Auto-learn trailing window", "tags": ["learning"] }
+    },
+    "/learning/status/{job_id}": {
+      "get": { "summary": "Poll async review job", "tags": ["learning"] }
+    },
+    "/learn/sessions": {
+      "get": { "summary": "Discover candidate sessions", "tags": ["learning"] }
+    },
+    "/learning/optout": {
+      "post": { "summary": "Per-session learn opt-out", "tags": ["learning"] }
+    },
+    "/learning/health": {
+      "get": { "summary": "Learner readiness", "tags": ["health"] }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer" }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "_meta": {
+    "status": "placeholder",
+    "source": "docs/project/self-learning-review-agent-plan.md",
+    "coaching_openapi_draft": "mock-services/contracts/openapi.yaml"
+  }
+}

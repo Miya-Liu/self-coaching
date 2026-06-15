@@ -17,6 +17,8 @@ python "${ROOT}/mock-services/mock_aerl.py" run \
   --coaching-root "${DATA_DIR}"
 
 test -f "${DATA_DIR}/.self-coaching/manifests/training_run_manifest.json"
+manifest="${DATA_DIR}/.self-coaching/manifests/training_run_manifest.json"
+python -c "import json,sys; m=json.load(open(sys.argv[1])); assert m.get('candidate_model_id')" "${manifest}"
 test -f "${DATA_DIR}/aerl/logs/train-"*.log
 
 PORT=18004
@@ -37,5 +39,10 @@ curl -fsS -X POST "http://127.0.0.1:${PORT}/v1/pipelines/sft/run" \
   -H "Content-Type: application/json" \
   -d '{"argv":["--dry-run","--epochs","1"]}' >"${LOG}"
 grep -q "metric.val_loss" "${LOG}"
+
+curl -fsS -X POST "http://127.0.0.1:${PORT}/v1/training/runs" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline_id":"sft","base_model":"mock-base-v1","agent_id":"smoke-agent","coaching_root":"'"${DATA_DIR}"'","agent_snapshot":{"skill_bundle_version":"skills-smoke"}}' \
+  | grep -q '"status": "queued"'
 
 echo "mock-aerl-smoke: OK"

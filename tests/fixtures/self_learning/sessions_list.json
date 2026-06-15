@@ -1,0 +1,25 @@
+{
+  "window": {
+    "hours": 24.0,
+    "from": "2026-06-14T10:00:00Z",
+    "to": "2026-06-15T10:00:00Z"
+  },
+  "sessions": [
+    {
+      "session_id": "sess_smoke_001",
+      "title": "Verify config.yaml side effects",
+      "last_active": "2026-06-15T10:00:00Z",
+      "message_count": 18,
+      "platform": "cli",
+      "learn_optout": false
+    },
+    {
+      "session_id": "sess_smoke_002",
+      "title": "Lint and report findings",
+      "last_active": "2026-06-15T11:30:00Z",
+      "message_count": 24,
+      "platform": "cli",
+      "learn_optout": false
+    }
+  ]
+}

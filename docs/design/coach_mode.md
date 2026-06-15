@@ -1,48 +1,70 @@
 # coach mode
 
-A **coach service** runs the shared **evolution engine** on **one or more external agents** — periodic evaluation, triggered improvement, and platform deploy. Same **submodules** and adapters as self-coaching mode; different executor and per-agent coaching roots.
+A **coach service** runs the shared evolution engine on **external agents** — periodic eval, triggered improvement, platform deploy. Same submodules and adapters as self-coaching mode.
 
-Overview: [architecture.md](architecture.md). Shell: `modes/coach/` (planned).
-
-## Purpose in this mode
-
-Operate self-coaching as a **supervisor**: register external agents, schedule **self-evaluation** (via AgentEvals), detect drops, route to **self-learning** or **self-tuning**, gate candidates, and deploy through the production **agent API** — without forking pipeline logic.
+Overview: [architecture.md](architecture.md). Shell: `modes/coach/` (M5 in progress).
 
 ## Deploy profile
 
-| Aspect | Typical setup |
-|--------|----------------|
-| Primary deploy | T2 Coaching API + T3 evolution engine |
-| Optional | T1 `modes/self-coaching/` for coach policy in dev |
+| Aspect | Setup |
+|--------|-------|
+| Primary | T2 Coaching API + T3 evolution engine |
 | Coaching root | **One per subject agent** |
-| Observation | AgentEvals (scored), agent API (trajectories), optional LLM proxy |
+| Observation | AgentEvals, agent API, optional LLM proxy |
 | Deploy | Agent API skills/versions after deploy gate |
-| Config template | `configs/coach.example.yaml` |
 
 ## Multi-agent layout
 
 ```text
-/var/lib/coach/
-  agents/<agent_id>/
-    experience/
-    .self-coaching/
-      metrics/eval_metrics.jsonl
-      curated/
-      reports/eval_runs/
-  runs/<improvement_run_id>/
+/var/lib/coach/agents/<agent_id>/
+  experience/  .self-coaching/metrics/  .self-coaching/curated/
+/var/lib/coach/runs/<improvement_run_id>/
 ```
 
-## Supervision registry (planned)
+## Supervision registry
 
-`modes/coach/agents.yaml` — per agent: id, model, eval schedule, coaching root, `prefer_skill_first`, optional proxy. See `modes/coach/README.md`. Milestone M5: [roadmap.md](../project/roadmap.md).
+`modes/coach/agents.example.yaml` + `registry.py` + coach clock (`service.py`, `clock.py`, `trigger.py`). Per agent: id, coaching root, eval suites, `coach_clock`, `prefer_skill_first`. See `modes/coach/README.md`.
 
-## Loop execution modes
+## Loop patterns
 
-Coach mode typically uses **scheduler** execution ([self_coaching_mode.md](self_coaching_mode.md#loop-execution-modes)): cron fires eval + drop-detect + improve per subject agent. **Manual** runs (`orchestrator run` on demand) suit ops interventions. **Autonomous** is uncommon here — the coach service is already the long-lived supervisor; subject agents remain external.
+| Pattern | Driver | Detail |
+|---------|--------|--------|
+| **Scheduler (cron)** | Fixed interval → orchestrator | § below |
+| **Coach clock (24×7)** | HTTP/WebSocket post → `clock.run_tick` | § below |
+| **Manual** | On-demand `orchestrator run` | Ops interventions |
 
-## Scheduler (today)
+Loop execution modes: [self_coaching_mode.md](self_coaching_mode.md#loop-execution-modes).
 
-Per agent, cron or interval:
+## Coach clock service
+
+Inbound post drives one evolution tick (E → sparse/batch play → T):
+
+```bash
+python modes/coach/service.py serve \
+  --registry modes/coach/agents.yaml --bind 0.0.0.0:8768
+```
+
+`POST /coach/post`:
+
+```json
+{
+  "agent_id": "support-bot-prod",
+  "event": "session_complete",
+  "payload": { "action": "full_tick", "reason": "failures in trailing window" }
+}
+```
+
+| `payload.action` | Behavior |
+|------------------|----------|
+| `hold` | Record only |
+| `learn` / `play` / `tune` | Partial routes |
+| `full_tick` | Full `clock.run_tick` |
+
+Mock bridge when `agent_chat_url` unset: `MockCoachAgentBridge`. Production: [agent_bridge.py](../../modes/coach/agent_bridge.py).
+
+Smoke: `python scripts/clock_loop_smoke.py` · `pytest tests/test_coach_service.py`
+
+## Scheduler (cron)
 
 ```bash
 ROOT=/var/lib/coach/agents/<agent_id>
@@ -51,22 +73,12 @@ python -m services.orchestrator check-drop --metrics-dir "$ROOT/.self-coaching/m
   || python -m services.orchestrator run --coaching-root "$ROOT" --run-dir ... --agent-id <id>
 ```
 
-Typical env: `ORCHESTRATOR_EVAL_BACKEND=agentevals`, `AGENTEVALS_*`, `AGENT_API_*`, `ORCHESTRATOR_TRANSPORT=http`.
+Env: `ORCHESTRATOR_EVAL_BACKEND=agentevals`, `AGENTEVALS_*`, `ORCHESTRATOR_TRANSPORT=http`.
 
-## LLM proxy (planned, optional)
+## LLM proxy (planned)
 
-**Observation only** — external agents route LLM calls for trajectory capture. **Scored eval stays on AgentEvals.** Does not replace submodules or adapters.
-
-## Improvement and deploy
-
-After [evaluators.md](evaluators.md) gates: skill path → agent API skills; model path → version + activate with rollback pointer. [integrations/production_agent.md](integrations/production_agent.md), [integration-plan.md](../project/integration-plan.md).
-
-## Combined with self-coaching mode
-
-Teams often use **coach** in production and **self-coaching** in dev workspaces — same `modes/self-coaching/` pack, same evolution engine, same AgentEvals/AERL integrations.
+Observation only — scored eval stays on AgentEvals.
 
 ## Related
 
-- [self_coaching_mode.md](self_coaching_mode.md)
-- [deploy-overview.md#coach-mode](../guides/deploy-overview.md#coach-mode)
-- [pipelines.md](pipelines.md)
+[self_coaching_mode.md](self_coaching_mode.md) · [deploy-overview.md](../guides/deploy-overview.md) · [production_agent.md](integrations/production_agent.md)

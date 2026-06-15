@@ -67,6 +67,7 @@ jobs:
           python -m py_compile mock-services/mock_aerl.py
           python -m py_compile mock-services/plugin_mock.py
           python -m py_compile mock-services/self_coaching_loop.py
+          python -m py_compile modes/coach/clock.py
           python -m py_compile tools/loop_completeness.py
           python -m py_compile services/adapters/aerl_client.py
           python -m py_compile services/adapters/train_adapter.py
@@ -91,6 +92,9 @@ jobs:
 
       - name: Self-coaching loop demo (module transport)
         run: bash tests/test_mock_self_coaching_demo.sh
+
+      - name: Autonomous clock loop smoke (E → P → T)
+        run: python scripts/clock_loop_smoke.py
 
       - name: Assert OpenAPI and compact contract stay in sync
         run: python mock-services/contracts/regenerate.py --check

@@ -2,163 +2,69 @@
 
 ## Role
 
-**Self-coaching** is a **portable, agent-agnostic** package (not tied to one IDE): the **policy** in `modes/self-coaching/SKILL.md` and **Experience** on disk are the contract. A **subject agent** evolves skills and optionally a **model** in a **git** repo by passing a **Loading Gate**, using a **Data Pool** and **Local Model**, running an experiment loop behind a **Deploy Gate** (worktree + approval), and writing **Results** to `experience/` while full train output goes to `logs/`.
-
-The same **submodules** and **evolution engine** deploy in two **modes** - only executor, subject, and coaching-root layout differ:
+**Self-coaching** is a portable, agent-agnostic package: **policy** in `modes/self-coaching/SKILL.md` + **Experience** on disk. A subject agent evolves skills and optionally a model via gated experiments (worktree isolation, human approval before merge).
 
 | Mode | Executor | Subject | Path |
 |------|----------|---------|------|
 | **self-coaching** | Host agent | Host agent | `modes/self-coaching/` |
-| **coach** | Coach service / scheduler | External agents | `modes/coach/` + T2/T3 |
+| **coach** | Coach service | External agents | `modes/coach/` + T2/T3 |
 
-Loop **execution mode** (autonomous / scheduler / manual) is configured per deployment — see [self_coaching_mode.md](self_coaching_mode.md#loop-execution-modes). Coach mode defaults to **scheduler**; self-coaching mode may use any of the three.
-
-Detail: [self_coaching_mode.md](self_coaching_mode.md), [coach_mode.md](coach_mode.md). Naming: [README.md](README.md#canonical-naming).
-
-The canonical end-to-end sequence is the Mermaid block in root `README.md` (Loading Gate, Performance, Data Pool, Local Model, Deploy Gate, Trainer, Results).
+Loop **execution mode** (autonomous / scheduler / manual): [self_coaching_mode.md](self_coaching_mode.md#loop-execution-modes). End-to-end sequence diagram: root [README.md](../../README.md#workflow).
 
 ## Repository layout
 
 ```text
-self-coaching/
-+-- modes/
-|   +-- self-coaching/                    # mode: self-coaching (T1)
-|   |   +-- SKILL.md              # umbrella (name: self-coaching)
-|   |   +-- self-learning/
-|   |   +-- self-play/
-|   |   +-- self-evaluation/
-|   |   +-- self-tuning/
-|   |   +-- adapters/
-|   +-- coach/                    # mode: coach (shell, planned)
-+-- configs/
-+-- services/
-|   +-- orchestrator/             # evolution engine (T3)
-|   +-- adapters/
-+-- scripts/
-+-- mock-services/                # Coaching API (T2)
-+-- docs/
-+-- experience/
+modes/self-coaching/     # T1 skill pack (SKILL.md + 4 submodules)
+modes/coach/             # Coach shell (M5)
+services/orchestrator/   # T3 evolution engine
+services/adapters/       # AgentEvals, AERL, agent API
+mock-services/           # T2 Coaching API mock
+scripts/  experience/  docs/
 ```
 
 ## Components
 
-1. **Policy** - `modes/self-coaching/SKILL.md` (worktree workflow, when to train/stop, merge gate, Experience paths).
-2. **Submodules** - `self-learning`, `self-play`, `self-evaluation`, `self-tuning` under `modes/self-coaching/`.
-3. **Evolution engine** - `services/orchestrator/` (T3): `record-eval`, `check-drop`, `run`; calls `SelfCoachingClient` and adapters.
-4. **Target repo** - default: external [autoresearch](https://github.com/karpathy/autoresearch) clone (`AUTORESEARCH_ROOT`); `main` is integration line.
-5. **Experiment line** - `worktrees/<id>/`, branch `experiment/<id>`.
-6. **Execution logs** - `logs/<id>.log` (full train stdout/stderr; parse in small chunks).
-7. **AERL pipelines** - `modes/self-coaching/self-tuning/pipelines/` + `services/.env` (`TRAINER_BASE_URL`, optional `AERL_ROOT`).
-8. **Experience** - `experience/EXPERIMENT_LOG.md`, `ERROR.md`, `LEARNINGS.md`; optional `RUN_SUMMARY.json`.
-9. **Coaching root** - `{root}/experience/` + `{root}/.self-coaching/` (metrics, curated data, eval reports).
-10. **Hooks** - `scripts/hook-*.sh` + `references/hooks-setup.md` (self-coaching mode).
-11. **Coach shell** (planned) - `modes/coach/` supervision registry, scheduler, optional LLM proxy.
+| # | Component | Location |
+|---|-----------|----------|
+| 1 | Policy | `modes/self-coaching/SKILL.md` |
+| 2 | Submodules | self-learning, self-play, self-evaluation, self-tuning |
+| 3 | Evolution engine | `services/orchestrator/` (`record-eval`, `check-drop`, `run`) |
+| 4 | Coaching root | `{root}/experience/` + `{root}/.self-coaching/` |
+| 5 | Experiment isolation | `worktrees/<id>/`, branch `experiment/<id>` |
+| 6 | Execution logs | `logs/<id>.log` (full train output; not in agent context) |
+| 7 | Trainer (optional) | `run-once.sh` or AERL via `self-tuning/pipelines/` |
 
-## Shared core (both modes)
+**Rule:** one evolution engine, one `SelfCoachingClient`, many adapters — [integrations/](integrations/).
 
-```text
-                    +-------------------------------------+
-                    |  Evolution engine (T3)              |
-                    |  services/orchestrator              |
-                    +------------------+------------------+
-                                       |
-              +------------------------+------------------------+
-              |                        |                        |
-     Submodules (modes/self-coaching/*)  Coaching API (T2)      Adapters (integrations/)
-              |                        |                        |
-              +------------------------+------------------------+
-                                       |
-              +------------------------+------------------------+
-              |                                                 |
-         mode: self-coaching                                      mode: coach
-```
+| Submodule | T2 HTTP |
+|-----------|---------|
+| self-learning | `POST /learning/events`, `/learning/evolve*` |
+| self-play | `POST /self-play/generate` |
+| self-evaluation | `POST /eval/runs` |
+| self-tuning | `POST /training/runs` |
 
-| Submodule | Purpose | T2 HTTP |
-|-----------|---------|---------|
-| **self-learning** | Memory, skills, eval cases | `POST /learning/events` |
-| **self-play** | Tasks, trajectories | `POST /self-play/generate` |
-| **self-evaluation** | Benchmarks, gates | `POST /eval/runs` |
-| **self-tuning** | SFT/GRPO (AERL) | `POST /training/runs` |
+## Conceptual mapping
 
-**Rule:** one evolution engine, one `SelfCoachingClient`, many adapters (AgentEvals, production agent API, AERL) - see [integrations/](integrations/).
+| Concept | Default pack |
+|---------|----------------|
+| Loading Gate | deps, `prepare.py`, checkpoint paths |
+| Performance | metric from `logs/<id>.log` vs best |
+| Data Pool | cache + curated / self-play data |
+| Local Model | admin-chosen checkpoint; unchanged on `main` until approval |
+| Deploy Gate | worktree isolation + human merge decision |
+| Trainer | `run-once.sh` or AERL pipelines |
+| Results | `experience/*.md`; `.self-coaching/` artifacts |
 
-## Data flow
+## Evolution engine (T3)
 
-Sequence diagram in root `README.md`. Participants: **Human, Agent, Loading Gate, Performance, Data Pool, Local Model, Deploy Gate, Trainer, Results**.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as Human
-    participant A as Agent
-    participant G as Loading Gate
-    participant B as Performance
-    participant C as Data Pool
-    participant M as Local Model
-    participant D as Deploy Gate
-    participant T as Trainer
-    participant X as Results
-
-    U->>A: Enable self-coaching
-    A->>G: Ensure Opening Gate
-    G->>B: Review performance
-    B->>G: Needs improvement
-    G->>C: Load training data
-    C->>M: Load model checkpoint
-    G->>A: Experiment Ready
-    A->>D: Create experiment + worktree
-    loop Experiment iterations
-        A->>T: Edit in worktree; run train
-        T->>A: Results / errors
-    end
-    A->>U: Request authorization
-    alt Approve
-        A->>M: Replace local model
-        A->>C: Update data
-    end
-```
-
-## Conceptual to concrete mapping
-
-| Concept | Meaning | Default pack |
-|---------|---------|----------------|
-| Loading Gate | Preconditions to train (deps, data/cache, checkpoints). | `uv sync`, `prepare.py`, checkpoint paths. |
-| Performance | Metric improved vs baseline / best. | Parse `logs/<id>.log`; guardrails in `SKILL.md`. |
-| Data Pool | Training/val sources: caches, dialogue-derived corpora, **self-play** outputs. | `~/.cache/autoresearch/` + curated paths. |
-| Local Model | Admin-selected checkpoint before run. | Not mutated on `main` until merge approval. |
-| Deploy Gate | Experiment isolation + promotion policy. | `experiment/<id>`, `worktrees/<id>/`; human decision to merge. |
-| Trainer | Executes experiment run. | `run-once.sh` or AERL `run-pipeline.sh` / `self-tuning/pipelines/`. |
-| Trainer feedback | Outcomes/errors to agent; raw log on disk. | Agent reads summary; full output in `logs/<id>.log`. |
-| Results | Agent-resolved outcomes and learnings. | `experience/*.md`; `.self-coaching/` artifacts. |
-
-## Evolution engine loop (coach + optional skill automation)
-
-Observe -> evaluate ([evaluators.md](evaluators.md)) -> drop detect -> route (**self-learning** / **self-tuning**) -> candidate eval -> deploy gate. Detail: [pipelines.md](pipelines.md).
-
-## Control boundaries
-
-| Boundary | Location |
-|----------|----------|
-| Trainer integration line | `AUTORESEARCH_ROOT` on `main` |
-| Experiment line | `worktrees/<experiment_id>`, `experiment/<id>` |
-| Execution logs | `logs/<id>.log` |
-| Experience | `experience/*.md` |
-| Coaching artifacts | `.self-coaching/` under coaching root |
+Observe → evaluate → drop detect → route (skill / model) → candidate eval → deploy gate. Detail: [pipelines.md](pipelines.md), [evaluators.md](evaluators.md).
 
 ## Merge gate
 
-- The agent may run experiment iterations autonomously **inside** the Deploy Gate (worktree only).
-- The agent may not **replace local model** or **update data** on the integration path without explicit **human** authorization (merge into `AUTORESEARCH_ROOT` `main`, or swap promoted weights).
-- Coach-mode production deploy (agent API activate/rollback) uses the same gate - [coach_mode.md](coach_mode.md).
-
-## Combined deployments
-
-- **coach** supervises production external agents (scheduled eval, central improvement runs).
-- **self-coaching** installs `modes/self-coaching/` in dev workspaces for local iteration before coach promotes.
-
-Same submodules, `SKILL_PACK_VERSION`, OpenAPI contract, and evolution engine.
+- Agent may iterate **inside** a worktree without approval (**worktree autonomy**).
+- Replacing weights or merging to integration `main` requires **human** authorization.
+- **Worktree autonomy ≠ loop execution autonomous** — see [glossary](README.md#glossary).
 
 ## Related
 
-- [self_coaching_mode.md](self_coaching_mode.md) | [coach_mode.md](coach_mode.md)
-- [pipelines.md](pipelines.md) | [evaluators.md](evaluators.md) | [integrations/](integrations/)
+[self_coaching_mode.md](self_coaching_mode.md) · [coach_mode.md](coach_mode.md) · [pipelines.md](pipelines.md)

@@ -36,8 +36,32 @@
           "path": "/health"
         },
         {
+          "method": "GET",
+          "path": "/learn/sessions"
+        },
+        {
           "method": "POST",
           "path": "/learning/events"
+        },
+        {
+          "method": "POST",
+          "path": "/learning/evolve"
+        },
+        {
+          "method": "POST",
+          "path": "/learning/evolve/recent"
+        },
+        {
+          "method": "GET",
+          "path": "/learning/health"
+        },
+        {
+          "method": "POST",
+          "path": "/learning/optout"
+        },
+        {
+          "method": "GET",
+          "path": "/learning/status/{job_id}"
         },
         {
           "method": "POST",

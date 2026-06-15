@@ -130,7 +130,9 @@ calls. Same exit conditions, same artifacts.
 
 ## Invocation Contract
 
-A calling agent can use this skill in three modes. Pick the
+> **Terminology:** **Invocation modes** (below) are how you *use this skill pack* (read policy vs run mock demo vs real APIs). They are **not** [loop execution modes](../../docs/design/self_coaching_mode.md#loop-execution-modes) (autonomous / scheduler / manual — who runs the coach loop). See [design glossary](../../docs/design/README.md#glossary).
+
+A calling agent can use this skill in three **invocation** modes. Pick the
 mode based on what you have available; you can always
 "upgrade" from a lower mode to a higher one without
 re-loading the skill.

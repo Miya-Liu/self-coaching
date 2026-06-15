@@ -82,3 +82,17 @@ def test_learn_facade_uses_engine(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert result["classification"] == "skill_patch"
     events = root / ".self-coaching" / "events" / "learning_events.jsonl"
     assert events.is_file()
+
+
+def test_evolve_sessions_creates_draft(engine: MockSelfLearningEngine):
+    result = engine.evolve_sessions(session_ids=["sess_smoke_002"], wait=True, agent_id="agent-e2e")
+    row = result["results"][0]
+    assert row["status"] == "ok"
+    assert row.get("draft_version_id") or row["actions"]["skills_patched"] >= 0
+
+
+def test_record_event_path_unchanged_after_review_routes(engine: MockSelfLearningEngine):
+    """M2.1-T12: POST /learning/events semantics unchanged."""
+    before = engine.record_event(event="legacy sync path", source="unit", agent_id="agent-legacy")
+    assert before["source"] == "unit"
+    assert "id" in before

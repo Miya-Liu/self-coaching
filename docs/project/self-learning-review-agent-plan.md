@@ -593,15 +593,17 @@ Use task IDs in PR titles / commit messages (e.g. `M2.1-T03: mock POST /learning
 
 | Phase | Summary | Status | Depends on |
 |-------|---------|--------|------------|
-| **M2.0** | Spec + contract freeze | **in progress** (DRAFT spec + §11 tasks) | — |
-| **M2.1** | Mock services (production routes) | not started | M2.0 |
+| **M2.0** | Spec + contract freeze | **done** (2026-06-15) | — |
+| **M2.1** | Mock services (production routes) | **done** (2026-06-15) | M2.0 |
 | **M2.2** | HTTP client + learn adapter + mapping | not started | M2.1 |
 | **M2.3** | Loop env + facade wiring | not started | M2.2 |
 | **M2.4** | Staging smoke + live E-path | not started | M2.3, M1 |
 | **M2.5** | R5 mock-module regression | not started | M2.3 |
-| **SP** | Skill pack & SKILL.md alignment (L1–L8) | not started | L8 → L1 |
+| **SP** | Skill pack & SKILL.md alignment (L1–L8) | **L1 done** (2026-06-15) | L8 → L1 |
 
 **Parallel track:** §11.8 (skill pack) can land before or alongside M2; unblocks Hermes operators using Bash hooks.
+
+**Phase status:** authoritative in [progress.md](progress.md) § Migration M2 (this tracker mirrors it for task IDs only).
 
 ---
 
@@ -609,11 +611,11 @@ Use task IDs in PR titles / commit messages (e.g. `M2.1-T03: mock POST /learning
 
 | ID | Task | File(s) | Done |
 |----|------|---------|------|
-| M2.0-T01 | Resolve open questions §14 (Q1, Q7 minimum) | this doc §14 | [ ] |
-| M2.0-T02 | Add review routes to Coaching OpenAPI (draft schemas) | `mock-services/contracts/openapi.yaml` | [ ] |
-| M2.0-T03 | Sync `mock_service_contract.json` from OpenAPI | `mock-services/contracts/mock_service_contract.json` | [ ] |
-| M2.0-T04 | Placeholder API snapshot for learner service | `docs/integration/api-snapshots/self-learning-openapi.json` | [ ] |
-| M2.0-T05 | Link spec from integration plan | `docs/project/integration-plan.md` | [ ] |
+| M2.0-T01 | Resolve open questions §14 (Q1, Q7 minimum) | this doc §14 | [x] |
+| M2.0-T02 | Add review routes to Coaching OpenAPI (draft schemas) | `mock-services/contracts/openapi.yaml` | [x] |
+| M2.0-T03 | Sync `mock_service_contract.json` from OpenAPI | `mock-services/contracts/mock_service_contract.json` | [x] |
+| M2.0-T04 | Placeholder API snapshot for learner service | `docs/integration/api-snapshots/self-learning-openapi.json` | [x] |
+| M2.0-T05 | Link spec from integration plan | `docs/project/integration-plan.md` | [x] |
 
 **Exit:** Spec sign-off; OpenAPI draft merged; no runtime behavior change.
 
@@ -623,25 +625,25 @@ Use task IDs in PR titles / commit messages (e.g. `M2.1-T03: mock POST /learning
 
 | ID | Task | File(s) | Done |
 |----|------|---------|------|
-| M2.1-T01 | In-memory `SessionDB` shim (sessions, opt-out, last_active) | `mock-services/mock_self_learning.py` | [ ] |
-| M2.1-T02 | In-memory job table (`job_id`, status, results, TTL) | `mock-services/mock_self_learning.py` | [ ] |
-| M2.1-T03 | `POST /learning/evolve` — sync (`wait=true`) + async (`wait=false`) | `mock-services/mock_self_learning.py` | [ ] |
-| M2.1-T04 | `POST /learning/evolve/recent` — window, `max_sessions`, skip reasons | `mock-services/mock_self_learning.py` | [ ] |
-| M2.1-T05 | `GET /learning/status/{job_id}` — running / completed | `mock-services/mock_self_learning.py` | [ ] |
-| M2.1-T06 | `GET /learn/sessions` — query `hours`, `limit`, `include_optout` | `mock-services/mock_self_learning.py` | [ ] |
-| M2.1-T07 | `POST /learning/optout` | `mock-services/mock_self_learning.py` | [ ] |
-| M2.1-T08 | `GET /learning/health` (+ optional 503 test hook) | `mock-services/mock_self_learning.py` | [ ] |
-| M2.1-T09 | Map review results → `actions` from `classify_event` / `record_event` logic | `mock-services/mock_self_learning.py` | [ ] |
-| M2.1-T10 | Normalize `poll_url` to `/learning/status/{job_id}` in mock responses | `mock-services/mock_self_learning.py` | [ ] |
+| M2.1-T01 | In-memory `SessionDB` shim (sessions, opt-out, last_active) | `mock-services/mock_self_learning.py` | [x] |
+| M2.1-T02 | In-memory job table (`job_id`, status, results, TTL) | `mock-services/mock_self_learning.py` | [x] |
+| M2.1-T03 | `POST /learning/evolve` — sync (`wait=true`) + async (`wait=false`) | `mock-services/mock_self_learning.py` | [x] |
+| M2.1-T04 | `POST /learning/evolve/recent` — window, `max_sessions`, skip reasons | `mock-services/mock_self_learning.py` | [x] |
+| M2.1-T05 | `GET /learning/status/{job_id}` — running / completed | `mock-services/mock_self_learning.py` | [x] |
+| M2.1-T06 | `GET /learn/sessions` — query `hours`, `limit`, `include_optout` | `mock-services/mock_self_learning.py` | [x] |
+| M2.1-T07 | `POST /learning/optout` | `mock-services/mock_self_learning.py` | [x] |
+| M2.1-T08 | `GET /learning/health` (+ optional 503 test hook) | `mock-services/mock_self_learning.py` | [x] |
+| M2.1-T09 | Map review results → `actions` from `classify_event` / `record_event` logic | `mock-services/mock_self_learning.py` | [x] |
+| M2.1-T10 | Normalize `poll_url` to `/learning/status/{job_id}` in mock responses | `mock-services/mock_self_learning.py` | [x] |
 | M2.1-T11 | Bearer auth on new routes (match existing mock pattern) | `mock-services/mock_self_learning.py` | [ ] |
-| M2.1-T12 | **Keep** `POST /learning/events` + in-process `record_event` unchanged | `mock-services/mock_self_learning.py` | [ ] |
-| M2.1-T13 | Fixture: sync completed evolve | `tests/fixtures/self_learning/evolve_sync_completed.json` | [ ] |
-| M2.1-T14 | Fixture: async queued + status completed | `tests/fixtures/self_learning/evolve_async_queued.json`, `status_completed_skill_patch.json` | [ ] |
-| M2.1-T15 | Fixture: no-op (all skipped) | `tests/fixtures/self_learning/status_completed_no_op.json` | [ ] |
-| M2.1-T16 | Fixture: sessions list | `tests/fixtures/self_learning/sessions_list.json` | [ ] |
-| M2.1-T17 | Unit tests: review lifecycle, errors (400/404/413), opt-out | `tests/test_self_learning_review_mock.py` | [ ] |
-| M2.1-T18 | Extend existing `test_mock_self_learning.py` — events path still green | `tests/test_mock_self_learning.py` | [ ] |
-| M2.1-T19 | Update mock README + smoke script for review routes | `mock-services/README.md`, `scripts/mock-self-learning-smoke.sh` | [ ] |
+| M2.1-T12 | **Keep** `POST /learning/events` + in-process `record_event` unchanged | `mock-services/mock_self_learning.py` | [x] |
+| M2.1-T13 | Fixture: sync completed evolve | `tests/fixtures/self_learning/evolve_sync_completed.json` | [x] |
+| M2.1-T14 | Fixture: async queued + status completed | `tests/fixtures/self_learning/evolve_async_queued.json`, `status_completed_skill_patch.json` | [x] |
+| M2.1-T15 | Fixture: no-op (all skipped) | `tests/fixtures/self_learning/status_completed_no_op.json` | [x] |
+| M2.1-T16 | Fixture: sessions list | `tests/fixtures/self_learning/sessions_list.json` | [x] |
+| M2.1-T17 | Unit tests: review lifecycle, errors (400/404/413), opt-out | `tests/test_self_learning_review_mock.py` | [x] |
+| M2.1-T18 | Extend existing `test_mock_self_learning.py` — events path still green | `tests/test_mock_self_learning.py` | [x] |
+| M2.1-T19 | Update mock README + smoke script for review routes | `mock-services/README.md`, `scripts/mock-self-learning-smoke.sh` | [x] |
 | M2.1-T20 | Register new paths in `mock_self_coaching.py` facade (if split-stack lists routes) | `mock-services/mock_self_coaching.py` | [ ] |
 
 **Exit:** `pytest tests/test_self_learning_review_mock.py tests/test_mock_self_learning.py` green; `POST /learning/events` unchanged.
@@ -733,13 +735,13 @@ Not blocking loop E-path; schedule after M2.3 or in parallel.
 
 Review findings for the **Hermes-installable skill pack** and `self-learning/SKILL.md`. These are separate from M2 HTTP adapters but block a coherent operator story for self-learning.
 
-**Root cause (L1):** `self-learning/SKILL.md` advertises `$SKILL_ROOT/scripts/{init-experience,hook-inject-*}.sh`, but **`modes/self-coaching/scripts/` does not exist** in the pack. Working references live at repo [`scripts/`](../../scripts/) and duplicates under [`modes/self-coaching/self-learning/scripts/`](../../modes/self-coaching/self-learning/scripts/) — install path must be unified.
+**Root cause (L1):** `self-learning/SKILL.md` advertises `$SKILL_ROOT/scripts/{init-experience,hook-inject-*}.sh`, but the **canonical umbrella path `modes/self-coaching/scripts/` does not exist** — Hermes install copies only that directory, not submodule paths. Scripts **do exist** at repo [`scripts/`](../../scripts/) and at [`modes/self-coaching/self-learning/scripts/`](../../modes/self-coaching/self-learning/scripts/) (wrong install target). Unify to umbrella `modes/self-coaching/scripts/` per L1-T01.
 
 #### Severity summary
 
 | ID | Sev | Title | Blocks |
 |----|-----|-------|--------|
-| L1 | HIGH | Missing `scripts/` at umbrella skill install path | L8, operator hooks |
+| L1 | HIGH | Scripts at wrong path — umbrella `modes/self-coaching/scripts/` missing; copies under `self-learning/scripts/` | L8, operator hooks |
 | L2 | HIGH | Umbrella vs child SKILL.md describe conflicting entry surfaces | Operator confusion |
 | L3 | MEDIUM | Decision table conflates user vs agent memory | Wrong Hermes `target=` routing |
 | L4 | LOW | No validator for ERROR/LEARNINGS templates | Optional quality gate |
@@ -751,14 +753,14 @@ Review findings for the **Hermes-installable skill pack** and `self-learning/SKI
 
 | ID | Task | File(s) | Done |
 |----|------|---------|------|
-| L1-T01 | Add umbrella `scripts/` to skill pack (canonical copy from repo `scripts/`) | `modes/self-coaching/scripts/init-experience.sh`, `hook-inject-errors.sh`, `hook-inject-learnings.sh` | [ ] |
-| L1-T02 | Ensure Hermes install copies `scripts/` asset kind to `$SKILL_ROOT/scripts/` | `scripts/lib/hermes-skill-pack.sh`, `scripts/install-skill-pack.sh` | [ ] |
-| L1-T03 | Deduplicate: single source of truth (repo `scripts/` → pack); remove or symlink stale `self-learning/scripts/` copies | `modes/self-coaching/self-learning/scripts/` | [ ] |
-| L1-T04 | `init-experience.sh`: idempotent init of `experience/{ERROR,LEARNINGS,EXPERIMENT_LOG}.md`, `logs/`, `worktrees/` | `modes/self-coaching/scripts/init-experience.sh` | [ ] |
-| L1-T05 | `hook-inject-errors.sh`: bounded tail, `ERROR_TAIL_LINES` (default 120), begin/end markers; missing log → exit 0; bad env → exit 2 | `modes/self-coaching/scripts/hook-inject-errors.sh` | [ ] |
-| L1-T06 | `hook-inject-learnings.sh`: same contract for `LEARNINGS.md` / `LEARNINGS_TAIL_LINES` | `modes/self-coaching/scripts/hook-inject-learnings.sh` | [ ] |
-| L1-T07 | Smoke test script or CI step: fresh init → exit 0; re-run → exit 0, content unchanged | `tests/test_skill_pack_scripts.sh` or extend `doctor.sh` | [ ] |
-| L1-T08 | Smoke: hooks — missing log silent 0; invalid tail lines → exit 2 + message | same | [ ] |
+| L1-T01 | Add umbrella `scripts/` to skill pack (canonical copy from repo `scripts/`) | `modes/self-coaching/scripts/init-experience.sh`, `hook-inject-errors.sh`, `hook-inject-learnings.sh` | [x] |
+| L1-T02 | Ensure Hermes install copies `scripts/` asset kind to `$SKILL_ROOT/scripts/` | `scripts/lib/hermes-skill-pack.sh`, `scripts/install-skill-pack.sh` | [x] |
+| L1-T03 | Deduplicate: single source of truth (repo `scripts/` → pack); remove or symlink stale `self-learning/scripts/` copies | `modes/self-coaching/self-learning/scripts/` | [x] |
+| L1-T04 | `init-experience.sh`: idempotent init of `experience/{ERROR,LEARNINGS,EXPERIMENT_LOG}.md`, `logs/`, `worktrees/` | `modes/self-coaching/scripts/init-experience.sh` | [x] |
+| L1-T05 | `hook-inject-errors.sh`: bounded tail, `ERROR_TAIL_LINES` (default 120), begin/end markers; missing log → exit 0; bad env → exit 2 | `modes/self-coaching/scripts/hook-inject-errors.sh` | [x] |
+| L1-T06 | `hook-inject-learnings.sh`: same contract for `LEARNINGS.md` / `LEARNINGS_TAIL_LINES` | `modes/self-coaching/scripts/hook-inject-learnings.sh` | [x] |
+| L1-T07 | Smoke test script or CI step: fresh init → exit 0; re-run → exit 0, content unchanged | `tests/test_skill_pack_scripts.sh` or extend `doctor.sh` | [x] |
+| L1-T08 | Smoke: hooks — missing log silent 0; invalid tail lines → exit 2 + message | same | [x] |
 
 **Reference behavior (verified):**
 
@@ -851,13 +853,13 @@ Review findings for the **Hermes-installable skill pack** and `self-learning/SKI
 
 | # | Question | Options | Decision |
 |---|----------|---------|----------|
-| Q1 | Loop Σ → `session_id` bridge | Task stream carries `session_id`; env override; always `evolve_recent` | _TBD_ |
+| Q1 | Loop Σ → `session_id` bridge | Task stream carries `session_id`; env override; always `evolve_recent` | **Decided:** E-path adapter uses `LOOP_LEARN_SESSION_IDS` when set; else `evolve_recent` with `hours=1` + `wait=true` until task stream carries `session_id` (document gap in live scenario) |
 | Q2 | Who creates registry draft | Adapter + local registry (§6.5) vs production version API (M5) | _Recommend adapter + local for M2_ |
 | Q3 | Default `LOOP_LEARN_MODE` for live | `evolve` vs `evolve_recent` for E-path | _TBD_ |
 | Q4 | E-path `wait` override | Force `wait: true` vs respect service auto (≤5 async) | _Recommend force `wait: true` for loop_ |
 | Q5 | All skipped → E-path behavior | Treat as `no_op` (no activate) vs fail loop | _Recommend no_op_ |
 | Q6 | OpenAPI ownership | Separate `self-learning-openapi.json` vs extend Coaching API | _Recommend separate snapshot from learner service_ |
-| Q7 | Path prefix normalization | `poll_url` uses `/learn/status/`; spec uses `/learning/status/`; sessions at `/learn/sessions` | _Confirm canonical paths with learner team_ |
+| Q7 | Path prefix normalization | `poll_url` uses `/learn/status/`; spec uses `/learning/status/`; sessions at `/learn/sessions` | **Decided:** canonical poll prefix `/learning/status/{job_id}`; mock + client normalize legacy `/learn/status/`; session discovery stays `/learn/sessions` |
 | Q8 | `skill_bundle_version` from host | Adapter-generated hash vs query host skill store for version id | _TBD_ |
 
 ---
@@ -883,7 +885,7 @@ Review findings for the **Hermes-installable skill pack** and `self-learning/SKI
 | 2026-06-12 | Added §11 implementation task lists (M2.0–M2.5); synced paths to `/learning/evolve` |
 | 2026-06-12 | Canonical learner paths: `/learning/evolve`, `/learning/evolve/recent` (not `/learning/review`) |
 | 2026-06-12 | Added §11.8 skill pack alignment (L1–L8): scripts path, SKILL.md surfaces, memory vocabulary |
-| 2026-06-15 | §3.1 aligned with loop execution modes (autonomous / scheduler / manual) in [self_coaching_mode.md](../design/self_coaching_mode.md) |
+| 2026-06-15 | §11.0 status aligned with `progress.md`; L1 root cause (wrong path, not missing scripts) |
 
 ---
 

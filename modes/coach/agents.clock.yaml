@@ -1,0 +1,17 @@
+# Coach clock service demo registry — used by coach service smoke tests.
+# Paths relative to repo root.
+
+agents:
+  - id: clock-demo-agent
+    coaching_root: mock-services/ci-coach-clock-service
+    model: mock-model-clock
+    prefer_skill_first: true
+    coach_clock:
+      enabled: true
+      scenario: scenarios/clock_loop.json
+    eval:
+      suite_id_canary: tool-use-canary
+      suite_id_holdout: tool-use-holdout
+    improvement:
+      train_pipeline: sft
+      min_cases_for_model_path: 2

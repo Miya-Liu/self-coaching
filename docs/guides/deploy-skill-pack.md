@@ -1,71 +1,57 @@
-# Deploy Target 1 — Self-coaching pack (self-coaching mode)
+# Deploy T1 — Self-coaching pack
 
-**Active deploy target — [self-coaching mode](../design/self_coaching_mode.md).**
-
-Ship **`modes/self-coaching/`**: a portable, agent-agnostic skill pack that coaches the **host agent** through a gated loop (observe → **self-learning** → **self-play** → **self-evaluation** → optional **self-tuning** → Experience → human-approved merge). Markdown + Bash; not tied to one IDE.
-
-When you clone the **full repository**, repo-root `scripts/`, `experience/`, and `mock-services/` are also available. Coaching API (T2) and evolution engine (T3) are optional.
+**Active deploy target.** Ship `modes/self-coaching/`: markdown skills + Bash helpers. T2/T3 are optional — [deploy-overview.md](deploy-overview.md).
 
 ## What you deploy
 
-| Artifact | Path | Role |
-|----------|------|------|
-| Orchestration policy | `modes/self-coaching/SKILL.md` | Full self-coaching loop and gates |
-| Stage index | `modes/self-coaching/DESCRIPTION.md` | When to load each phase |
-| Submodules | `modes/self-coaching/{self-learning,self-play,self-evaluation,self-tuning}/SKILL.md` | Pipeline stages |
-| Training pipelines | `modes/self-coaching/self-tuning/pipelines/` | AERL SFT/GRPO helpers |
-| Host adapters | `modes/self-coaching/adapters/` | Install into Hermes, OpenClaw, etc. |
-| Experience templates | `experience/` (repo root) | `EXPERIMENT_LOG.md`, `ERROR.md`, `LEARNINGS.md` |
-| Version marker | `modes/self-coaching/SKILL_PACK_VERSION` | Pack revision |
-| Example config | `configs/self-coaching.example.yaml` | Template (optional) |
-
-Optional (not required for T1): `mock-services/`, `services/orchestrator/` (T2/T3).
+| Artifact | Path |
+|----------|------|
+| Orchestration policy | `modes/self-coaching/SKILL.md` |
+| Submodules | `modes/self-coaching/{self-learning,self-play,self-evaluation,self-tuning}/` |
+| Training pipelines | `modes/self-coaching/self-tuning/pipelines/` |
+| Experience templates | `experience/` |
+| Version | `modes/self-coaching/SKILL_PACK_VERSION` |
 
 ## Prerequisites
 
-| Tool | Required? | Purpose |
-|------|-----------|---------|
-| **bash** | Yes | All helpers |
-| **git** | Yes | Worktree experiment flow |
-| **python** | Recommended | Mock dry-run |
-| **jq**, **curl** | For AERL HTTP pipelines | `run-pipeline.sh` |
-| **uv** | For autoresearch `train.py` | `AUTORESEARCH_ROOT` path |
+**bash**, **git** (required). **python** 3.10+ (recommended for mock demo). **uv** only if using external autoresearch (`AUTORESEARCH_ROOT`).
 
-## Install (recommended)
+## Install
 
-From **repository root** (full clone):
+### Repo clone
 
 ```bash
 bash scripts/install-skill-pack.sh . --with-mock
 ```
 
-Or copy **`modes/self-coaching/`** into your agent's skill directory and point hooks at repo-root `scripts/` with absolute paths if needed.
+- `[target-root]` — coaching root for `experience/`, `logs/`, `worktrees/` (default: repo root)
+- `--with-mock` — run mock pipeline smoke
+- `--with-trainer` — `preflight.sh` (needs `uv` + `AUTORESEARCH_ROOT`)
 
-Arguments:
+### Hermes Agent
 
-- `[target-root]` — where `experience/`, `logs/`, `worktrees/` are created (default: repo root).
-- `--with-mock` — runs `mock-run-all.sh`.
-- `--with-trainer` — runs `preflight.sh` (needs `uv` + `AUTORESEARCH_ROOT`).
+Use **Git Bash** or **WSL** on Windows (bash-only installer).
 
-## Install paths (agents)
+```bash
+bash scripts/install-skill-pack.sh --hermes              # skills + mock harness
+bash scripts/install-skill-pack.sh --hermes --with-mock    # + pip install -e . for python -m self_coaching.demo
+```
 
-| Location | Example |
-|----------|---------|
-| Full repo | Clone repo; agent loads `modes/self-coaching/SKILL.md`; `bash scripts/install-skill-pack.sh . --with-mock` |
-| **Hermes Agent** | `bash scripts/install-skill-pack.sh --hermes` → `~/.hermes/skills/self-coaching/` — [install-as-hermes-skill.md](install-as-hermes-skill.md) |
-| Pack copy | `~/skills/self-coaching/` ← contents of `modes/self-coaching/` |
-| Cursor | `~/.cursor/skills/self-coaching/` |
+Installs five skills under `~/.hermes/skills/self-coaching/` plus `mock-services/`, `scenarios/`, `tools/`. `pyproject.toml` does **not** install Hermes skills — use the script above.
 
-## AERL training (optional)
+| You want to… | Run |
+| --- | --- |
+| Skills only | `bash scripts/install-skill-pack.sh --hermes` |
+| Full mock demo | `bash scripts/install-skill-pack.sh --hermes --with-mock` |
+| Develop runtime | `pip install -e .` from repo clone |
 
-1. `cp modes/self-coaching/self-tuning/services/example.env modes/self-coaching/self-tuning/services/.env`
-2. Set `TRAINER_BASE_URL`.
-3. `PIPELINE_MODE=local` + `AERL_ROOT` for local trainer source.
-4. `bash scripts/run-pipeline.sh sft logs/my-run.log`
+Verify: `hermes skill list | grep self-coaching` (expect 5 skills). Demo: `python -m self_coaching.demo` → `completeness: PASS`.
 
-Never commit `.env`.
+### Pack copy / Cursor
 
-## Verification
+Copy `modes/self-coaching/` to `~/skills/self-coaching/` or `~/.cursor/skills/self-coaching/`. Point hooks at repo `scripts/` with absolute paths if needed.
+
+## Verify
 
 ```bash
 bash scripts/doctor.sh
@@ -74,32 +60,23 @@ bash scripts/doctor.sh --json
 
 ## Upgrade
 
-### Hermes Agent
-
-From your repo clone after `git pull`:
+**Hermes** (from repo clone after `git pull`):
 
 ```bash
 bash scripts/update-skill-pack.sh --hermes --dry-run
 bash scripts/update-skill-pack.sh --hermes
+bash scripts/update-skill-pack.sh --hermes --force   # overwrite local skill edits
 ```
 
-See [install-as-hermes-skill.md](install-as-hermes-skill.md#updating-an-existing-install).
+**Clone / pack copy:** pull → compare `SKILL_PACK_VERSION` → re-copy or re-run `install-skill-pack.sh`. Changelog: [changelog-skills.md](../project/changelog-skills.md).
 
-### Repo clone, pack copy, Cursor
+## AERL training (optional)
 
-1. Pull or replace the tree.
-2. Compare `modes/self-coaching/SKILL_PACK_VERSION` before/after.
-3. Re-copy `modes/self-coaching/` into your agent skill directory, or re-run `bash scripts/install-skill-pack.sh <root>`.
-4. Re-read `modes/self-coaching/SKILL.md` if minor version changed.
-
-Do **not** use `update-skill-pack.sh` without `--hermes` — it only targets `~/.hermes/skills/`.
-
-## Out of scope for T1
-
-- Hosting `mock_self_coaching.py serve` → [deploy-overview.md](deploy-overview.md) T2.
-- Automated evolution engine → [deploy-overview.md](deploy-overview.md) T3.
+1. `cp modes/self-coaching/self-tuning/services/example.env modes/self-coaching/self-tuning/services/.env`
+2. Set `TRAINER_BASE_URL`; never commit `.env`
+3. `bash scripts/run-pipeline.sh sft logs/my-run.log`
 
 ## Related
 
-- [self_coaching_mode.md](../design/self_coaching_mode.md) · [coach_mode.md](../design/coach_mode.md)
-- [runbook.md](runbook.md) · [architecture.md](../design/architecture.md)
+- [runbook.md](runbook.md) · [self_coaching_mode.md](../design/self_coaching_mode.md)
+- T2/T3: [deploy-overview.md](deploy-overview.md)

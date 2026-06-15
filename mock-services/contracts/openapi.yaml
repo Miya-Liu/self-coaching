@@ -85,6 +85,185 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /learning/evolve:
+    post:
+      tags: [learning]
+      summary: Targeted session review (production learner)
+      description: |
+        Review specified sessions via the independent review agent. Sync when
+        `wait=true` (200); async when `wait=false` (202 + job_id). Mock
+        implementation: `mock_self_learning.py serve` on port 8766.
+      operationId: evolveLearningSessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LearningEvolveRequest"
+      responses:
+        "200":
+          description: Review completed (sync)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningEvolveCompleted"
+        "202":
+          description: Review queued (async)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningEvolveQueued"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /learning/evolve/recent:
+    post:
+      tags: [learning]
+      summary: Auto-learn trailing window (production learner)
+      operationId: evolveLearningRecent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LearningEvolveRecentRequest"
+      responses:
+        "200":
+          description: Review completed (sync)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningEvolveCompleted"
+        "202":
+          description: Review queued (async)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningEvolveQueued"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /learning/status/{job_id}:
+    get:
+      tags: [learning]
+      summary: Poll async review job
+      operationId: getLearningJobStatus
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningJobStatus"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /learn/sessions:
+    get:
+      tags: [learning]
+      summary: Discover candidate sessions for review
+      operationId: listLearnSessions
+      parameters:
+        - in: query
+          name: hours
+          schema:
+            type: number
+            default: 24
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: include_optout
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Session list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearnSessionsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /learning/optout:
+    post:
+      tags: [learning]
+      summary: Per-session learn opt-out
+      operationId: setLearningOptout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LearningOptoutRequest"
+      responses:
+        "200":
+          description: Opt-out updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningOptoutResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /learning/health:
+    get:
+      tags: [learning]
+      summary: Learner readiness probe
+      operationId: learningHealth
+      security: []
+      responses:
+        "200":
+          description: Learner is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningHealthResponse"
+
   /self-play/generate:
     post:
       tags: [self-play]
@@ -350,6 +529,153 @@ components:
           type: string
         notes:
           type: string
+
+    LearningEvolveRequest:
+      type: object
+      required: [session_ids]
+      properties:
+        session_ids:
+          type: array
+          items: { type: string }
+        evolve_memory: { type: boolean, default: true }
+        evolve_skills: { type: boolean, default: true }
+        dry_run: { type: boolean, default: false }
+        wait:
+          type: boolean
+          description: "true = sync (200); false = async (202). Auto when omitted."
+        coaching_root:
+          type: string
+          description: Mock-only coaching root for artifact writes
+        agent_id:
+          type: string
+          default: example-agent
+
+    LearningEvolveRecentRequest:
+      type: object
+      properties:
+        hours: { type: number, default: 24 }
+        max_sessions: { type: integer, default: 10 }
+        evolve_memory: { type: boolean, default: true }
+        evolve_skills: { type: boolean, default: true }
+        dry_run: { type: boolean, default: false }
+        wait: { type: boolean }
+        coaching_root: { type: string }
+        agent_id: { type: string, default: example-agent }
+
+    LearningEvolveCompleted:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [completed]
+        duration_ms: { type: integer }
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/LearningSessionResult"
+        window:
+          type: object
+        sessions_found: { type: integer }
+        sessions_reviewed: { type: integer }
+        sessions_skipped:
+          type: array
+          items:
+            type: object
+
+    LearningEvolveQueued:
+      type: object
+      required: [status, job_id]
+      properties:
+        status:
+          type: string
+          enum: [queued]
+        job_id: { type: string }
+        session_count: { type: integer }
+        poll_url:
+          type: string
+          description: "Canonical /learning/status/{job_id}; client normalizes legacy /learn/status/"
+
+    LearningSessionResult:
+      type: object
+      required: [session_id, status]
+      properties:
+        session_id: { type: string }
+        status:
+          type: string
+          enum: [ok, skipped]
+        reason: { type: string }
+        actions:
+          type: object
+        draft_version_id: { type: string }
+        fork_iterations: { type: integer }
+        tokens:
+          type: object
+
+    LearningJobStatus:
+      type: object
+      required: [status, job_id]
+      properties:
+        status:
+          type: string
+          enum: [running, completed, queued]
+        job_id: { type: string }
+        started_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time }
+        duration_ms: { type: integer }
+        progress:
+          type: object
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/LearningSessionResult"
+
+    LearnSessionsResponse:
+      type: object
+      required: [sessions]
+      properties:
+        window:
+          type: object
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/LearnSessionSummary"
+
+    LearnSessionSummary:
+      type: object
+      required: [session_id, last_active, learn_optout]
+      properties:
+        session_id: { type: string }
+        title: { type: string }
+        last_active: { type: string, format: date-time }
+        message_count: { type: integer }
+        platform: { type: string }
+        learn_optout: { type: boolean }
+
+    LearningOptoutRequest:
+      type: object
+      required: [session_id]
+      properties:
+        session_id: { type: string }
+        optout: { type: boolean, default: true }
+
+    LearningOptoutResponse:
+      type: object
+      required: [session_id, optout, updated_at]
+      properties:
+        session_id: { type: string }
+        optout: { type: boolean }
+        updated_at: { type: string, format: date-time }
+
+    LearningHealthResponse:
+      type: object
+      required: [status, version]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        version: { type: string }
+        data_dir: { type: string }
 
     # ---- self-play ----
     SelfPlayRequest:

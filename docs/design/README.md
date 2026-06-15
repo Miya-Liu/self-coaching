@@ -1,49 +1,36 @@
 # Design documentation
 
-## Purpose
-
-**Self-coaching** helps agents **evolve safely**: observe experience, improve through **self-learning** / **self-play** / **self-evaluation**, optionally **self-tuning**, and promote only after gates and human approval. The same building blocks serve:
-
-- **self-coaching** mode — the host agent coaches itself (`modes/self-coaching/`).
-- **coach** mode — a service supervises external agents (`modes/coach/` + evolution engine).
-
-Not a single-product plugin: markdown skills, Bash scripts, optional HTTP (T2) and orchestrator (T3). External integrations (AgentEvals, production agent API, AERL) plug in via adapters — unchanged by naming.
-
-## Canonical naming
+## Naming
 
 | Layer | Name | Path |
 |-------|------|------|
-| Repository | **self-coaching** | this repo |
-| Mode | **self-coaching** | `modes/self-coaching/` |
-| Mode | **coach** | `modes/coach/` |
-| Submodule | **self-learning** | `modes/self-coaching/self-learning/` |
-| Submodule | **self-play** | `modes/self-coaching/self-play/` |
-| Submodule | **self-evaluation** | `modes/self-coaching/self-evaluation/` |
-| Submodule | **self-tuning** | `modes/self-coaching/self-tuning/` |
+| Repository | self-coaching | this repo |
+| Deploy mode | **self-coaching** | `modes/self-coaching/` |
+| Deploy mode | **coach** | `modes/coach/` |
+| Submodule | self-learning / self-play / self-evaluation / self-tuning | under `modes/self-coaching/` |
 
-Umbrella skill ID: `self-coaching` (`modes/self-coaching/SKILL.md`). Submodule IDs match folder names.
+## Glossary
 
-HTTP tags (`POST /learning/events`, etc.) are Coaching API contract names — they map to submodules above.
+**“Mode” is overloaded** — use the matching term:
 
----
+| Term | Meaning |
+|------|---------|
+| **Deploy mode** | self-coaching (host evolves itself) vs coach (supervises external agents) |
+| **Loop execution mode** | autonomous / scheduler / manual — who starts each evolution tick |
+| **Service mode** | `LOOP_SERVICE_MODE` — mock-module vs mock-http vs live backends |
+| **Worktree autonomy** | iterate inside worktree without merge approval |
 
-Start with **[architecture.md](architecture.md)** for gates, data flow, and shared core.
+**Milestone families** (do not conflate): [roadmap](../project/roadmap.md) M0–M5 (deploy) · [migration](../project/mock-to-real-migration.md) M0–M6 (loop adapters) · [integration plan](../project/integration-plan.md) Phase 0–5 (adapter work).
 
 ## Index
 
 | Doc | Topic |
 |-----|--------|
-| [architecture.md](architecture.md) | Role, components, gates, mapping, two modes |
-| [self_coaching_mode.md](self_coaching_mode.md) | Host self-evolution · loop execution modes (autonomous / scheduler / manual) |
-| [coach_mode.md](coach_mode.md) | Supervise external agents |
-| [pipelines.md](pipelines.md) | Evolution engine, submodules, improvement paths |
-| [evaluators.md](evaluators.md) | EvalMetrics, drop detection, promotion |
-| [integrations/](integrations/) | AgentEvals, agent API, Coaching API, AERL |
+| [architecture.md](architecture.md) | Gates, components, shared core |
+| [self_coaching_mode.md](self_coaching_mode.md) | Host self-evolution |
+| [coach_mode.md](coach_mode.md) | External agent supervision |
+| [pipelines.md](pipelines.md) | Evolution engine stages |
+| [evaluators.md](evaluators.md) | Metrics and promotion |
+| [integrations/](integrations/) | External adapters |
 
-## Related
-
-| Doc | Topic |
-|-----|--------|
-| [guides/deploy-overview.md](../guides/deploy-overview.md) | Deploy T1 / T2 / T3 |
-| [project/roadmap.md](../project/roadmap.md) | Milestones |
-| [project/integration-plan.md](../project/integration-plan.md) | Adapter implementation |
+Start with **[architecture.md](architecture.md)**.

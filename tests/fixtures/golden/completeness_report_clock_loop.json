@@ -1,0 +1,12 @@
+{
+  "scenario": "clock_loop",
+  "rows": [
+    {"id": "C06", "invocation": "pass", "semantic": null},
+    {"id": "C07", "invocation": "pass", "semantic": null},
+    {"id": "C08", "invocation": "pass", "semantic": null},
+    {"id": "C10", "invocation": "pass", "semantic": null},
+    {"id": "C13", "invocation": "pass", "semantic": null},
+    {"id": "C14", "invocation": "pass", "semantic": null},
+    {"id": "C18", "invocation": null, "semantic": "pass"}
+  ]
+}

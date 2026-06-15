@@ -114,6 +114,29 @@ jobs:
           test -f "$RUN_DIR/decision.json"
           test -f "$RUN_DIR/deploy_manifest.json"
 
+  pytest:
+    name: pytest (unit + integration suite)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package with all extras
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,coach,real-api]"
+
+      - name: Run pytest
+        run: pytest -q
+
   integration-mock-stack:
     name: integration mock stack (coach demo)
     runs-on: ubuntu-latest

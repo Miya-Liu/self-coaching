@@ -282,7 +282,8 @@ def _http_json(method: str, url: str, payload: dict[str, Any] | None = None) -> 
     if body is not None:
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=body, headers=headers, method=method)
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    from proxyutil import urlopen as _urlopen
+    with _urlopen(req, timeout=30) as resp:
         raw = resp.read().decode("utf-8")
         return json.loads(raw) if raw else {}
 

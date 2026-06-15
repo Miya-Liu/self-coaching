@@ -7,6 +7,7 @@ import json
 import os
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any
 
@@ -33,6 +34,7 @@ class AgentEvalsClient:
     ):
         self.base_url = (base_url or os.environ.get("AGENTEVALS_BASE_URL", "http://localhost:8080")).rstrip("/")
         self.timeout_s = timeout_s
+        self._opener = self._build_opener(self.base_url)
         self.poll_interval_s = float(
             poll_interval_s if poll_interval_s is not None
             else os.environ.get("AGENTEVALS_POLL_INTERVAL_S", "5")
@@ -89,6 +91,14 @@ class AgentEvalsClient:
             body=last,
         )
 
+    @staticmethod
+    def _build_opener(base_url: str) -> urllib.request.OpenerDirector:
+        """Bypass system proxy for localhost (Windows WinINET returns 503)."""
+        host = (urllib.parse.urlparse(base_url).hostname or "").lower()
+        if host in ("localhost", "127.0.0.1", "::1"):
+            return urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        return urllib.request.build_opener()
+
     def _request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
         url = f"{self.base_url}{path}"
         body = json.dumps(payload).encode("utf-8") if payload is not None else None
@@ -97,7 +107,7 @@ class AgentEvalsClient:
             headers["Content-Type"] = "application/json"
         req = urllib.request.Request(url, data=body, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
+            with self._opener.open(req, timeout=self.timeout_s) as resp:
                 raw = resp.read().decode("utf-8")
                 if not raw:
                     return {}

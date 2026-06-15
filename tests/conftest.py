@@ -22,6 +22,12 @@ if str(MOCK_SERVICES) not in sys.path:
     sys.path.insert(0, str(MOCK_SERVICES))
 
 
+# Localhost mock servers must never be reached through a system HTTP proxy
+# (on Windows urllib honors WinINET proxy settings, which return 503 for
+# 127.0.0.1 and make every fixture time out). This opener disables proxies.
+_NO_PROXY_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
 def _free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -34,7 +40,7 @@ def _wait_for_health(port: int, timeout: float = 15.0) -> None:
     last_err: Exception | None = None
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(url, timeout=1.0) as resp:
+            with _NO_PROXY_OPENER.open(url, timeout=1.0) as resp:
                 if resp.status == 200:
                     return
         except (urllib.error.URLError, ConnectionError, OSError) as e:
@@ -67,11 +73,11 @@ def _stop_mock_server(proc: subprocess.Popen) -> None:
         proc.wait(timeout=5.0)
 
 
-@pytest.fixture
-def mock_server(tmp_path: Path):
-    """Yield (port, root) for a running mock HTTP server."""
+@pytest.fixture(scope="module")
+def mock_server(tmp_path_factory: pytest.TempPathFactory):
+    """Yield (port, root) for a running mock HTTP server (one per test module)."""
     port = _free_port()
-    root = tmp_path / "http-demo"
+    root = tmp_path_factory.mktemp("http-demo")
     proc = _start_mock_server(root, port)
     try:
         yield port, root
@@ -79,10 +85,10 @@ def mock_server(tmp_path: Path):
         _stop_mock_server(proc)
 
 
-@pytest.fixture
-def mock_server_authenticated(tmp_path: Path):
+@pytest.fixture(scope="module")
+def mock_server_authenticated(tmp_path_factory: pytest.TempPathFactory):
     port = _free_port()
-    root = tmp_path / "http-auth-demo"
+    root = tmp_path_factory.mktemp("http-auth-demo")
     proc = _start_mock_server(root, port, extra_env={"MOCK_SERVICE_TOKEN": "test-secret"})
     try:
         yield port, root
@@ -90,10 +96,10 @@ def mock_server_authenticated(tmp_path: Path):
         _stop_mock_server(proc)
 
 
-@pytest.fixture
-def mock_server_small_body(tmp_path: Path):
+@pytest.fixture(scope="module")
+def mock_server_small_body(tmp_path_factory: pytest.TempPathFactory):
     port = _free_port()
-    root = tmp_path / "http-body-demo"
+    root = tmp_path_factory.mktemp("http-body-demo")
     proc = _start_mock_server(root, port, extra_env={"MOCK_MAX_BODY_BYTES": "64"})
     try:
         yield port, root

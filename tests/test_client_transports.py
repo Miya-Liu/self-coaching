@@ -99,11 +99,13 @@ def _free_port() -> int:
 
 
 def _wait_for_health(base_url: str, timeout_s: float = 15.0) -> None:
+    # Bypass system proxy for localhost (Windows WinINET can intercept 127.0.0.1).
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     deadline = time.time() + timeout_s
     last_exc: Exception | None = None
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(f"{base_url}/health", timeout=1.0) as resp:
+            with opener.open(f"{base_url}/health", timeout=1.0) as resp:
                 if resp.status == 200:
                     return
         except (urllib.error.URLError, ConnectionError, OSError) as exc:

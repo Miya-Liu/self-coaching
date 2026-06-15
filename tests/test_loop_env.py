@@ -16,10 +16,31 @@ if str(SC_ROOT) not in sys.path:
 
 from loop_env import build_loop_client, configure_demo_env, load_env_file, service_profile  # noqa: E402
 
+_ENV_PREFIXES = ("LOOP_", "MOCK_", "ORCHESTRATOR_", "AGENTEVALS_", "TRAINER_", "AGENT_")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_env():
+    """Ensure configure_demo_env side effects don't leak to other test modules.
+
+    configure_demo_env mutates os.environ directly (by design — it configures
+    the process for a demo run). In tests we snapshot and restore the relevant
+    keys so later test modules aren't affected.
+    """
+    snapshot = {k: os.environ[k] for k in list(os.environ) if k.startswith(_ENV_PREFIXES)}
+    yield
+    # Remove any keys added during the test
+    for key in list(os.environ):
+        if key.startswith(_ENV_PREFIXES) and key not in snapshot:
+            del os.environ[key]
+    # Restore original values
+    for key, value in snapshot.items():
+        os.environ[key] = value
+
 
 def test_load_env_file_sets_mode(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     for key in list(os.environ):
-        if key.startswith(("LOOP_", "MOCK_", "ORCHESTRATOR_", "AGENTEVALS_", "TRAINER_")):
+        if key.startswith(("LOOP_", "MOCK_", "ORCHESTRATOR_", "AGENTEVALS_", "TRAINER_", "AGENT_")):
             monkeypatch.delenv(key, raising=False)
 
     env_path = tmp_path / "demo.env"
@@ -35,7 +56,7 @@ def test_load_env_file_sets_mode(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 
 def test_with_http_overrides_env_file_mode(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     for key in list(os.environ):
-        if key.startswith(("LOOP_", "MOCK_", "ORCHESTRATOR_", "AGENTEVALS_", "TRAINER_")):
+        if key.startswith(("LOOP_", "MOCK_", "ORCHESTRATOR_", "AGENTEVALS_", "TRAINER_", "AGENT_")):
             monkeypatch.delenv(key, raising=False)
 
     env_path = tmp_path / "demo.env"

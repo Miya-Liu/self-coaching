@@ -30,6 +30,21 @@ from trigger import handle_post_body  # noqa: E402
 REGISTRY = _COACH / "agents.clock.yaml"
 ROOT = _MOCK / "ci-coach-clock-service"
 
+_ENV_PREFIXES = ("LOOP_", "MOCK_", "ORCHESTRATOR_", "AGENTEVALS_", "TRAINER_", "AGENT_")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_env():
+    """Prevent clock.run_tick / configure_demo_env env mutations from leaking."""
+    import os
+    snapshot = {k: os.environ[k] for k in list(os.environ) if k.startswith(_ENV_PREFIXES)}
+    yield
+    for key in list(os.environ):
+        if key.startswith(_ENV_PREFIXES) and key not in snapshot:
+            del os.environ[key]
+    for key, value in snapshot.items():
+        os.environ[key] = value
+
 
 @pytest.fixture()
 def coaching_root() -> Path:
@@ -90,7 +105,8 @@ def test_http_post_ingress(coaching_root: Path) -> None:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(req, timeout=120) as resp:
             result = json.loads(resp.read().decode("utf-8"))
         assert result["tick"]["t_path_promoted"] is True
     finally:

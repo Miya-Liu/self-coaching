@@ -121,7 +121,8 @@ class MockSelfPlayEngine:
                 headers={"Content-Type": "application/json", "Accept": "application/json"},
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            from proxyutil import urlopen as _urlopen
+            with _urlopen(req, timeout=30) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         return self.agentevals.create_suite(body)
 
@@ -377,7 +378,8 @@ def self_play_via_http(
         headers={"Content-Type": "application/json", "Accept": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    from proxyutil import urlopen as _urlopen
+    with _urlopen(req, timeout=60) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
@@ -389,7 +391,8 @@ def generate_suite_via_http(base_url: str, body: dict[str, Any]) -> dict[str, An
         headers={"Content-Type": "application/json", "Accept": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    from proxyutil import urlopen as _urlopen_suite
+    with _urlopen_suite(req, timeout=60) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 

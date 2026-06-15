@@ -535,7 +535,8 @@ def learn_via_http(
         headers={"Content-Type": "application/json", "Accept": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    from proxyutil import urlopen as _urlopen
+    with _urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 

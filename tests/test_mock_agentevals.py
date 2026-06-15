@@ -97,6 +97,7 @@ def test_record_eval_with_mock_server(tmp_path: Path, monkeypatch: pytest.Monkey
     monkeypatch.setenv("ORCHESTRATOR_EVAL_BACKEND", "agentevals")
     monkeypatch.setenv("AGENTEVALS_BASE_URL", "http://127.0.0.1:9")  # unused when patched
     monkeypatch.setenv("AGENTEVALS_SUITE_ID", "tool-use-canary")
+    monkeypatch.setenv("AGENT_ID", "orch-agent")
 
     from unittest.mock import patch
 

@@ -7,6 +7,7 @@ import json
 import os
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any
 
@@ -48,6 +49,15 @@ class AERLClient:
             else os.environ.get("AERL_TIMEOUT_S", "3600")
         )
         self.api_key = api_key or os.environ.get("TRAINER_API_KEY") or os.environ.get("AERL_API_KEY")
+        self._opener = self._build_opener(self.base_url)
+
+    @staticmethod
+    def _build_opener(base_url: str) -> urllib.request.OpenerDirector:
+        """Bypass system proxy for localhost (Windows WinINET returns 503)."""
+        host = (urllib.parse.urlparse(base_url).hostname or "").lower()
+        if host in ("localhost", "127.0.0.1", "::1"):
+            return urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        return urllib.request.build_opener()
 
     def health(self) -> dict[str, Any]:
         return self._request("GET", "/health")
@@ -104,7 +114,7 @@ class AERLClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
         req = urllib.request.Request(url, data=body, headers=headers, method="POST")
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
+            with self._opener.open(req, timeout=self.timeout_s) as resp:
                 return resp.read().decode("utf-8")
         except urllib.error.HTTPError as exc:
             try:
@@ -129,7 +139,7 @@ class AERLClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
         req = urllib.request.Request(url, data=body, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
+            with self._opener.open(req, timeout=self.timeout_s) as resp:
                 raw = resp.read().decode("utf-8")
                 if not raw:
                     return {}

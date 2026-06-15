@@ -20,6 +20,10 @@ import urllib.request
 
 import pytest
 
+# Bypass any system HTTP proxy for localhost (Windows WinINET can return 503
+# for 127.0.0.1). Mirrors the opener used in conftest._wait_for_health.
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
 
 def _post(port: int, path: str, payload: dict, *,
           headers: dict[str, str] | None = None) -> dict:
@@ -31,12 +35,12 @@ def _post(port: int, path: str, payload: dict, *,
         headers=hdrs,
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=10.0) as resp:
+    with _OPENER.open(req, timeout=10.0) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
 def _get(port: int, path: str) -> dict:
-    with urllib.request.urlopen(f"http://127.0.0.1:{port}{path}", timeout=10.0) as resp:
+    with _OPENER.open(f"http://127.0.0.1:{port}{path}", timeout=10.0) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 

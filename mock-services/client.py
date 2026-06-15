@@ -36,6 +36,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 from pathlib import Path
@@ -240,6 +241,12 @@ class HTTPClient:
     Includes retry-with-backoff for transient network failures (connect errors
     and 5xx). Idempotent verbs (GET, health) are always retried; POST is
     retried only on connect-time failures to avoid double-submitting work.
+
+    Localhost targets bypass any system HTTP proxy by default. On Windows,
+    urllib honors WinINET proxy settings, which can intercept 127.0.0.1 and
+    return 503; bypassing avoids that. Set ``trust_env_proxy=True`` (or env
+    ``SELF_COACHING_TRUST_PROXY=1``) to honor proxy settings even for
+    localhost.
     """
 
     def __init__(self, base_url: str = "http://127.0.0.1:8765", *,
@@ -248,7 +255,8 @@ class HTTPClient:
                  timeout: float = 30.0,
                  max_retries: int = 3,
                  backoff_initial_s: float = 0.5,
-                 backoff_factor: float = 2.0):
+                 backoff_factor: float = 2.0,
+                 trust_env_proxy: bool | None = None):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key if api_key is not None else os.environ.get("MOCK_SERVICE_TOKEN")
         self.default_headers = dict(default_headers or {})
@@ -256,6 +264,18 @@ class HTTPClient:
         self.max_retries = max(0, max_retries)
         self.backoff_initial_s = backoff_initial_s
         self.backoff_factor = backoff_factor
+        if trust_env_proxy is None:
+            trust_env_proxy = os.environ.get("SELF_COACHING_TRUST_PROXY", "").lower() in ("1", "true", "yes")
+        self._opener = self._build_opener(self.base_url, trust_env_proxy)
+
+    @staticmethod
+    def _build_opener(base_url: str, trust_env_proxy: bool) -> urllib.request.OpenerDirector:
+        host = (urllib.parse.urlparse(base_url).hostname or "").lower()
+        is_local = host in ("localhost", "127.0.0.1", "::1")
+        if is_local and not trust_env_proxy:
+            # Empty ProxyHandler disables all proxies for this opener.
+            return urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        return urllib.request.build_opener()
 
     # ---- low-level ----
 
@@ -282,7 +302,7 @@ class HTTPClient:
 
         for attempt in range(1, max(retries_allowed, 1) + 1):
             try:
-                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                with self._opener.open(req, timeout=self.timeout) as resp:
                     raw = resp.read().decode("utf-8")
                     if not raw:
                         return {}

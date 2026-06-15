@@ -43,7 +43,7 @@ One evolution engine, one `SelfCoachingClient`, many adapters.
 
 ### M0 — Baseline (skill pack deployable) ✓
 
-- [x] CI: doctor, shellcheck, pytest, mock smoke `run-all`
+- [x] CI: doctor, shellcheck, mock smoke `run-all` (pytest suite runs locally, not yet wired into CI)
 - [x] `scripts/install-skill-pack.sh` + `docs/guides/deploy-skill-pack.md`
 - [x] `modes/self-coaching/SKILL_PACK_VERSION` + `project/changelog-skills.md`
 - [x] Shell strictness on shipped scripts; `run-pipeline.sh` + mock loop demo
@@ -62,7 +62,7 @@ One evolution engine, one `SelfCoachingClient`, many adapters.
 - [x] Improvement run directory layout + manifest
 - [x] Evolution engine calling `client.build_client("module", ...)`
 - [x] Dry-run deploy (`deploy_manifest.json` only)
-- [x] pytest + CI for fake drop → improvement run
+- [x] pytest for fake drop → improvement run (CI covers it via orchestrator smoke)
 
 **Exit:** Synthetic or real eval drop creates `{run_dir}/` with `current_eval.json`, `candidate_eval.json`, `decision.json`, and `deploy_manifest.json`.
 

@@ -330,7 +330,7 @@ Shipped before / during migration M1; retained for reference.
 |--------------|------------------|
 | `python scripts/mock_self_coaching_demo.py` | `LOOP_SERVICE_MODE=live python scripts/mock_self_coaching_demo.py --env-file scenarios/demo.env` |
 | `bash tests/test_mock_self_coaching_demo.sh` | `STAGING_SMOKE=1 …` (opt-in CI) |
-| [runbook § Self-coaching demo](../guides/runbook.md#self-coaching-demo-mock-loop) | Same section, live subsection (M6) |
+| [runbook § Mock loop demo](../guides/runbook.md#mock-loop-demo) | Same section, live subsection (M6) |
 
 ---
 

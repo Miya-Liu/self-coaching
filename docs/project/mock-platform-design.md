@@ -229,7 +229,7 @@ Uses `ORCHESTRATOR_TRANSPORT=module` so each agent keeps its own coaching root.
 
 ## Phase 5 — Self-coaching loop demo (in progress)
 
-Continuous task-stream demo on mocks (dual E/T evolution paths, generation-scoped buffer, completeness audit). **Demo-ready** (2026-06-09, `v0.3.0-self-coaching-demo`): `bash scripts/mock-self-coaching-demo.sh`, `self_coaching_loop.py`, `tools/loop_completeness.py`, runbook § [Self-coaching demo (mock loop)](../guides/runbook.md#self-coaching-demo-mock-loop). Remaining: split-stack CI (P5).
+Continuous task-stream demo on mocks (dual E/T evolution paths, generation-scoped buffer, completeness audit). **Demo-ready** (2026-06-09, `v0.3.0-self-coaching-demo`): `bash scripts/mock-self-coaching-demo.sh`, `self_coaching_loop.py`, `tools/loop_completeness.py`, runbook § [Mock loop demo](../guides/runbook.md#mock-loop-demo). Remaining: split-stack CI (P5).
 
 ---
 

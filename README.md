@@ -66,7 +66,7 @@ bash scripts/mock-self-coaching-demo.sh          # Linux / Git Bash
 python scripts/mock_self_coaching_demo.py        # Windows / cross-platform
 ```
 
-Expected: `completeness: PASS` (C01–C18 audit). More: [runbook](docs/guides/runbook.md#self-coaching-demo-mock-loop).
+Expected: `completeness: PASS` (C01–C18 audit). More: [runbook](docs/guides/runbook.md#mock-loop-demo).
 
 ## Repo layout (essentials)
 

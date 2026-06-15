@@ -8,7 +8,7 @@ Operational artifacts for adapter development. **Design docs:** [design/integrat
 | `api-snapshots/agentevals-openapi.json` | AgentEvals OpenAPI | **Captured** 2026-06-10 |
 | `api-snapshots/self-learning-openapi.json` | Production learner (review API) | **Pending** — migration M2.0 |
 | `api-snapshots/self-play-openapi.json` | Self-play generator | **Pending** — migration M3 |
-| `api-snapshots/aerl-openapi.json` | AERL trainer | **Pending** — migration M4 |
+| `api-snapshots/aerl-openapi.json` | AERL trainer (runs, rollout, rewards) | **Pending** — migration M4.0 · [spec](../project/self-tuning-trainer-api-plan.md) |
 | `mapping.md` | Field mapping tables | **Active** (AgentEvals); self-learning § **pending** M2.2 |
 | `services/adapters/` | HTTP clients + orchestrator wiring | AgentEvals **shipped**; learn adapter **pending** M2 |
 

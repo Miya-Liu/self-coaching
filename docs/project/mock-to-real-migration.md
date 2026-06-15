@@ -2,7 +2,7 @@
 
 **Status:** **M1 AgentEvals PASS** (2026-06-10) — live holdout E2E (`full_loop_live.json`, C12+C18)  
 **Ground truth:** tag **`v0.3.1-hermes-installable`** — mocks-only “it works” pin (Hermes pack + loop demo)  
-**Related:** [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md), [integration-plan.md](integration-plan.md), [integration/mapping.md](../integration/mapping.md), [mock-platform-design.md](mock-platform-design.md), [install-as-hermes-skill.md](../guides/install-as-hermes-skill.md), [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md)
+**Related:** [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md), [integration-plan.md](integration-plan.md), [integration/mapping.md](../integration/mapping.md), [mock-platform-design.md](mock-platform-design.md), [install-as-hermes-skill.md](../guides/install-as-hermes-skill.md), [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md), [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md)
 
 > **Milestone naming:** **Migration M0–M6** (this doc) = loop mock→live adapter phases. **[Roadmap](roadmap.md) M0–M5** = deploy targets (T1 skill pack, T2 Coaching API, …). **[Integration plan](integration-plan.md) Phase 0–5** = adapter implementation steps. Example: migration **M1** (AgentEvals holdout) ≠ roadmap **M1** (evolution engine dry loop).
 
@@ -246,15 +246,18 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 
 ### M4 — AERL training real adapter (~5 days)
 
+**Spec (DRAFT):** [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) — `POST /v1/training/runs`, rollout LLM proxy, `reward.ic.v1`, optional `agent_snapshot`. **Tasks:** spec §11 (M4.0–M4.5).
+
 **Build:**
 
-- Reuse `AERLTrainAdapter` / `AERLClient`
-- Loop stays **synchronous** (blocks on train)
-- Dataset handoff (path vs upload) decided in **M0**
-- `candidate` `model_id` → real artifact ref in `registry.create_version`
+- Extend `AERLTrainAdapter` / `AERLClient` (rollout, reward validate, snapshot)
+- Loop stays **synchronous** in adapter (blocks on poll; `AERL_TIMEOUT_S` for long GRPO)
+- Dataset handoff via `dataset_refs` (file / s3 / https per deployment)
+- `candidate_model_id` → real checkpoint ref in `registry.create_version`
+- GRPO: `LOOP_TRAIN_ROLLOUT_CONFIG` or inline `rollout.llm_proxy` on API
 - Longer `LOOP_HOLDOUT_TIMEOUT_S` when training is real
 
-**Tests:** `test_loop_t_path` promote + reject on staging; `tests/test_aerl_train_timeout.py`
+**Tests:** `test_loop_t_path` promote + reject on staging; `tests/test_aerl_train_timeout.py`; rollout/reward validate fixtures
 
 **Exit:** Full E+T loop on all real services; completeness PASS for **live scenario rows**; **R5** mock CI unchanged.
 

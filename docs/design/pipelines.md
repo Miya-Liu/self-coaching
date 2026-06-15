@@ -18,6 +18,18 @@ Evaluators and gates: [evaluators.md](evaluators.md). Adapters: [integrations/](
 7. Deploy      dry-run | canary | activate      [coach_mode.md]
 ```
 
+### Loop execution modes (self-coaching)
+
+The same stages run under three **execution modes** — who starts each cycle:
+
+| Mode | Driver | Typical use |
+|------|--------|-------------|
+| **Autonomous** | Host agent 24×7; self-arranges hold / learn / play / tune | Always-on host agent |
+| **Scheduler** | Cron or idle window invokes one tick | Nightly eval + improve; coach M5 |
+| **Manual** | User or admin request (skill, CLI, HTTP) | Ad-hoc “evolve this session” |
+
+Detail, routing table, and env knobs: [self_coaching_mode.md](self_coaching_mode.md#loop-execution-modes). Demo thresholds (Σ, B, `F.idle()`): [self-coaching-demo-pipeline-plan.md](../project/self-coaching-demo-pipeline-plan.md) §3.
+
 ### Executive summary
 
 1. Subject agent runs tasks; trajectories land in coaching root or external store.

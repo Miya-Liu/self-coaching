@@ -3,7 +3,7 @@
 **Status:** **DRAFT** — for review and edit (API shapes from Hermes learner service, 2026-06-12)  
 **Goal:** Define the **real self-learning backend** as an **independent review agent** (Dream / Auto Dream–style), exposed via **POST/GET HTTP APIs**, while preserving the existing loop and orchestrator **`learn()`** contract through adapters.
 
-**Related:** [mock-to-real-migration.md](mock-to-real-migration.md) (M2), [pipelines.md](../design/pipelines.md), [coaching_api.md](../design/integrations/coaching_api.md), [integration-plan.md](integration-plan.md), [mapping.md](../integration/mapping.md) (AgentEvals — add self-learning section in M2).
+**Related:** [mock-to-real-migration.md](mock-to-real-migration.md) (M2), [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) (M4 — trainer may echo `agent_snapshot` from learner versions), [pipelines.md](../design/pipelines.md), [coaching_api.md](../design/integrations/coaching_api.md), [integration-plan.md](integration-plan.md), [mapping.md](../integration/mapping.md) (AgentEvals — add self-learning section in M2).
 
 ---
 
@@ -96,15 +96,17 @@ The mock treats self-learning as a **synchronous classifier** over a single even
                     +---------------------------+
 ```
 
-### 3.1 Trigger modes (mapped to real endpoints)
+### 3.1 Self-learning API triggers (mapped to endpoints)
 
-| Mode | Trigger | API | `wait` typical |
-|------|---------|-----|----------------|
-| **Auto-learn (Dream)** | Daily cron | `POST /learning/evolve/recent` `{ hours: 24 }` | `false` (async default for cron) |
-| **Targeted review** | CI hook, post-meeting webhook, manual | `POST /learning/evolve` `{ session_ids: [...] }` | `true` if ≤5 sessions; else `false` |
-| **Loop E-path (reactive)** | Σ failures | Adapter resolves session ids (or calls `/evolve/recent` with tight window) + `wait: true` | `true` (loop blocks) |
-| **Discover candidates** | Ops / preflight | `GET /learn/sessions?hours=24` | — |
-| **Mock / thin sync** | Legacy demo | `POST /learning/events` (in-repo mock only) | immediate |
+These are **self-learning service** entry points — not the same as **loop execution mode** (autonomous / scheduler / manual), which defines who runs the full coach loop. See [self_coaching_mode.md](../design/self_coaching_mode.md#loop-execution-modes).
+
+| API trigger | Loop execution fit | Trigger | API | `wait` typical |
+|-------------|-------------------|---------|-----|----------------|
+| **Auto-learn (Dream)** | Scheduler (daily cron) or Autonomous (host background) | Cron / host idle | `POST /learning/evolve/recent` `{ hours: 24 }` | `false` (async default for cron) |
+| **Targeted review** | Manual or Scheduler (CI hook) | User, webhook, ops | `POST /learning/evolve` `{ session_ids: [...] }` | `true` if ≤5 sessions; else `false` |
+| **Loop E-path (reactive)** | Autonomous or Scheduler tick | Σ failures in loop driver | Adapter resolves session ids (or `/evolve/recent` tight window) + `wait: true` | `true` (loop blocks) |
+| **Discover candidates** | Manual preflight | Ops / coach UI | `GET /learn/sessions?hours=24` | — |
+| **Mock / thin sync** | Manual / demo CI | Legacy demo | `POST /learning/events` (in-repo mock only) | immediate |
 
 **Note:** Production learner reads **SessionDB** — not `coaching_root` trajectories directly. Loop demo adapter must map Σ failures → `session_ids` or use `/evolve/recent` when session linkage exists.
 
@@ -881,6 +883,7 @@ Review findings for the **Hermes-installable skill pack** and `self-learning/SKI
 | 2026-06-12 | Added §11 implementation task lists (M2.0–M2.5); synced paths to `/learning/evolve` |
 | 2026-06-12 | Canonical learner paths: `/learning/evolve`, `/learning/evolve/recent` (not `/learning/review`) |
 | 2026-06-12 | Added §11.8 skill pack alignment (L1–L8): scripts path, SKILL.md surfaces, memory vocabulary |
+| 2026-06-15 | §3.1 aligned with loop execution modes (autonomous / scheduler / manual) in [self_coaching_mode.md](../design/self_coaching_mode.md) |
 
 ---
 

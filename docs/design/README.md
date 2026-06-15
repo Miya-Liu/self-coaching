@@ -34,7 +34,7 @@ Start with **[architecture.md](architecture.md)** for gates, data flow, and shar
 | Doc | Topic |
 |-----|--------|
 | [architecture.md](architecture.md) | Role, components, gates, mapping, two modes |
-| [self_coaching_mode.md](self_coaching_mode.md) | Host self-evolution |
+| [self_coaching_mode.md](self_coaching_mode.md) | Host self-evolution · loop execution modes (autonomous / scheduler / manual) |
 | [coach_mode.md](coach_mode.md) | Supervise external agents |
 | [pipelines.md](pipelines.md) | Evolution engine, submodules, improvement paths |
 | [evaluators.md](evaluators.md) | EvalMetrics, drop detection, promotion |

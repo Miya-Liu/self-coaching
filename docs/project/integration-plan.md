@@ -364,6 +364,7 @@ Aligns with **[roadmap](roadmap.md)**: M1 dry loop done → Phase 0 smoke done �
 - [roadmap.md](roadmap.md) — deploy milestones (roadmap M0–M5)
 - [mock-to-real-migration.md](mock-to-real-migration.md) — loop adapter phases (migration M0–M6)
 - [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md) — migration M2 self-learning review API
+- [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) — migration M4 AERL trainer API (rollout proxy, rewards, snapshot)
 - [progress.md](progress.md) — component matrix
 - [deploy-overview.md](../guides/deploy-overview.md) — T1 / T2 / T3 + Coach mode
 - [runbook.md](../guides/runbook.md) — day-to-day operator commands

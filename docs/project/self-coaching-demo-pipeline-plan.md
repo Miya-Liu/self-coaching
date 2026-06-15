@@ -237,6 +237,22 @@ Phase 2 enforces I2 only by flushing `B` (`generation ≤ g`); production must a
 
 Do **not** replace `services/orchestrator/run.py` for coach mode. The loop driver is the self-coaching-mode runtime.
 
+### 4.2.1 Loop execution modes (design mapping)
+
+The demo implements one **scheduler tick** per `run_tasks()` invocation — not a 24×7 autonomous host. Full mode definitions: [self_coaching_mode.md](../design/self_coaching_mode.md#loop-execution-modes).
+
+| Execution mode | How this demo models it |
+|----------------|-------------------------|
+| **Scheduler** | **Primary.** `mock-self-coaching-demo.sh` / `run_tasks()` = single cron fire: process task stream → E/T paths → completeness audit |
+| **Manual** | Operator runs the demo script or `python -m self_coaching.demo` on demand; no background loop |
+| **Autonomous** | **Not simulated.** Would require long-lived host agent + `LOOP_EXECUTION_MODE=autonomous`; reuse same gates (`σ_min`, `F.idle()`, β) between ticks |
+
+| Demo artifact | Execution relevance |
+|---------------|---------------------|
+| `FreeTimeSimulator` (`LOOP_IDLE_AFTER`) | Idle window for scheduler / autonomous T-path |
+| `loop_driver.run_e_path` / `run_t_path` | Self-evolution routing inside one tick |
+| `services/orchestrator check-drop` | Scheduler-side drop detect (coach / nightly) |
+
 ### 4.3 Transports
 
 | Mode | Transport | When |

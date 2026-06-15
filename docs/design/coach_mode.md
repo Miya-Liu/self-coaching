@@ -36,6 +36,10 @@ Operate self-coaching as a **supervisor**: register external agents, schedule **
 
 `modes/coach/agents.yaml` — per agent: id, model, eval schedule, coaching root, `prefer_skill_first`, optional proxy. See `modes/coach/README.md`. Milestone M5: [roadmap.md](../project/roadmap.md).
 
+## Loop execution modes
+
+Coach mode typically uses **scheduler** execution ([self_coaching_mode.md](self_coaching_mode.md#loop-execution-modes)): cron fires eval + drop-detect + improve per subject agent. **Manual** runs (`orchestrator run` on demand) suit ops interventions. **Autonomous** is uncommon here — the coach service is already the long-lived supervisor; subject agents remain external.
+
 ## Scheduler (today)
 
 Per agent, cron or interval:

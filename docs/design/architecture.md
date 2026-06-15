@@ -11,6 +11,8 @@ The same **submodules** and **evolution engine** deploy in two **modes** - only 
 | **self-coaching** | Host agent | Host agent | `modes/self-coaching/` |
 | **coach** | Coach service / scheduler | External agents | `modes/coach/` + T2/T3 |
 
+Loop **execution mode** (autonomous / scheduler / manual) is configured per deployment — see [self_coaching_mode.md](self_coaching_mode.md#loop-execution-modes). Coach mode defaults to **scheduler**; self-coaching mode may use any of the three.
+
 Detail: [self_coaching_mode.md](self_coaching_mode.md), [coach_mode.md](coach_mode.md). Naming: [README.md](README.md#canonical-naming).
 
 The canonical end-to-end sequence is the Mermaid block in root `README.md` (Loading Gate, Performance, Data Pool, Local Model, Deploy Gate, Trainer, Results).

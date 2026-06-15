@@ -33,5 +33,6 @@ Naming: [design/README.md](design/README.md#canonical-naming). Start: [design/ar
 | [project/progress.md](project/progress.md) | Status |
 | [project/self-coaching-demo-pipeline-plan.md](project/self-coaching-demo-pipeline-plan.md) | Self-coaching loop demo (mock) |
 | [project/self-learning-review-agent-plan.md](project/self-learning-review-agent-plan.md) | Self-learning review agent API (M2 draft) · [§11 tasks](project/self-learning-review-agent-plan.md#11-implementation-task-lists) |
+| [project/self-tuning-trainer-api-plan.md](project/self-tuning-trainer-api-plan.md) | Self-tuning / AERL trainer API (M4 draft) · rollout proxy, reward schema, agent snapshot |
 | [project/mock-to-real-migration.md](project/mock-to-real-migration.md) | Mock → live API migration (M0–M6); **M1 PASS** |
 | [integration/README.md](integration/README.md) | OpenAPI snapshots, `mapping.md` |

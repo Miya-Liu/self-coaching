@@ -21,6 +21,7 @@ class CoachClockConfig:
     enabled: bool = True
     scenario: str | None = None
     agent_chat_url: str | None = None
+    interval_s: float = 1800.0  # 30 minutes default
 
 
 @dataclass(frozen=True)
@@ -122,6 +123,7 @@ def _parse_agent(raw: dict[str, Any]) -> SupervisedAgent:
             enabled=enabled,
             scenario=scenario,
             agent_chat_url=chat_url,
+            interval_s=float(cc.get("interval_s", 1800.0)),
         )
 
     return SupervisedAgent(

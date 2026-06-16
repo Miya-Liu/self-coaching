@@ -21,6 +21,7 @@ for _entry in (str(HERE), str(REPO_ROOT)):
 
 from agent_bridge import MockCoachAgentBridge  # noqa: E402
 from registry import default_registry_path, load_registry  # noqa: E402
+from scheduler import ClockScheduler  # noqa: E402
 from trigger import handle_post_body  # noqa: E402
 
 LOG = logging.getLogger("coach.service")
@@ -155,6 +156,13 @@ def cmd_serve(args: argparse.Namespace) -> int:
     host, port = _parse_bind(args.bind)
     http_server = run_http_server(state, host, port)
 
+    # Start periodic scheduler for all enabled agents
+    scheduler: ClockScheduler | None = None
+    if not args.once:
+        scheduler = ClockScheduler(registry_path, bridge=state.bridge)
+        scheduler.start()
+        LOG.info("coach scheduler active (%d agents)", len(scheduler.agent_states()))
+
     if args.ws_port is not None:
         ws_host = args.ws_host or host
         try:
@@ -171,6 +179,8 @@ def cmd_serve(args: argparse.Namespace) -> int:
         threading.Event().wait()
     except KeyboardInterrupt:
         LOG.info("shutting down")
+    if scheduler is not None:
+        scheduler.stop()
     http_server.shutdown()
     return 0
 

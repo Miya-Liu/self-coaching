@@ -9,6 +9,7 @@ agents:
     coach_clock:
       enabled: true
       scenario: scenarios/clock_loop.json
+      interval_s: 1800  # 30 minutes (demo uses manual trigger)
     eval:
       suite_id_canary: tool-use-canary
       suite_id_holdout: tool-use-holdout

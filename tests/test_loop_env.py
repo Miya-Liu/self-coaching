@@ -103,3 +103,25 @@ def test_live_mode_keeps_urls(monkeypatch: pytest.MonkeyPatch):
     assert profile.eval_backend == "agentevals"
     assert profile.train_backend == "aerl"
     assert profile.service_urls["AGENTEVALS_BASE_URL"] == "https://agentevals.example"
+
+
+def test_mock_http_promotes_aerl_train_backend(monkeypatch: pytest.MonkeyPatch):
+    for key in list(os.environ):
+        if key.startswith(_ENV_PREFIXES):
+            monkeypatch.delenv(key, raising=False)
+    profile = configure_demo_env(with_http=True)
+    assert profile.mode == "mock-http"
+    assert profile.train_backend == "aerl"
+    assert "TRAINER_BASE_URL" in profile.service_urls
+    assert "MOCK_AERL_URL" in profile.service_urls
+
+
+def test_loop_config_mock_http_infers_aerl_backend(monkeypatch: pytest.MonkeyPatch):
+    from loop_config import LoopConfig
+
+    monkeypatch.setenv("LOOP_SERVICE_MODE", "mock-http")
+    monkeypatch.setenv("MOCK_AERL_URL", "http://127.0.0.1:38004")
+    monkeypatch.setenv("ORCHESTRATOR_TRAIN_BACKEND", "mock")
+    config = LoopConfig.from_env()
+    assert config.train_backend == "aerl"
+    assert config.aerl_url == "http://127.0.0.1:38004"

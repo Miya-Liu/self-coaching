@@ -52,3 +52,39 @@ curl -s http://localhost:8080/api/suites
 bash scripts/export-integration-snapshots.sh
 # Capture: GET /api/runs/{id} succeeded → tests/fixtures/agentevals/run_detail_succeeded.json
 ```
+
+---
+
+## Trainer → `train()` result (M4.2)
+
+Operational mapping for `AERLTrainAdapter` / `train_mapping.py`. **Spec:** [self-tuning-trainer-api-plan.md](../project/self-tuning-trainer-api-plan.md).
+
+### API surface (trainer)
+
+| Loop need | Trainer endpoint | Client |
+|-----------|------------------|--------|
+| Start train | `POST /v1/training/runs` | `TrainingClient.create_run` |
+| Poll run | `GET /v1/training/runs/{id}` | `TrainingClient.get_run` / `wait_for_run` |
+| Resolve weights | `GET /v1/checkpoints/{id}` | `RestClient.get_checkpoint` |
+| Preflight rewards | `POST /v1/rewards/validate` | `TrainingClient.validate_rewards` |
+| Preflight rollout | `POST /v1/rollout/configs/validate` | `TrainingClient.validate_rollout` |
+
+### `TrainingRunRecord` + `Checkpoint` → normalized `train()`
+
+| `train()` field | Source (priority order) |
+|-----------------|-------------------------|
+| `run_id` | `run.id` / `run.training_run_id` |
+| `candidate` / `candidate_model_id` | `run.candidate_model_id` → `checkpoint.id` → `run.primary_checkpoint_id` |
+| `primary_checkpoint_id` | `run.primary_checkpoint_id` → `checkpoint.id` |
+| `weights_uri` | `checkpoint.weights.uri` |
+| `manifest` | `{coaching_root}/.self-coaching/manifests/training_run_manifest.json` if file exists |
+| `log_file` | `run.log_file` |
+| `registry_version_id` | `run.registry_version_id` (mock writes via registry draft) |
+| `metrics` | `run.metrics` |
+| `trainer` | `run.trainer` |
+| `training_data` | `run.training_data` |
+| `agent_snapshot` | `run.agent_snapshot` |
+| `rollout_summary` | `run.rollout_summary` (GRPO) |
+| `_train_backend` | always `"aerl"` |
+
+Fixtures: `tests/fixtures/aerl/run_completed_sft.json`, `checkpoint_sft.json`.

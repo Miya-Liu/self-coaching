@@ -35,13 +35,23 @@ def test_composite_client_delegates_train(tmp_path: Path):
         "id": "train-abc123def456",
         "status": "succeeded",
         "candidate_model_id": "mock-sft-candidate-def456",
+        "primary_checkpoint_id": "ckpt-sft-def456",
         "log_file": "/tmp/train.log",
         "registry_version_id": "ver-deadbeef",
         "metrics": {"val_loss": 0.8},
     }
     aerl.health.return_value = {"status": "ok"}
 
-    client = CompositeClient(inner, train_adapter=AERLTrainAdapter(aerl))
+    rest = MagicMock()
+    rest.get_checkpoint.return_value = {
+        "id": "ckpt-sft-def456",
+        "weights": {"uri": "mock://train-abc123def456/weights/ckpt-sft-def456"},
+    }
+
+    client = CompositeClient(
+        inner,
+        train_adapter=AERLTrainAdapter(aerl, rest_client=rest),
+    )
     result = client.train(pipeline="sft", base_model="mock-base-v1")
     assert result["status"] == "trained"
     assert result["candidate"] == "mock-sft-candidate-def456"

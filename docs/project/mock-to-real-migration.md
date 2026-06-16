@@ -178,9 +178,9 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 - [x] `docs/integration/api-snapshots/agentevals-openapi.json` (2026-06-10)
 - [x] `tests/fixtures/agentevals/run_detail_memoryarena_succeeded.json` (live capture)
 - [x] [mapping.md](../integration/mapping.md) — AgentEvals `RunDetail` → `EvalMetrics` (active)
-- [ ] `docs/integration/api-snapshots/self-learning-openapi.json` — **migration M2.0**
+- [x] `docs/integration/api-snapshots/self-learning-openapi.json` — migration M2.0
 - [ ] `docs/integration/api-snapshots/self-play-openapi.json`
-- [ ] `docs/integration/api-snapshots/aerl-openapi.json`
+- [x] `docs/integration/api-snapshots/aerl-openapi.json` — migration M4.0 (2026-06-16)
 - [ ] Document auth per service in one place (Bearer, API keys) — partial via env templates
 
 **Exit:** Every **shipped** adapter has a real-shape fixture. **R5** mock golden audit still passes. No live calls in default CI. Remaining snapshots gate M2–M4.
@@ -246,9 +246,22 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 
 ---
 
-### M4 — AERL training real adapter (~5 days)
+### M4 — AERL training real adapter (~5 days) — **partial** (M4.0–M4.3 + M4.5 done; M4.4 staging pending)
 
-**Spec (DRAFT):** [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) — `POST /v1/training/runs`, rollout LLM proxy, `reward.ic.v1`, optional `agent_snapshot`. **Tasks:** spec §11 (M4.0–M4.5).
+**Spec:** [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) — frozen M4.0; mock trainer + `TrainingClient`/`RestClient` + loop wiring shipped.
+
+**Done (2026-06-16):**
+
+- [x] Production-shaped mock (`mock_aerl.py` M4.1)
+- [x] `training_client.py`, `trainer_rest_client.py`, `train_mapping.py`, `AERLTrainAdapter` (M4.2)
+- [x] `build_loop_client` + mock-http aerl backend (M4.3)
+- [x] `aerl-openapi.json` placeholder + Coaching OpenAPI `TrainingRequest` extensions (M4.0)
+- [x] R5 mock-module regression green (M4.5)
+
+**Remaining:**
+
+- [ ] Staging smoke (`scripts/aerl_live_smoke.py`) + live T-path (M4.4)
+- [ ] `tests/test_aerl_train_timeout.py` (long GRPO poll budget)
 
 **Build:**
 

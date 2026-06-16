@@ -807,6 +807,37 @@ components:
         base_model:
           type: string
           default: mock-base
+        agent_id:
+          type: string
+          nullable: true
+          description: Subject agent for registry lineage (defaults from env AGENT_ID)
+        agent_snapshot:
+          type: object
+          nullable: true
+          description: |
+            Optional pin of non-model agent state at train start (registry version,
+            memory/skill/prompt bundles, eval_run_id). Passed through to trainer
+            `POST /v1/training/runs` when ORCHESTRATOR_TRAIN_BACKEND=aerl.
+          additionalProperties: true
+          properties:
+            registry_version_id: { type: string }
+            memory_version: { type: string }
+            skill_bundle_version: { type: string }
+            prompt_bundle_version: { type: string }
+            eval_run_id: { type: string }
+            learning_job_id: { type: string }
+        rollout_config_ref:
+          type: string
+          nullable: true
+          description: |
+            Path to a JSON rollout profile or registered config id. Required for
+            `grpo` on the trainer backend; maps to trainer `rollout` / `config_ref`.
+        reward_spec_ref:
+          type: string
+          nullable: true
+          description: |
+            Path to a JSON `reward_spec` (schema_version reward.ic.v1) or inline
+            object ref for trainer validation before queueing.
 
     TrainingResponse:
       type: object

@@ -71,6 +71,9 @@ jobs:
           python -m py_compile tools/loop_completeness.py
           python -m py_compile services/adapters/aerl_client.py
           python -m py_compile services/adapters/train_adapter.py
+          python -m py_compile services/adapters/training_client.py
+          python -m py_compile services/adapters/trainer_rest_client.py
+          python -m py_compile services/adapters/train_mapping.py
 
       - name: Mock AgentEvals Phase 0 smoke
         run: bash scripts/mock-agentevals-smoke.sh
@@ -83,6 +86,9 @@ jobs:
 
       - name: Mock AERL Phase 3 smoke
         run: bash scripts/mock-aerl-smoke.sh
+
+      - name: Mock AERL extended smoke (M4.1)
+        run: bash scripts/mock-aerl-extended-smoke.sh
 
       - name: Mock production-readiness harness
         run: bash scripts/mock-production-readiness.sh

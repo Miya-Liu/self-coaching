@@ -56,9 +56,10 @@ def test_create_training_run_returns_candidate_model_id(engine: MockAERLEngine, 
 
 
 def test_run_pipeline_argv(engine: MockAERLEngine):
-    log = engine.run_pipeline_argv("grpo", ["--epochs", "1"])
+    log, run_id = engine.run_pipeline_argv("grpo", ["--epochs", "1"])
     assert "pipeline=grpo" in log
     assert "metric.val_loss" in log
+    assert run_id
 
 
 def test_train_via_http(engine: MockAERLEngine, tmp_path: Path):

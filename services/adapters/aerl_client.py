@@ -1,66 +1,18 @@
 # SPDX-License-Identifier: MIT
-"""Low-level HTTP client for AERL (POST/GET /v1/training/runs)."""
+"""Low-level HTTP client for AERL — deprecated alias of TrainingClient (M4.2)."""
 
 from __future__ import annotations
 
-import json
-import os
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from typing import Any
 
+from .training_client import TrainingClient, TrainerHTTPError
 
-class AERLError(RuntimeError):
-    """AERL API or poll failure."""
-
-    def __init__(self, message: str, *, status: int | None = None, body: Any = None):
-        super().__init__(message)
-        self.status = status
-        self.body = body
+# Backward-compatible error alias
+AERLError = TrainerHTTPError
 
 
-class AERLClient:
-    """Minimal AERL REST client (no extra dependencies)."""
-
-    def __init__(
-        self,
-        base_url: str | None = None,
-        *,
-        timeout_s: float = 30.0,
-        poll_interval_s: float | None = None,
-        poll_timeout_s: float | None = None,
-        api_key: str | None = None,
-    ):
-        self.base_url = (
-            base_url
-            or os.environ.get("TRAINER_BASE_URL")
-            or os.environ.get("AERL_BASE_URL")
-            or "http://localhost:8004"
-        ).rstrip("/")
-        self.timeout_s = timeout_s
-        self.poll_interval_s = float(
-            poll_interval_s if poll_interval_s is not None
-            else os.environ.get("AERL_POLL_INTERVAL_S", "2")
-        )
-        self.poll_timeout_s = float(
-            poll_timeout_s if poll_timeout_s is not None
-            else os.environ.get("AERL_TIMEOUT_S", "3600")
-        )
-        self.api_key = api_key or os.environ.get("TRAINER_API_KEY") or os.environ.get("AERL_API_KEY")
-        self._opener = self._build_opener(self.base_url)
-
-    @staticmethod
-    def _build_opener(base_url: str) -> urllib.request.OpenerDirector:
-        """Bypass system proxy for localhost (Windows WinINET returns 503)."""
-        host = (urllib.parse.urlparse(base_url).hostname or "").lower()
-        if host in ("localhost", "127.0.0.1", "::1"):
-            return urllib.request.build_opener(urllib.request.ProxyHandler({}))
-        return urllib.request.build_opener()
-
-    def health(self) -> dict[str, Any]:
-        return self._request("GET", "/health")
+class AERLClient(TrainingClient):
+    """Deprecated alias for :class:`TrainingClient`. Prefer ``TrainingClient`` in new code."""
 
     def create_training_run(
         self,
@@ -70,89 +22,15 @@ class AERLClient:
         dataset_refs: list[str] | None = None,
         agent_id: str | None = None,
         coaching_root: str | None = None,
+        **extra: Any,
     ) -> dict[str, Any]:
-        body: dict[str, Any] = {
-            "pipeline_id": pipeline_id,
-            "base_model": base_model,
-        }
-        if dataset_refs:
-            body["dataset_refs"] = dataset_refs
-        if agent_id:
-            body["agent_id"] = agent_id
-        if coaching_root:
-            body["coaching_root"] = coaching_root
-        return self._request("POST", "/v1/training/runs", body)
-
-    def get_training_run(self, run_id: str) -> dict[str, Any]:
-        return self._request("GET", f"/v1/training/runs/{run_id}")
-
-    def wait_for_training_run(self, run_id: str) -> dict[str, Any]:
-        deadline = time.time() + self.poll_timeout_s
-        terminal = {"succeeded", "failed", "cancelled", "canceled"}
-        last: dict[str, Any] | None = None
-        while time.time() < deadline:
-            last = self.get_training_run(run_id)
-            status = str(last.get("status", "")).lower()
-            if status in terminal:
-                if status != "succeeded":
-                    raise AERLError(
-                        f"training run {run_id} ended with status={status!r}",
-                        body=last,
-                    )
-                return last
-            time.sleep(self.poll_interval_s)
-        raise AERLError(
-            f"training run {run_id} did not complete within {self.poll_timeout_s}s",
-            body=last,
+        return self.create_run_from_fields(
+            pipeline_id=pipeline_id,
+            base_model=base_model,
+            dataset_refs=dataset_refs,
+            agent_id=agent_id,
+            coaching_root=coaching_root,
+            **{k: v for k, v in extra.items() if k in {
+                "hyperparameters", "rollout", "reward_spec", "agent_snapshot", "labels", "wait",
+            }},
         )
-
-    def run_pipeline_argv(self, pipeline_id: str, argv: list[str]) -> str:
-        url = f"{self.base_url}/v1/pipelines/{pipeline_id}/run"
-        body = json.dumps({"argv": argv}).encode("utf-8")
-        headers = {"Accept": "text/plain", "Content-Type": "application/json"}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-        req = urllib.request.Request(url, data=body, headers=headers, method="POST")
-        try:
-            with self._opener.open(req, timeout=self.timeout_s) as resp:
-                return resp.read().decode("utf-8")
-        except urllib.error.HTTPError as exc:
-            try:
-                err_body = exc.read().decode("utf-8")
-            except Exception:
-                err_body = exc.reason
-            raise AERLError(
-                f"POST {url} failed: HTTP {exc.code}",
-                status=exc.code,
-                body=err_body,
-            ) from exc
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise AERLError(f"POST {url} failed: {exc}") from exc
-
-    def _request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
-        url = f"{self.base_url}{path}"
-        body = json.dumps(payload).encode("utf-8") if payload is not None else None
-        headers = {"Accept": "application/json"}
-        if body is not None:
-            headers["Content-Type"] = "application/json"
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-        req = urllib.request.Request(url, data=body, headers=headers, method=method)
-        try:
-            with self._opener.open(req, timeout=self.timeout_s) as resp:
-                raw = resp.read().decode("utf-8")
-                if not raw:
-                    return {}
-                return json.loads(raw)
-        except urllib.error.HTTPError as exc:
-            try:
-                err_body = json.loads(exc.read().decode("utf-8"))
-            except Exception:
-                err_body = exc.reason
-            raise AERLError(
-                f"{method} {url} failed: HTTP {exc.code}",
-                status=exc.code,
-                body=err_body,
-            ) from exc
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise AERLError(f"{method} {url} failed: {exc}") from exc

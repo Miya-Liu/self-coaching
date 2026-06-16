@@ -1,0 +1,79 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AERL / self-tuning trainer API (placeholder)",
+    "version": "0.2.0-draft",
+    "description": "DRAFT snapshot for migration M4. Canonical spec: docs/project/self-tuning-trainer-api-plan.md §4. Replace with export from the live trainer service when available (scripts/export-integration-snapshots.sh)."
+  },
+  "servers": [
+    { "url": "http://127.0.0.1:8004", "description": "Mock AERL (mock_aerl.py serve)" }
+  ],
+  "paths": {
+    "/health": {
+      "get": { "summary": "Trainer readiness + queue depth", "tags": ["health"] }
+    },
+    "/v1/training/runs": {
+      "post": { "summary": "Create training job (202 async)", "tags": ["TrainingClient"] },
+      "get": { "summary": "List runs (filter agent_id, pipeline_id, status)", "tags": ["TrainingClient"] }
+    },
+    "/v1/training/runs/{run_id}": {
+      "get": { "summary": "Poll TrainingRunRecord", "tags": ["TrainingClient"] }
+    },
+    "/v1/training/runs/{run_id}/metrics": {
+      "get": { "summary": "Loss / reward time series", "tags": ["TrainingClient"] }
+    },
+    "/v1/training/runs/{run_id}/cancel": {
+      "post": { "summary": "Cancel queued or running job", "tags": ["TrainingClient"] }
+    },
+    "/v1/pipelines": {
+      "get": { "summary": "List supported pipelines (sft, grpo)", "tags": ["TrainingClient"] }
+    },
+    "/v1/pipelines/{pipeline_id}/run": {
+      "post": { "summary": "Operator argv runner (text/plain log)", "tags": ["TrainingClient"] }
+    },
+    "/v1/rollout/configs/validate": {
+      "post": { "summary": "Preflight rollout + LLM proxy", "tags": ["TrainingClient"] }
+    },
+    "/v1/rewards/validate": {
+      "post": { "summary": "Validate dataset against reward.ic.v1", "tags": ["TrainingClient"] }
+    },
+    "/v1/rewards/schema": {
+      "get": { "summary": "Reward interchange discovery", "tags": ["TrainingClient"] }
+    },
+    "/v1/checkpoints": {
+      "get": { "summary": "List checkpoints (filter training_run_id)", "tags": ["RestClient"] }
+    },
+    "/v1/checkpoints/{checkpoint_id}": {
+      "get": { "summary": "Checkpoint detail + weights URI", "tags": ["RestClient"] }
+    },
+    "/v1/processes": {
+      "get": { "summary": "Side jobs (merge/export); mock returns []", "tags": ["RestClient"] }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer" }
+    },
+    "schemas": {
+      "TrainingRunRecord": {
+        "type": "object",
+        "description": "See self-tuning-trainer-api-plan.md §4.2.1"
+      },
+      "Checkpoint": {
+        "type": "object",
+        "description": "See self-tuning-trainer-api-plan.md §4.14"
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "_meta": {
+    "status": "placeholder",
+    "source": "docs/project/self-tuning-trainer-api-plan.md",
+    "mock_implementation": "mock-services/mock_aerl.py",
+    "clients": [
+      "services/adapters/training_client.py",
+      "services/adapters/trainer_rest_client.py"
+    ],
+    "coaching_facade": "mock-services/contracts/openapi.yaml#/components/schemas/TrainingRequest"
+  }
+}

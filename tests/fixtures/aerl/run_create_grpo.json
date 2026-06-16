@@ -1,0 +1,14 @@
+{
+  "pipeline_id": "grpo",
+  "base_model": "mock-base",
+  "agent_id": "grpo-agent",
+  "dataset_refs": [],
+  "rollout": {
+    "llm_proxy": {
+      "base_url": "https://llm-proxy.internal/v1",
+      "models": {"policy": "dynamic", "reference": "mock-base"}
+    },
+    "env": {"type": "hermes_agent", "max_turns": 8}
+  },
+  "reward_spec": {"schema_version": "reward.ic.v1", "primary": "scalar"}
+}

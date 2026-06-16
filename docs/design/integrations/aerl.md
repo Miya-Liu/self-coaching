@@ -22,12 +22,14 @@ Default trainer: `TRAINER_BASE_URL` (registry default `http://localhost:8004`).
 
 | Client | Endpoints | Repo module (M4) |
 |--------|-----------|------------------|
-| **TrainingClient** | `POST/GET /v1/training/runs`, metrics, pipelines, rollout/reward validate | `training_client.py` |
-| **RestClient** | `GET /v1/checkpoints`, `/v1/models`, `/v1/processes` | `trainer_rest_client.py` |
+| **TrainingClient** | `POST/GET /v1/training/runs`, metrics, pipelines, rollout/reward validate | `services/adapters/training_client.py` |
+| **RestClient** | `GET /v1/checkpoints`, `/v1/models`, `/v1/processes` | `services/adapters/trainer_rest_client.py` |
 
 Coaching facade maps `POST /training/runs` → adapter → `POST /v1/training/runs` (`ORCHESTRATOR_TRAIN_BACKEND=aerl`).
 
 Local mock: `mock-services/mock_aerl.py` on `:8004` (`MOCK_AERL_URL` / `TRAINER_BASE_URL`).
+
+**Loop wiring (M4.3):** `mock-http` mode sets `ORCHESTRATOR_TRAIN_BACKEND=aerl` and `build_loop_client()` composes `TrainingClient` + `RestClient` from `LoopConfig.aerl_url`. See `modes/self-coaching/loop_env.py`.
 
 ## Local fallback
 

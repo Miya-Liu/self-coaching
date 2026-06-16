@@ -34,6 +34,10 @@ LOOP_DEFAULTS: dict[str, str] = {
     "AGENTEVALS_SUITE_ID": "tool-use-canary",
     "AGENTEVALS_SUITE_ID_HOLDOUT": "tool-use-holdout",
     "LOOP_AUTO_START_MOCK_STACK": "1",
+    "LOOP_TRAIN_WAIT": "true",
+    "LOOP_TRAIN_AGENT_SNAPSHOT": "true",
+    "AERL_POLL_INTERVAL_S": "2",
+    "AERL_TIMEOUT_S": "3600",
 }
 
 
@@ -115,7 +119,8 @@ def apply_service_mode(mode: str) -> None:
 
     if mode == "mock-http":
         os.environ.setdefault("ORCHESTRATOR_EVAL_BACKEND", "mock")
-        os.environ.setdefault("ORCHESTRATOR_TRAIN_BACKEND", "mock")
+        os.environ.setdefault("ORCHESTRATOR_LEARN_BACKEND", "mock")
+        os.environ.setdefault("ORCHESTRATOR_TRANSPORT", "module")
         ae_port = os.environ.get("MOCK_AGENTEVALS_PORT", "38180")
         learning_port = os.environ.get("MOCK_SELF_LEARNING_PORT", "38766")
         self_play_port = os.environ.get("MOCK_SELF_PLAY_PORT", "38767")
@@ -125,6 +130,8 @@ def apply_service_mode(mode: str) -> None:
         os.environ.setdefault("MOCK_SELF_PLAY_URL", f"http://127.0.0.1:{self_play_port}")
         os.environ.setdefault("MOCK_AERL_URL", f"http://127.0.0.1:{aerl_port}")
         os.environ.setdefault("TRAINER_BASE_URL", f"http://127.0.0.1:{aerl_port}")
+        if os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock") == "mock":
+            os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = "aerl"
         return
 
     # live — upgrade backends only when a matching service URL is configured
@@ -214,6 +221,11 @@ def _skill_root_from_env() -> Path | None:
 
 
 def _repo_root() -> Path:
+    try:
+        from self_coaching._paths import repo_root
+        return repo_root()
+    except ImportError:
+        pass
     from_env = _skill_root_from_env()
     if from_env is not None:
         return from_env
@@ -228,6 +240,28 @@ def _repo_root() -> Path:
         "Set SELF_COACHING_SKILL_ROOT to your Hermes install (~/.hermes/skills/self-coaching), "
         "or: pip install -e ."
     )
+
+
+def _build_train_adapter(config: Any) -> Any | None:
+    """Build AERLTrainAdapter when train_backend=aerl (M4.3)."""
+    if str(getattr(config, "train_backend", "mock")).lower() != "aerl":
+        return None
+    from services.adapters.train_adapter import AERLTrainAdapter
+    from services.adapters.trainer_rest_client import RestClient
+    from services.adapters.training_client import TrainingClient
+
+    base_url = getattr(config, "aerl_url", None)
+    poll_interval_s = float(os.environ.get("AERL_POLL_INTERVAL_S", "2"))
+    poll_timeout_s = float(os.environ.get("AERL_TIMEOUT_S", "3600"))
+    if base_url:
+        training = TrainingClient(
+            base_url,
+            poll_interval_s=poll_interval_s,
+            poll_timeout_s=poll_timeout_s,
+        )
+        rest = RestClient(base_url)
+        return AERLTrainAdapter(training_client=training, rest_client=rest)
+    return AERLTrainAdapter()
 
 
 def build_loop_client(coaching_root: str | Path, config: Any | None = None) -> Any:
@@ -267,9 +301,11 @@ def build_loop_client(coaching_root: str | Path, config: Any | None = None) -> A
         sys.path.insert(0, str(repo_root))
     from services.adapters import build_composite_client  # noqa: E402
 
+    train_adapter = _build_train_adapter(config)
     return build_composite_client(
         inner,
         eval_backend=config.eval_backend,
         train_backend=config.train_backend,
         learn_backend=config.learn_backend,
+        train_adapter=train_adapter,
     )

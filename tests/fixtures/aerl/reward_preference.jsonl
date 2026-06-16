@@ -1,0 +1,2 @@
+{"_type": "dataset_header", "reward_schema_version": "reward.ic.v1", "record_types": ["preference"]}
+{"id": "pref-001", "type": "preference", "prompt": "Summarize the doc", "chosen": "Concise summary.", "rejected": "Long ramble.", "rewards": {"rubric": 0.85, "human": 1.0}, "metadata": {"privacy_checked": true}}

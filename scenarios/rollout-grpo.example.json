@@ -1,0 +1,11 @@
+{
+  "llm_proxy": {
+    "base_url": "http://127.0.0.1:8765/v1",
+    "models": {
+      "policy": "candidate-lora",
+      "reference": "mock-base"
+    }
+  },
+  "env": {"type": "hermes_agent", "max_turns": 12},
+  "sampling": {"temperature": 0.7, "n_samples_per_prompt": 4}
+}

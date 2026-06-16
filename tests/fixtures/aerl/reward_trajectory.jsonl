@@ -1,0 +1,2 @@
+{"_type": "dataset_header", "reward_schema_version": "reward.ic.v1", "record_types": ["trajectory_reward"]}
+{"id": "traj-001", "type": "trajectory_reward", "prompt": "Use the tool", "trajectory": [{"role": "assistant", "content": "Calling tool."}], "rewards": {"scalar": 0.72, "components": {"task_success": 1.0}}, "metrics": {"success": true}}

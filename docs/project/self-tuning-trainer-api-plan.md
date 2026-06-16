@@ -2,7 +2,7 @@
 
 > **Implementation reference** — migration M4 spec. Status: [progress.md](progress.md). User docs: [deploy-skill-pack.md](../guides/deploy-skill-pack.md).
 
-**Status:** **DRAFT** — for review and edit (API shapes from AERL trainer service + in-repo `mock_aerl.py`, 2026-06-15)  
+**Status:** **M4.0 frozen** (2026-06-16) — mock M4.1–M4.3 + clients shipped; staging live trainer = M4.4  
 **Goal:** Define the **real AERL / trainer backend** for the **model path** (SFT, GRPO, preference RL), exposed via **POST/GET HTTP APIs**, while preserving the existing loop and orchestrator **`train()`** contract through adapters.
 
 **Related:** [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md) (M2 learner API), [mock-to-real-migration.md](mock-to-real-migration.md) (M4), [pipelines.md](../design/pipelines.md), [integrations/aerl.md](../design/integrations/aerl.md), [integrations/coaching_api.md](../design/integrations/coaching_api.md), [integration/mapping.md](../integration/mapping.md).
@@ -1186,33 +1186,74 @@ Wire in `modes/self-coaching/loop_env.py` alongside eval/learn knobs.
 
 ---
 
-## 8. Mock implementation plan
+## 8. Mock implementation plan (sliced M4.1)
 
-Extend `mock-services/mock_aerl.py` to **mirror production routes** (deterministic shims):
+Extend `mock-services/mock_aerl.py` to **mirror production routes** (deterministic shims). Implementation is split into two slices so the loop can exercise checkpoint resolution without building optional ops surfaces first.
+
+**Design note (Tinker comparison):** Tinker exposes algorithm primitives (`forward_backward`, `sample`); this repo keeps a **job-level** trainer API. The mock adopts Tinker *concepts* only — phased lifecycle, co-located rollout accounting, checkpoint-first URIs — not Tinker SDK shapes. Checkpoint URIs use **`mock://run-id/weights/name`**, not `tinker://`.
+
+### 8.1 Slice 1 — TrainingClient core (M4.1-T01–T04)
 
 | Endpoint | Mock behavior |
 |----------|---------------|
-| **TrainingClient** | |
-| `POST /v1/training/runs` | Accept `rollout`, `reward_spec`, `agent_snapshot`; echo `trainer`, `training_data`, `pipeline_config` on GET |
-| `GET /v1/training/runs/{id}` | Phases + `TrainingRunRecord` shape; `primary_checkpoint_id` on success |
-| `GET /v1/training/runs/{id}/metrics` | Synthetic loss series |
-| `POST /v1/training/runs/{id}/cancel` | Flip to `cancelled` if not terminal |
-| `GET /v1/training/runs` | Filter fixture list |
-| `POST /v1/pipelines/{id}/run` | **Unchanged** argv log + `X-Training-Run-Id` |
-| `GET /v1/pipelines` | Return `sft`, `grpo` metadata |
-| `POST /v1/rollout/configs/validate` | Always `valid: true` unless `base_url` contains `invalid` |
-| `POST /v1/rewards/validate` | Count record types from JSONL |
-| `GET /v1/rewards/schema` | Return `reward.ic.v1` |
-| **RestClient** | |
+| `POST /v1/training/runs` | Accept `rollout`, `reward_spec`, `agent_snapshot`; validate `grpo` requires `rollout` → **400** `rollout_required` |
+| `GET /v1/training/runs/{id}` | Full **`TrainingRunRecord`** (§4.2.1) + legacy flat fields for backward compat |
+| `GET /v1/training/runs/{id}/metrics` | Synthetic loss/reward series; **409** `metrics_not_ready` while `queued` |
+| `POST /v1/training/runs/{id}/cancel` | **200** `cancelled` if `queued`/`running`; **409** `not_cancellable` if terminal |
+| `GET /v1/training/runs` | Filter by `agent_id`, `pipeline_id`, `status` |
+| `POST /v1/pipelines/{id}/run` | **Unchanged** argv log; add `X-Training-Run-Id` when a run record is linked |
+| `GET /v1/pipelines` | `sft`, `grpo` with `requires_rollout`, `supported_reward_types` |
+| `POST /v1/rollout/configs/validate` | `valid: true` unless `llm_proxy.base_url` missing or contains `invalid` |
+| `POST /v1/rewards/validate` | Count record types from JSONL against `reward.ic.v1` |
+| `GET /v1/rewards/schema` | Return `reward.ic.v1` discovery payload |
+| `GET /health` | `status`, `version`, `gpu_available`, `queue_depth`, `active_runs`, `supported_pipelines` |
+
+**Run lifecycle:** phases in order — `queued` → `data_prep` → `rollout` (GRPO only) → `train` → `checkpoint` → `done`. `status` is `running` while phase is not terminal; terminal `status` is `succeeded` \| `failed` \| `cancelled`.
+
+**Metrics simulation:** SFT → exponential-decay `train_loss`/`val_loss`; GRPO → ramp `reward_mean` + loss; `rollout_summary` on GRPO terminal runs. `trainer.loss_type` derived from `pipeline_id` (not a separate create-time `loss_fn` field).
+
+**Deferred from Slice 1:** bearer auth (401), idempotency keys, `POST /v1/rollout/configs` register, DPO/ORPO/CISPO pipeline ids.
+
+### 8.2 Slice 2 — RestClient minimal (M4.1-T05)
+
+| Endpoint | Mock behavior |
+|----------|---------------|
 | `GET /v1/checkpoints` | Filter by `training_run_id`; deterministic ids |
-| `GET /v1/checkpoints/{id}` | Weights block with `shard_uris`, `adapter_only` stub |
-| `GET /v1/models` | Optional served model when run succeeds |
-| `GET /v1/processes` | Empty or fixture merge job |
-| `GET /health` | Always 200; optional 503 test hook |
+| `GET /v1/checkpoints/{id}` | Detail + `weights` block (`mock://…` URI, `adapter_only: true`, optional `shard_uris`) |
+| `GET /v1/processes` | Empty list `[]` (stub; merge/export deferred) |
 
-**CI:** `LOOP_SERVICE_MODE=mock-module` keeps in-process engine. Production-shaped routes tested via `mock-http` or `MOCK_AERL_URL`.
+On run success the engine auto-creates a checkpoint; `primary_checkpoint_id` on the run record aliases the same id as `candidate_model_id` for adapter compat.
 
-**Determinism:** Mock worker completes in &lt;200ms; `val_loss` / `reward_mean` derived from dataset record count (same as today).
+**Deferred from Slice 2:** `GET /v1/models`, `POST /v1/processes`, merge/export side jobs.
+
+### 8.3 Backward compatibility (hard gate)
+
+| Rule | Rationale |
+|------|-----------|
+| Thin create fields unchanged | `pipeline_id`, `base_model`, `dataset_refs`, `agent_id`, `coaching_root` behave as today |
+| `candidate_model_id` prefix | Still `mock-{pipeline}-candidate-{suffix}` |
+| Terminal run &lt; 200 ms | CI smoke and loop demos stay fast |
+| `POST /v1/pipelines/{id}/run` log format | Same `text/plain` body as pre-M4.1 |
+| `train()` adapter shape | `AERLTrainAdapter` / `train_via_http` need no changes for Slice 1–2 |
+| Manifest + registry draft | Still written under `coaching_root` on success |
+
+**CI:** `LOOP_SERVICE_MODE=mock-module` keeps in-process engine. Production-shaped HTTP routes tested via `MOCK_AERL_URL` and extended smoke (§12).
+
+### 8.4 Pass checks (merge gate)
+
+All must pass before M4.1 is marked done:
+
+| Check | Command / test |
+|-------|----------------|
+| **Regression — unit** | `pytest tests/test_mock_aerl.py -q` |
+| **Regression — smoke** | `bash scripts/mock-aerl-smoke.sh` |
+| **Extended — unit** | `pytest tests/test_aerl_mock_extended.py -q` |
+| **Extended — smoke** | `bash scripts/mock-aerl-extended-smoke.sh` |
+| **Phase visibility** | Extended test polls mid-run and asserts `phase` transitions |
+| **RestClient path** | Extended test: succeeded run → `GET /v1/checkpoints?training_run_id=` → `GET /v1/checkpoints/{id}` returns `mock://` URI |
+| **GRPO validation** | Extended test: `grpo` without `rollout` → HTTP 400 `rollout_required` |
+| **Cancel semantics** | Extended test: cancel running → `cancelled`; cancel terminal → 409 |
+| **Reward fixtures** | `tests/fixtures/aerl/*.jsonl` exercised by validate endpoint tests |
 
 ---
 
@@ -1256,7 +1297,7 @@ When a training run follows a learning job:
 | Step | Deliverable | Exit |
 |------|-------------|------|
 | **M4.0** | This spec approved; OpenAPI draft + `aerl-openapi.json` placeholder | Review sign-off |
-| **M4.1** | Mock production routes (§8) + fixtures | Unit tests green |
+| **M4.1** | Mock production routes — Slice 1 + 2 (§8); pass checks §8.4 | **done** — regression + extended tests green |
 | **M4.2** | `training_client.py` + `trainer_rest_client.py` + `train_mapping.py` | Replay test from fixture |
 | **M4.3** | `loop_env.py` env wiring; GRPO rollout config | T-path test with mock HTTP |
 | **M4.4** | Staging smoke: real trainer + proxy validate | `full_loop_live` T-path rows pass |
@@ -1272,49 +1313,109 @@ When a training run follows a learning job:
 
 | Phase | Summary | Status | Depends on |
 |-------|---------|--------|------------|
-| **M4.0** | Spec + contract freeze | **in progress** (this doc) | — |
-| **M4.1** | Mock services (production routes) | not started | M4.0 |
-| **M4.2** | HTTP client + train mapping | not started | M4.1 |
-| **M4.3** | Loop env + facade wiring | not started | M4.2 |
+| **M4.0** | Spec + contract freeze | **done** (2026-06-16) | — |
+| **M4.1** | Mock services (production routes) | **done** | M4.0 |
+| **M4.2** | HTTP client + train mapping | **done** | M4.1 |
+| **M4.3** | Loop env + facade wiring | **done** | M4.2 |
 | **M4.4** | Staging smoke + live T-path | not started | M4.3, M1 |
-| **M4.5** | R5 mock-module regression | not started | M4.3 |
+| **M4.5** | R5 mock-module regression | **done** (2026-06-16) | M4.3 |
 
 ### 11.1 M4.0 — Spec & contract freeze
 
 | ID | Task | File(s) | Done |
 |----|------|---------|------|
-| M4.0-T01 | Resolve open questions §14 | this doc §14 | [ ] |
-| M4.0-T02 | Extend Coaching OpenAPI `TrainingRequest` with optional snapshot + rollout refs | `mock-services/contracts/openapi.yaml` | [ ] |
-| M4.0-T03 | Placeholder `aerl-openapi.json` snapshot | `docs/integration/api-snapshots/aerl-openapi.json` | [ ] |
-| M4.0-T04 | Link spec from migration + integration plan | `mock-to-real-migration.md`, `integration-plan.md` | [ ] |
+| M4.0-T01 | Resolve open questions §14 | this doc §14 | [x] |
+| M4.0-T02 | Extend Coaching OpenAPI `TrainingRequest` with optional snapshot + rollout refs | `mock-services/contracts/openapi.yaml` | [x] |
+| M4.0-T03 | Placeholder `aerl-openapi.json` snapshot | `docs/integration/api-snapshots/aerl-openapi.json` | [x] |
+| M4.0-T04 | Link spec from migration + integration plan | `mock-to-real-migration.md`, `integration-plan.md` | [x] |
 
-### 11.2 M4.1 — Mock trainer (production-shaped HTTP)
+### 11.2 M4.1 — Mock trainer (production-shaped HTTP, sliced)
+
+**Slice 1 — TrainingClient core**
+
+| ID | Task | Slice | Done |
+|----|------|-------|------|
+| M4.1-T01 | `TrainingRunRecord` on GET; phased lifecycle; snapshot echo | 1 | [x] |
+| M4.1-T02 | `grpo` without rollout → 400 `rollout_required` | 1 | [x] |
+| M4.1-T03 | `GET /v1/pipelines`, metrics, rollout/reward validate, rewards schema, enriched `/health` | 1 | [x] |
+| M4.1-T04 | Cancel + list runs; synthetic metrics + GRPO `rollout_summary` | 1 | [x] |
+
+**Slice 2 — RestClient minimal**
+
+| ID | Task | Slice | Done |
+|----|------|-------|------|
+| M4.1-T05 | Checkpoints list/detail with `mock://` URIs; `GET /v1/processes` → `[]` | 2 | [x] |
+| M4.1-T06 | Fixtures + `test_aerl_mock_extended.py` + `mock-aerl-extended-smoke.sh` | 2 | [x] |
+
+**Explicitly deferred (post M4.1):** `GET /v1/models`, `POST /v1/processes`, bearer auth, idempotency keys, DPO/ORPO pipelines.
+
+### 11.3 M4.2 — HTTP client + train mapping
 
 | ID | Task | Done |
 |----|------|------|
-| M4.1-T01 | `agent_snapshot`, `rollout`, `reward_spec` on create | [ ] |
-| M4.1-T02 | `grpo` without rollout → 400 | [ ] |
-| M4.1-T03 | `GET /v1/pipelines`, rollout/reward validate routes | [ ] |
-| M4.1-T04 | Cancel + list runs | [ ] |
-| M4.1-T05 | RestClient routes: checkpoints, models, processes | [ ] |
-| M4.1-T06 | Fixtures under `tests/fixtures/aerl/` | [ ] |
+| M4.2-T01 | `training_client.py` + `trainer_rest_client.py` + `trainer_http.py` | [x] |
+| M4.2-T02 | `train_mapping.py` + `AERLTrainAdapter` RestClient checkpoint resolve | [x] |
+| M4.2-T03 | `aerl_client.py` deprecated alias over `TrainingClient` | [x] |
+| M4.2-T04 | `tests/test_train_adapter.py` fixture replay + HTTP integration | [x] |
+| M4.2-T05 | `loop_env.py` train env defaults (`LOOP_TRAIN_*`, `AERL_*`) | [x] |
+
+### 11.4 M4.3 — Loop env + facade wiring
+
+| ID | Task | Done |
+|----|------|------|
+| M4.3-T01 | `mock-http` promotes `ORCHESTRATOR_TRAIN_BACKEND=aerl` when AERL URL configured | [x] |
+| M4.3-T02 | `LoopConfig.from_env` infers `train_backend=aerl` for mock-http + live | [x] |
+| M4.3-T03 | `build_loop_client` wires `TrainingClient` + `RestClient` from `config.aerl_url` | [x] |
+| M4.3-T04 | `tests/test_loop_t_path.py::test_t_path_trains_via_aerl_http_backend` | [x] |
+### 11.5 M4.5 — R5 mock-module regression
+
+| ID | Task | Done |
+|----|------|------|
+| M4.5-T01 | `test_e2e_full_loop_completeness_pass` green (mock-module, no AERL URL) | [x] |
+| M4.5-T02 | Golden `completeness_report_full_loop.json` unchanged | [x] |
+| M4.5-T03 | Default CI mock-module demo path unchanged | [x] |
 
 ---
 
 ## 12. Testing strategy
 
+### 12.1 M4.1 pass checks (required before merge)
+
+| Layer | Artifact | Must pass |
+|-------|----------|-----------|
+| Regression unit | `tests/test_mock_aerl.py` | All existing scenarios unchanged |
+| Regression smoke | `scripts/mock-aerl-smoke.sh` | Manifest, argv log, HTTP create |
+| Extended unit | `tests/test_aerl_mock_extended.py` | All new endpoints + lifecycle + RestClient |
+| Extended smoke | `scripts/mock-aerl-extended-smoke.sh` | End-to-end HTTP walk of Slice 1–2 routes |
+| CI | `.github/workflows/ci.yml` | `mock-aerl-smoke.sh` (extended smoke added when stable) |
+
+### 12.2 Extended test scenarios
+
 | Test | Purpose |
 |------|---------|
-| `tests/test_aerl_mock_extended.py` | Rollout required, snapshot echo, reward validate |
-| `tests/test_train_adapter.py` | Fixture replay → manifest + `candidate` |
+| `test_aerl_mock_extended.py::test_phased_lifecycle` | Poll mid-run; assert `phase` transitions in order |
+| `test_aerl_mock_extended.py::test_grpo_requires_rollout` | HTTP 400 `rollout_required` |
+| `test_aerl_mock_extended.py::test_cancel_running_and_terminal` | Cancel → `cancelled`; terminal → 409 |
+| `test_aerl_mock_extended.py::test_checkpoint_after_success` | RestClient resolves `mock://` weights |
+| `test_aerl_mock_extended.py::test_reward_validate_fixtures` | JSONL fixtures under `tests/fixtures/aerl/` |
+| `test_aerl_mock_extended.py::test_rollout_validate` | Valid config OK; `invalid` in URL fails |
+| `test_aerl_mock_extended.py::test_metrics_series` | Loss/reward arrays after train phase |
+| `test_aerl_mock_extended.py::test_backward_compat_fields` | Legacy flat fields on GET unchanged |
+
+### 12.3 Post-M4.1 tests (M4.2+)
+
+| Test | Purpose |
+|------|---------|
+| `tests/test_train_adapter.py` | Fixture replay → manifest + `candidate` + `weights_uri` |
 | `tests/test_loop_t_path.py` | T-path with `MOCK_AERL_URL` |
 | `scripts/aerl_live_smoke.py` (new) | health → validate rollout → create run → poll |
 
-**Fixtures (to add):**
+**Fixtures:**
 
-- `tests/fixtures/aerl/run_create_grpo_queued.json`
-- `tests/fixtures/aerl/run_completed_grpo.json`
-- `tests/fixtures/aerl/reward_validate_ok.json`
+- `tests/fixtures/aerl/reward_sft.jsonl`
+- `tests/fixtures/aerl/reward_preference.jsonl`
+- `tests/fixtures/aerl/reward_trajectory.jsonl`
+- `tests/fixtures/aerl/run_create_grpo.json`
 - `tests/fixtures/aerl/rollout_validate_ok.json`
 
 ---
@@ -1333,16 +1434,16 @@ When a training run follows a learning job:
 
 | # | Question | Options | Decision |
 |---|----------|---------|----------|
-| Q1 | Inline `api_key` vs `api_key_ref` only | Allow inline for dev; staging+ ref-only | _Recommend ref-only on staging_ |
-| Q2 | Who writes `training_run_manifest.json` | Adapter (M4) vs trainer push to coaching_root | _Recommend adapter + local path_ |
-| Q3 | `candidate` vs `candidate_endpoint` for eval | Eval adapter uses endpoint when set | _TBD_ |
-| Q4 | Learner snapshot source | Env-only vs query learner `GET /learning/status` | _Recommend env + optional learner enrich_ |
-| Q5 | argv run linked to structured `run_id` | Always create run record vs log-only | _Recommend always create for audit_ |
-| Q6 | OpenAPI ownership | Separate `aerl-openapi.json` vs Coaching API only | _Recommend separate snapshot_ |
-| Q7 | Reward schema versioning | Single `reward.ic.v1` vs per-pipeline | _Start with v1; bump on breaking change_ |
-| Q8 | Proxy model hot-swap | Trainer pushes routes vs proxy polls checkpoint watcher | _Trainer-owned (§4.5.2)_ |
-| Q9 | RestClient vs agent API | Checkpoints on trainer vs production `GET /api/agents/…/versions` | _Trainer RestClient for weights; agent API for deploy (M5)_ |
-| Q10 | `candidate_model_id` naming | Keep adapter alias vs rename to `checkpoint_id` only | _Keep alias through M4; deprecate in M5_ |
+| Q1 | Inline `api_key` vs `api_key_ref` only | Allow inline for dev; staging+ ref-only | **Ref-only on staging+**; inline `api_key` allowed in mock/dev only (`TRAINER_API_KEY` env) |
+| Q2 | Who writes `training_run_manifest.json` | Adapter (M4) vs trainer push to coaching_root | **Adapter + local path** — mock engine writes for CI; production adapter resolves path via `map_train_result` |
+| Q3 | `candidate` vs `candidate_endpoint` for eval | Eval adapter uses endpoint when set | **Prefer `candidate_endpoint` when set** on run record; else `candidate_model_id` / registry version id |
+| Q4 | Learner snapshot source | Env-only vs query learner `GET /learning/status` | **Env + optional learner enrich** — `LOOP_TRAIN_*` env; future: query completed learn job |
+| Q5 | argv run linked to structured `run_id` | Always create run record vs log-only | **Always create** — mock returns `X-Training-Run-Id`; audit trail for operator runs |
+| Q6 | OpenAPI ownership | Separate `aerl-openapi.json` vs Coaching API only | **Separate snapshot** — `aerl-openapi.json` for trainer; thin `TrainingRequest` on Coaching facade |
+| Q7 | Reward schema versioning | Single `reward.ic.v1` vs per-pipeline | **Start with v1** — bump on breaking change; validate via `POST /v1/rewards/validate` |
+| Q8 | Proxy model hot-swap | Trainer pushes routes vs proxy polls checkpoint watcher | **Trainer-owned** — trainer updates proxy route table each checkpoint save (§4.5.2) |
+| Q9 | RestClient vs agent API | Checkpoints on trainer vs production `GET /api/agents/…/versions` | **Trainer RestClient for weights**; agent API for deploy/activate (M5) |
+| Q10 | `candidate_model_id` naming | Keep adapter alias vs rename to `checkpoint_id` only | **Keep alias through M4**; deprecate in M5; `primary_checkpoint_id` is canonical on run record |
 
 ---
 
@@ -1366,6 +1467,10 @@ When a training run follows a learning job:
 |------|--------|
 | 2026-06-15 | Initial DRAFT: production trainer API (runs, rollout/LLM proxy, reward.ic.v1, agent_snapshot); M4 task list |
 | 2026-06-15 | §3.2 TrainingClient vs RestClient; `TrainingRunRecord`; checkpoint/model/process APIs (§4.13–4.16) |
+| 2026-06-16 | §8 sliced M4.1 (TrainingClient core + RestClient minimal); §8.4 pass checks; §12 test matrix |
+| 2026-06-16 | M4.2: `training_client.py`, `trainer_rest_client.py`, `train_mapping.py`, adapter RestClient path |
+| 2026-06-16 | M4.3: mock-http aerl wiring, `build_loop_client` adapter, T-path HTTP integration test |
+| 2026-06-16 | M4.0 frozen: §14 decisions, Coaching OpenAPI TrainingRequest, `aerl-openapi.json`; M4.5 R5 green |
 
 ---
 

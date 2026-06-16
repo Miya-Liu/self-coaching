@@ -1,0 +1,11 @@
+{
+  "llm_proxy": {
+    "base_url": "https://llm-proxy.internal/v1",
+    "models": {
+      "policy": "candidate-lora",
+      "reference": "org/base-agent-7b"
+    }
+  },
+  "env": {"type": "hermes_agent", "max_turns": 12},
+  "sampling": {"temperature": 0.7, "n_samples_per_prompt": 4}
+}

@@ -1,0 +1,16 @@
+{
+  "id": "ckpt-sft-def456",
+  "training_run_id": "train-abc123def456",
+  "base_model": "mock-base-v1",
+  "trainer": {"algorithm": "sft", "pipeline_id": "sft", "method": "lora"},
+  "metrics": {"val_loss": 0.31, "train_loss": 0.28},
+  "weights": {
+    "format": "safetensors",
+    "uri": "mock://train-abc123def456/weights/ckpt-sft-def456",
+    "shard_count": 2,
+    "adapter_only": true,
+    "merged": false
+  },
+  "status": "available",
+  "created_at": "2026-06-16T12:00:00Z"
+}

@@ -1,0 +1,29 @@
+{
+  "id": "train-abc123def456",
+  "training_run_id": "train-abc123def456",
+  "status": "succeeded",
+  "phase": "done",
+  "pipeline_id": "sft",
+  "trainer": {
+    "algorithm": "sft",
+    "pipeline_id": "sft",
+    "method": "lora",
+    "implementation": "mock-aerl-sft-v1",
+    "loss_type": "cross_entropy"
+  },
+  "base_model": "mock-base-v1",
+  "training_data": {
+    "dataset_refs": ["/coaching/.self-coaching/curated/train.jsonl"],
+    "record_counts": {"sft": 2},
+    "reward_schema_version": "reward.ic.v1"
+  },
+  "pipeline_config": {
+    "hyperparameters": {"epochs": 1, "learning_rate": 1e-5}
+  },
+  "metrics": {"train_loss": 0.28, "val_loss": 0.31},
+  "primary_checkpoint_id": "ckpt-sft-def456",
+  "candidate_model_id": "mock-sft-candidate-def456",
+  "log_file": "/tmp/train.log",
+  "registry_version_id": "ver-deadbeef",
+  "agent_snapshot": {"skill_bundle_version": "skills-fixture"}
+}

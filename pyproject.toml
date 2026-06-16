@@ -39,11 +39,15 @@ Plan = "https://github.com/Miya-Liu/self-coaching/blob/main/docs/project/self-co
 
 [project.scripts]
 self-coaching-demo = "self_coaching.demo:main"
+coach-serve = "coach.service:main"
+coach-clock = "coach.clock:main"
 
 [tool.setuptools]
-package-dir = { "self_coaching" = "modes/self-coaching" }
+package-dir = { "self_coaching" = "modes/self-coaching", "mock_services" = "mock-services", "coach" = "modes/coach" }
 packages = [
   "self_coaching",
+  "mock_services",
+  "coach",
   "services",
   "services.adapters",
   "services.orchestrator",

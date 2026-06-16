@@ -70,7 +70,11 @@ class AgentEvalsHoldoutEngine:
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    try:
+        from self_coaching._paths import repo_root
+        return repo_root()
+    except ImportError:
+        return Path(__file__).resolve().parents[2]
 
 
 def _agentevals_base_url() -> str | None:

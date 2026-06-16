@@ -24,7 +24,11 @@ from .eval_metrics import (
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    try:
+        from self_coaching._paths import repo_root
+        return repo_root()
+    except ImportError:
+        return Path(__file__).resolve().parents[2]
 
 
 def _default_thresholds_path() -> Path:

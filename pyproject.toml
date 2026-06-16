@@ -48,3 +48,20 @@ packages = [
   "services.adapters",
   "services.orchestrator",
 ]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["services.*"]
+disallow_untyped_defs = true
+warn_return_any = true
+
+[[tool.mypy.overrides]]
+module = ["mock_services.*", "tests.*"]
+disallow_untyped_defs = false

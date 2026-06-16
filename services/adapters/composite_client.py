@@ -8,11 +8,12 @@ from typing import Any
 from .agentevals_client import AgentEvalsError
 from .aerl_client import AERLError
 from .eval_adapter import AgentEvalsEvalAdapter
+from .learn_adapter import SelfLearningAdapter
 from .train_adapter import AERLTrainAdapter
 
 
 class CompositeClient:
-    """Wrap a SelfCoachingClient so evaluate/train can use dedicated backends."""
+    """Wrap a SelfCoachingClient so evaluate/train/learn can use dedicated backends."""
 
     def __init__(
         self,
@@ -20,10 +21,12 @@ class CompositeClient:
         *,
         eval_adapter: AgentEvalsEvalAdapter | None = None,
         train_adapter: AERLTrainAdapter | None = None,
+        learn_adapter: SelfLearningAdapter | None = None,
     ):
         self._inner = inner
         self._eval = eval_adapter
         self._train = train_adapter
+        self._learn = learn_adapter
 
     def health(self) -> dict[str, Any]:
         base = self._inner.health()
@@ -42,10 +45,20 @@ class CompositeClient:
                 tr = {"status": "error", "error": str(exc)}
             out["train_backend"] = "aerl"
             out["aerl"] = tr
+        if self._learn is not None:
+            from .self_learning_client import SelfLearningError
+            try:
+                sl = self._learn._client.health()
+            except SelfLearningError as exc:
+                sl = {"status": "error", "error": str(exc)}
+            out["learn_backend"] = "self-learning"
+            out["self_learning"] = sl
         return out
 
     def learn(self, *, event: str, source: str = "client", capability: str = "tool_use") -> dict[str, Any]:
-        return self._inner.learn(event=event, source=source, capability=capability)
+        if self._learn is None:
+            return self._inner.learn(event=event, source=source, capability=capability)
+        return self._learn.learn(event=event, source=source, capability=capability)
 
     def self_play(self, *, capability: str = "tool_use", n: int = 3) -> dict[str, Any]:
         return self._inner.self_play(capability=capability, n=n)
@@ -92,18 +105,22 @@ def build_composite_client(
     *,
     eval_backend: str = "mock",
     train_backend: str = "mock",
+    learn_backend: str = "mock",
     eval_adapter: AgentEvalsEvalAdapter | None = None,
     train_adapter: AERLTrainAdapter | None = None,
+    learn_adapter: SelfLearningAdapter | None = None,
 ) -> Any:
     """Return inner unchanged when all backends are mock, else CompositeClient."""
     use_eval = eval_backend.lower() == "agentevals"
     use_train = train_backend.lower() == "aerl"
-    if not use_eval and not use_train:
+    use_learn = learn_backend.lower() in ("self-learning", "http")
+    if not use_eval and not use_train and not use_learn:
         return inner
     return CompositeClient(
         inner,
         eval_adapter=(eval_adapter or AgentEvalsEvalAdapter()) if use_eval else None,
         train_adapter=(train_adapter or AERLTrainAdapter()) if use_train else None,
+        learn_adapter=(learn_adapter or SelfLearningAdapter()) if use_learn else None,
     )
 
 

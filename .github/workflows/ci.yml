@@ -137,6 +137,26 @@ jobs:
       - name: Run pytest
         run: pytest -q
 
+  mypy:
+    name: mypy type checking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package with all extras + mypy
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,coach,real-api]"
+          pip install mypy
+
+      - name: Run mypy on services/
+        run: mypy services/ --no-error-summary || true
+
   integration-mock-stack:
     name: integration mock stack (coach demo)
     runs-on: ubuntu-latest

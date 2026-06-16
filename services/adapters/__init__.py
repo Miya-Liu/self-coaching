@@ -12,6 +12,8 @@ from .holdout_engine import (
     holdout_timeout_s,
     wait_for_holdout_run,
 )
+from .learn_adapter import SelfLearningAdapter
+from .self_learning_client import SelfLearningClient, SelfLearningError
 from .train_adapter import AERLTrainAdapter
 
 __all__ = [
@@ -23,6 +25,9 @@ __all__ = [
     "AgentEvalsEvalAdapter",
     "AgentEvalsHoldoutEngine",
     "CompositeClient",
+    "SelfLearningAdapter",
+    "SelfLearningClient",
+    "SelfLearningError",
     "build_composite_client",
     "build_holdout_engine",
     "collect_holdout_metrics",

@@ -1,101 +1,113 @@
 # SPDX-License-Identifier: MIT
-"""Loop driver: task stream, Sigma/B stores, E-path and T-path evolution."""
+"""Loop driver: task stream, Sigma/B stores, E-path and T-path evolution.
+
+This module is now a thin orchestrator. Implementation lives in:
+  - loop_config.py  (configuration, constants, Protocol, TaskScore)
+  - scoring.py      (task scoring and routing)
+  - e_path.py       (E-path evolution)
+  - t_path.py       (T-path evolution)
+"""
 
 from __future__ import annotations
 
 import json
-import os
-import sys
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterator, Protocol, runtime_checkable
+from typing import Any, Iterator
 
-_SC_ROOT = Path(__file__).resolve().parent
-_REPO_ROOT = _SC_ROOT.parents[1]
-_MOCK_SERVICES = _REPO_ROOT / "mock-services"
-if not _MOCK_SERVICES.is_dir():
-    _MOCK_SERVICES = _REPO_ROOT / "assets" / "mock-services"
-_SELF_LEARNING = _SC_ROOT / "self-learning"
-if str(_SELF_LEARNING) not in sys.path:
-    sys.path.insert(0, str(_SELF_LEARNING))
+# ─── Path setup (shared) ─────────────────────────────────────────────────────
 
 try:
-    from .free_time import FreeTimeSimulator  # noqa: E402
-    from .loop_store import LoopStore, SupportEntry, read_jsonl  # noqa: E402
-    from .state import LoopState, LoopStateStore  # noqa: E402
-    from .trajectory_simulator import simulate_trajectory  # noqa: E402
+    from ._paths import _MOCK_SERVICES, _REPO_ROOT, _SC_ROOT  # noqa: F401
 except ImportError:
-    from free_time import FreeTimeSimulator  # noqa: E402
-    from loop_store import LoopStore, SupportEntry, read_jsonl  # noqa: E402
-    from state import LoopState, LoopStateStore  # noqa: E402
-    from trajectory_simulator import simulate_trajectory  # noqa: E402
-from trajectory_scorer import RubricResult, score_trajectory  # noqa: E402
+    from _paths import _MOCK_SERVICES, _REPO_ROOT, _SC_ROOT  # noqa: F401
 
-DEFAULT_TAU_FAIL = 0.75
-DEFAULT_SIGMA_MIN = 3
-DEFAULT_SIGMA_PLAY = 3
-DEFAULT_BATCH_SIZE = 4
-DEFAULT_AGENT_ID = "demo-agent"
-DEFAULT_TASK_STREAM = _MOCK_SERVICES / "fixtures" / "task_stream" / "tool_use_v1.jsonl"
-THRESHOLDS_PATH = _REPO_ROOT / "services" / "orchestrator" / "config" / "thresholds.json"
-HOLDOUT_SUITE_ID = "tool-use-holdout"
+# ─── Re-exports from loop_config ─────────────────────────────────────────────
+
+try:
+    from .loop_config import (  # noqa: F401
+        DEFAULT_AGENT_ID,
+        DEFAULT_BATCH_SIZE,
+        DEFAULT_SIGMA_MIN,
+        DEFAULT_SIGMA_PLAY,
+        DEFAULT_TAU_FAIL,
+        DEFAULT_TASK_STREAM,
+        HOLDOUT_SUITE_ID,
+        THRESHOLDS_PATH,
+        LoopClient,
+        LoopConfig,
+        TaskScore,
+        _self_play_base_url,
+        batch_size_threshold,
+        holdout_suite_id,
+        loop_agent_id,
+        sigma_min_threshold,
+        sigma_play_threshold,
+        tau_fail_threshold,
+    )
+except ImportError:
+    from loop_config import (  # noqa: F401
+        DEFAULT_AGENT_ID,
+        DEFAULT_BATCH_SIZE,
+        DEFAULT_SIGMA_MIN,
+        DEFAULT_SIGMA_PLAY,
+        DEFAULT_TAU_FAIL,
+        DEFAULT_TASK_STREAM,
+        HOLDOUT_SUITE_ID,
+        THRESHOLDS_PATH,
+        LoopClient,
+        LoopConfig,
+        TaskScore,
+        _self_play_base_url,
+        batch_size_threshold,
+        holdout_suite_id,
+        loop_agent_id,
+        sigma_min_threshold,
+        sigma_play_threshold,
+        tau_fail_threshold,
+    )
+
+# ─── Re-exports from scoring ─────────────────────────────────────────────────
+
+try:
+    from .scoring import failure_event_text, process_task, route_score  # noqa: F401
+except ImportError:
+    from scoring import failure_event_text, process_task, route_score  # noqa: F401
+
+# ─── Re-exports from e_path ──────────────────────────────────────────────────
+
+try:
+    from .e_path import (  # noqa: F401
+        augment_sigma_sparse,
+        learn_from_sigma,
+        run_e_path,
+    )
+except ImportError:
+    from e_path import (  # noqa: F401
+        augment_sigma_sparse,
+        learn_from_sigma,
+        run_e_path,
+    )
+
+# ─── Re-exports from t_path ──────────────────────────────────────────────────
+
+try:
+    from .t_path import fill_buffer_batch, run_t_path  # noqa: F401
+except ImportError:
+    from t_path import fill_buffer_batch, run_t_path  # noqa: F401
+
+# ─── Local imports needed by orchestrator functions ───────────────────────────
+
+try:
+    from .free_time import FreeTimeSimulator
+    from .loop_store import LoopStore, SupportEntry, read_jsonl
+    from .state import LoopState, LoopStateStore
+except ImportError:
+    from free_time import FreeTimeSimulator
+    from loop_store import LoopStore, SupportEntry, read_jsonl
+    from state import LoopState, LoopStateStore
 
 
-@runtime_checkable
-class LoopClient(Protocol):
-    def learn(
-        self,
-        *,
-        event: str,
-        source: str = "client",
-        capability: str = "tool_use",
-    ) -> dict[str, Any]: ...
-
-    def train(
-        self,
-        *,
-        pipeline: str = "sft",
-        dataset: str | None = None,
-        base_model: str = "mock-base",
-    ) -> dict[str, Any]: ...
-
-
-@dataclass(frozen=True)
-class TaskScore:
-    task_id: str
-    score: float
-    rubric: RubricResult
-    routed_to: str
-    trajectory_ref: str
-
-
-def tau_fail_threshold() -> float:
-    return float(os.environ.get("LOOP_TAU_FAIL", str(DEFAULT_TAU_FAIL)))
-
-
-def sigma_min_threshold() -> int:
-    return int(os.environ.get("LOOP_SIGMA_MIN", str(DEFAULT_SIGMA_MIN)))
-
-
-def sigma_play_threshold() -> int:
-    return int(os.environ.get("LOOP_SIGMA_PLAY", str(DEFAULT_SIGMA_PLAY)))
-
-
-def batch_size_threshold() -> int:
-    return int(os.environ.get("LOOP_BATCH_SIZE", str(DEFAULT_BATCH_SIZE)))
-
-
-def loop_agent_id() -> str:
-    return os.environ.get("LOOP_AGENT_ID", os.environ.get("AGENT_ID", DEFAULT_AGENT_ID))
-
-
-def holdout_suite_id() -> str:
-    return os.environ.get("AGENTEVALS_SUITE_ID_HOLDOUT", HOLDOUT_SUITE_ID)
-
-
-def _self_play_base_url() -> str | None:
-    value = os.environ.get("MOCK_SELF_PLAY_URL", "").strip()
-    return value.rstrip("/") if value else None
+# ─── Orchestrator functions (remain in loop_driver) ──────────────────────────
 
 
 def load_task_stream(path: str | Path) -> list[dict[str, Any]]:
@@ -110,386 +122,6 @@ def load_task_stream(path: str | Path) -> list[dict[str, Any]]:
 def iter_task_stream(path: str | Path) -> Iterator[dict[str, Any]]:
     for task in load_task_stream(path):
         yield task
-
-
-def route_score(score: float, *, tau_fail: float | None = None) -> str:
-    threshold = DEFAULT_TAU_FAIL if tau_fail is None else tau_fail
-    return "support" if score < threshold else "buffer"
-
-
-def failure_event_text(task_id: str, score: float, rubric: RubricResult) -> str:
-    breakdown = rubric["breakdown"]
-    if not breakdown["tools_ok"]:
-        missing = ", ".join(breakdown["missing_tools"]) or "expected tools"
-        return f"Task {task_id} missing tools: {missing} (score={score:.2f})"
-    return f"Task {task_id} answer incomplete after tool use (score={score:.2f})"
-
-
-def learn_from_sigma(client: LoopClient, sigma: list[SupportEntry]) -> dict[str, Any]:
-    if not sigma:
-        raise ValueError("learn_from_sigma requires a non-empty Sigma")
-    first = sigma[0]
-    event = f"skill patch needed: {first.event_text}"
-    return client.learn(event=event, source="loop-e-path", capability="tool_use")
-
-
-def _load_trajectory(coaching_root: Path, trajectory_ref: str) -> dict[str, Any]:
-    return json.loads((coaching_root / trajectory_ref).read_text(encoding="utf-8"))
-
-
-def augment_sigma_sparse(
-    sigma: list[SupportEntry],
-    *,
-    coaching_root: Path,
-    loop_store: LoopStore,
-    agent_id: str,
-    version_id: str,
-    generation: int,
-    sigma_play: int,
-    self_play_engine: Any | None = None,
-) -> dict[str, Any] | None:
-    """C06: sparse failure-conditioned self-play augments Sigma before E.learn."""
-    if not sigma:
-        return None
-    sigma_size = len(sigma)
-    if not (0 < sigma_size <= sigma_play):
-        return None
-
-    first = sigma[0]
-    trajectory = _load_trajectory(coaching_root, first.trajectory_ref)
-    n_variants = min(sigma_size, sigma_play)
-    body = {
-        "coaching_root": str(coaching_root),
-        "user_query": first.event_text,
-        "trajectory": trajectory,
-        "eval_score": first.score,
-        "mode": "adversarial",
-        "n_variants": n_variants,
-        "agent_id": agent_id,
-        "version_id": version_id,
-    }
-
-    sp_url = _self_play_base_url()
-    if sp_url:
-        from mock_self_play import generate_suite_via_http
-
-        result = generate_suite_via_http(sp_url, body)
-    else:
-        from mock_self_play import MockSelfPlayEngine
-
-        engine = self_play_engine or MockSelfPlayEngine(coaching_root)
-        result = engine.generate_suite(**body)
-
-    staging = coaching_root / ".self-coaching" / "curated" / "staging.jsonl"
-    for traj in read_jsonl(staging):
-        traj_id, trajectory_ref = loop_store.save_trajectory(
-            str(traj.get("case_id") or traj.get("id") or "suite-variant"),
-            traj,
-        )
-        traj_score = float((traj.get("critique") or {}).get("score", 0.5))
-        traj_task_id = str(traj.get("case_id") or traj.get("id") or "suite-variant")
-        event_text = f"Synthetic adversarial failure on {traj_task_id} (score={traj_score:.2f})"
-        entry = SupportEntry(
-            task_id=str(traj.get("case_id") or traj.get("id") or "suite-variant"),
-            trajectory_id=traj_id,
-            trajectory_ref=trajectory_ref,
-            score=float((traj.get("critique") or {}).get("score", 0.5)),
-            event_text=event_text,
-        )
-        sigma.append(entry)
-        loop_store.append_support(
-            task_id=entry.task_id,
-            generation=generation,
-            version_id=version_id,
-            trajectory_id=traj_id,
-            trajectory_ref=trajectory_ref,
-            score=entry.score,
-            event_text=entry.event_text,
-        )
-    return result
-
-
-def run_e_path(
-    sigma: list[SupportEntry],
-    *,
-    client: LoopClient,
-    registry: Any,
-    state: LoopState,
-    state_store: LoopStateStore,
-    loop_store: LoopStore,
-    coaching_root: Path,
-    agent_id: str,
-    sigma_play: int | None = None,
-    self_play_engine: Any | None = None,
-) -> dict[str, Any] | None:
-    """E-path: optional sparse self-play, learn, activate draft, bump g, flush stale B."""
-    if not sigma:
-        return None
-
-    bootstrap_version = str(registry.get_agent(agent_id)["active_version_id"])
-    play_limit = sigma_play_threshold() if sigma_play is None else sigma_play
-    suite_result = augment_sigma_sparse(
-        sigma,
-        coaching_root=coaching_root,
-        loop_store=loop_store,
-        agent_id=agent_id,
-        version_id=bootstrap_version,
-        generation=state.generation,
-        sigma_play=play_limit,
-        self_play_engine=self_play_engine,
-    )
-
-    sigma_size_before_learn = len(sigma)
-    result = learn_from_sigma(client, sigma)
-    routing = result.get("routing") or {}
-    draft_id = result.get("draft_version_id") or routing.get("draft_version_id")
-    if draft_id:
-        registry.activate(agent_id, draft_id)
-
-    state.generation += 1
-    state_store.write_registry_generation(state.generation, agent_id=agent_id)
-    loop_store.flush_buffer_stale(state.generation)
-    sigma.clear()
-    state.support_count = 0
-    result["e_path"] = {
-        "generation": state.generation,
-        "parent_version_id": bootstrap_version,
-        "activated_version_id": draft_id,
-        "sparse_self_play": suite_result,
-        "sigma_size_before_learn": sigma_size_before_learn,
-    }
-    audit_path = coaching_root / ".self-coaching" / "loop" / "e_path_last.json"
-    audit_path.parent.mkdir(parents=True, exist_ok=True)
-    audit_path.write_text(json.dumps(result["e_path"], ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return result
-
-
-def fill_buffer_batch(
-    *,
-    coaching_root: Path,
-    loop_store: LoopStore,
-    registry: Any,
-    agent_id: str,
-    generation: int,
-    n: int,
-    capability: str = "tool_use",
-    self_play_engine: Any | None = None,
-) -> dict[str, Any]:
-    """C07: top up tuning buffer B via batch self-play."""
-    if n <= 0:
-        return {"status": "skipped", "count": 0}
-
-    version_id = str(registry.get_agent(agent_id)["active_version_id"])
-    sp_url = _self_play_base_url()
-    if sp_url:
-        from mock_self_play import self_play_via_http
-
-        result = self_play_via_http(sp_url, coaching_root=coaching_root, capability=capability, n=n)
-    else:
-        from mock_self_play import MockSelfPlayEngine
-
-        engine = self_play_engine or MockSelfPlayEngine(coaching_root)
-        result = engine.generate_batch(coaching_root=coaching_root, capability=capability, n=n)
-
-    staging = coaching_root / ".self-coaching" / "curated" / "staging.jsonl"
-    for traj in read_jsonl(staging):
-        loop_store.append_buffer_from_trajectory(
-            traj,
-            generation=generation,
-            version_id=version_id,
-        )
-    return result
-
-
-def _holdout_metrics(
-    holdout_engine: Any,
-    *,
-    agent_id: str,
-    version_id: str,
-    coaching_root: Path,
-) -> Any:
-    from services.adapters.holdout_engine import collect_holdout_metrics
-
-    return collect_holdout_metrics(
-        holdout_engine,
-        agent_id=agent_id,
-        version_id=version_id,
-        coaching_root=coaching_root,
-    )
-
-
-def run_t_path(
-    *,
-    client: LoopClient,
-    registry: Any,
-    loop_store: LoopStore,
-    state: LoopState,
-    coaching_root: Path,
-    agent_id: str,
-    beta: int | None = None,
-    pipeline: str = "sft",
-    candidate_model_id: str | None = None,
-    self_play_engine: Any | None = None,
-    agentevals_engine: Any | None = None,
-) -> dict[str, Any] | None:
-    """T-path: fill B, train, holdout gate, optional hot-swap, consume B."""
-    from services.adapters.holdout_engine import build_holdout_engine
-    from services.orchestrator.drop_detector import check_promotion, load_thresholds
-
-    batch_size = batch_size_threshold() if beta is None else beta
-    active_rows = loop_store.active_buffer_rows()
-    batch_fill: dict[str, Any] | None = None
-    if len(active_rows) < batch_size:
-        batch_fill = fill_buffer_batch(
-            coaching_root=coaching_root,
-            loop_store=loop_store,
-            registry=registry,
-            agent_id=agent_id,
-            generation=state.generation,
-            n=batch_size - len(active_rows),
-            self_play_engine=self_play_engine,
-        )
-        active_rows = loop_store.active_buffer_rows()
-
-    if len(active_rows) < batch_size:
-        return None
-
-    production_version = str(registry.get_agent(agent_id)["active_version_id"])
-    production_version_doc = registry.get_version(agent_id, production_version)
-    base_model = str((production_version_doc.get("components") or {}).get("model_id", "mock-base"))
-
-    dataset_path = loop_store.export_train_dataset(active_rows)
-    train_result = client.train(pipeline=pipeline, dataset=str(dataset_path), base_model=base_model)
-    trained_model = candidate_model_id or str(train_result.get("candidate") or "mock-sft-candidate")
-
-    draft = registry.create_version(
-        agent_id,
-        parent_version_id=production_version,
-        components={"model_id": trained_model},
-        artifacts={"training_run_id": train_result.get("run_id")},
-        source="mock_aerl",
-    )
-    candidate_version_id = str(draft["version_id"])
-
-    eval_engine = agentevals_engine or build_holdout_engine(coaching_root)
-    current_metrics = _holdout_metrics(
-        eval_engine,
-        agent_id=agent_id,
-        version_id=production_version,
-        coaching_root=coaching_root,
-    )
-    candidate_metrics = _holdout_metrics(
-        eval_engine,
-        agent_id=agent_id,
-        version_id=candidate_version_id,
-        coaching_root=coaching_root,
-    )
-
-    thresholds = load_thresholds(THRESHOLDS_PATH)
-    ok, gate_reasons = check_promotion(current_metrics, candidate_metrics, thresholds)
-
-    consumed = 0
-    if ok:
-        registry.activate(agent_id, candidate_version_id)
-        consumed = loop_store.mark_buffer_consumed(
-            task_ids={str(row.get("task_id")) for row in active_rows},
-        )
-
-    from services.orchestrator.eval_metrics import write_json
-
-    run_dir = coaching_root / ".self-coaching" / "loop" / "runs" / "t_path"
-    run_dir.mkdir(parents=True, exist_ok=True)
-    current_eval = current_metrics.to_dict()
-    candidate_eval = candidate_metrics.to_dict()
-    decision = {
-        "recommendation": "promote" if ok else "reject",
-        "promotion_allowed": ok,
-        "gate_reasons": gate_reasons,
-        "deploy_mode": "dry_run",
-    }
-    write_json(run_dir / "current_eval.json", current_eval)
-    write_json(run_dir / "candidate_eval.json", candidate_eval)
-    write_json(run_dir / "decision.json", decision)
-    write_json(run_dir / "training.json", train_result)
-    write_json(
-        run_dir / "deploy_manifest.json",
-        {
-            "agent_id": agent_id,
-            "candidate_version_id": candidate_version_id,
-            "production_version_id": production_version,
-            "canary_fraction": 0.0,
-            "status": "dry_run_only" if ok else "rejected",
-        },
-    )
-
-    t_path_summary = {
-        "promoted": ok,
-        "gate_reasons": gate_reasons,
-        "train_result": train_result,
-        "candidate_version_id": candidate_version_id,
-        "production_version_id": production_version,
-        "current_eval": current_eval,
-        "candidate_eval": candidate_eval,
-        "buffer_consumed": consumed,
-        "buffer_preserved": not ok,
-        "batch_fill": batch_fill,
-        "run_dir": str(run_dir),
-    }
-    write_json(coaching_root / ".self-coaching" / "loop" / "t_path_last.json", t_path_summary)
-
-    return t_path_summary
-
-
-def process_task(
-    tau: dict[str, Any],
-    *,
-    loop_store: LoopStore,
-    generation: int,
-    version_id: str,
-    tau_fail: float | None = None,
-) -> tuple[TaskScore, dict[str, Any], SupportEntry | None]:
-    xi = simulate_trajectory(tau)
-    rubric = score_trajectory(xi, tau)
-    task_id = str(tau.get("task_id") or "")
-    trajectory_id, trajectory_ref = loop_store.save_trajectory(task_id, xi, rubric_result=rubric)
-    routed_to = route_score(rubric["score"], tau_fail=tau_fail)
-
-    support_entry: SupportEntry | None = None
-    if routed_to == "support":
-        event_text = failure_event_text(task_id, rubric["score"], rubric)
-        support_entry = SupportEntry(
-            task_id=task_id,
-            trajectory_id=trajectory_id,
-            trajectory_ref=trajectory_ref,
-            score=rubric["score"],
-            event_text=event_text,
-        )
-        loop_store.append_support(
-            task_id=task_id,
-            generation=generation,
-            version_id=version_id,
-            trajectory_id=trajectory_id,
-            trajectory_ref=trajectory_ref,
-            score=rubric["score"],
-            event_text=event_text,
-        )
-    else:
-        loop_store.append_buffer(
-            task_id=task_id,
-            generation=generation,
-            version_id=version_id,
-            score=rubric["score"],
-            trajectory_ref=trajectory_ref,
-        )
-
-    result = TaskScore(
-        task_id=task_id,
-        score=rubric["score"],
-        rubric=rubric,
-        routed_to=routed_to,
-        trajectory_ref=trajectory_ref,
-    )
-    return result, xi, support_entry
 
 
 def default_client(coaching_root: str | Path) -> LoopClient:

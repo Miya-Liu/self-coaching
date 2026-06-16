@@ -93,6 +93,10 @@ jobs:
       - name: Self-coaching loop demo (module transport)
         run: bash tests/test_mock_self_coaching_demo.sh
 
+      - name: Self-coaching loop demo (HTTP transport — split stack)
+        run: |
+          LOOP_HOLDOUT_TIMEOUT_S=30 python scripts/mock_self_coaching_demo.py --with-http
+
       - name: Autonomous clock loop smoke (E → P → T)
         run: python scripts/clock_loop_smoke.py
 

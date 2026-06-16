@@ -138,9 +138,10 @@ def _run(cmd: list[str], *, env: dict[str, str] | None = None) -> None:
 
 
 def _wait_for_health(url: str, label: str) -> None:
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     for _ in range(40):
         try:
-            with urllib.request.urlopen(f"{url.rstrip('/')}/health", timeout=2) as resp:
+            with opener.open(f"{url.rstrip('/')}/health", timeout=2) as resp:
                 if resp.status == 200:
                     return
         except (urllib.error.URLError, TimeoutError):

@@ -124,13 +124,15 @@ def run_tick(
         agent_id=agent_id,
     )
 
-    # Phase 3 — regress production model so holdout gate can promote candidate
-    bad = registry.create_version(
-        agent_id,
-        components={"model_id": "bad-regress-v1"},
-        source="clock-t-path-setup",
-    )
-    registry.activate(agent_id, bad["version_id"])
+    # Phase 3 — optionally regress production model so holdout gate can promote candidate.
+    # This is demo scaffolding; real deployments skip it (force_regression: false in scenario).
+    if scenario.get("force_regression", True):
+        bad = registry.create_version(
+            agent_id,
+            components={"model_id": "bad-regress-v1"},
+            source="clock-t-path-setup",
+        )
+        registry.activate(agent_id, bad["version_id"])
 
     # Phase 4 — idle window → batch self-play fill + self-tuning
     loop_store = LoopStore(root)

@@ -50,8 +50,13 @@ def fill_buffer_batch(
 
         result = self_play_via_http(sp_url, coaching_root=coaching_root, capability=capability, n=n)
     else:
-        from mock_self_play import MockSelfPlayEngine
-
+        try:
+            from mock_self_play import MockSelfPlayEngine
+        except ImportError:
+            raise RuntimeError(
+                "MockSelfPlayEngine not available. Set MOCK_SELF_PLAY_URL for HTTP mode, "
+                "or ensure mock-services/ is on sys.path."
+            )
         engine = self_play_engine or MockSelfPlayEngine(coaching_root)
         result = engine.generate_batch(coaching_root=coaching_root, capability=capability, n=n)
 
@@ -100,7 +105,7 @@ def run_t_path(
     from services.adapters.holdout_engine import build_holdout_engine
     from services.orchestrator.drop_detector import check_promotion, load_thresholds
 
-    batch_size = batch_size_threshold() if beta is None else beta
+    batch_size = beta if beta is not None else batch_size_threshold()
     active_rows = loop_store.active_buffer_rows()
     batch_fill: dict[str, Any] | None = None
     if len(active_rows) < batch_size:

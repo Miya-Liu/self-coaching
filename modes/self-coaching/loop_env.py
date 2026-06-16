@@ -181,11 +181,11 @@ def configure_demo_env(
     env_file: str | Path | None = None,
     with_http: bool = False,
 ) -> ServiceProfile:
-    """Load optional env file, resolve mode, apply profile. Call before demo run.
+    """Load optional env file, resolve mode, apply profile.
 
-    Also builds and returns a LoopConfig for callers that want it.
-    Legacy callers use the returned ServiceProfile; new code can call
-    configure_demo_env().config for the full LoopConfig.
+    After this call, os.environ is configured and LoopConfig.from_env() will
+    produce the correct config. Legacy callers use the returned ServiceProfile;
+    new code should call LoopConfig.from_env() after this.
     """
     if env_file is not None:
         load_env_file(env_file)

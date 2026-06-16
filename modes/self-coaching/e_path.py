@@ -69,8 +69,13 @@ def augment_sigma_sparse(
 
         result = generate_suite_via_http(sp_url, body)
     else:
-        from mock_self_play import MockSelfPlayEngine
-
+        try:
+            from mock_self_play import MockSelfPlayEngine
+        except ImportError:
+            raise RuntimeError(
+                "MockSelfPlayEngine not available. Set MOCK_SELF_PLAY_URL for HTTP mode, "
+                "or ensure mock-services/ is on sys.path."
+            )
         engine = self_play_engine or MockSelfPlayEngine(coaching_root)
         result = engine.generate_suite(**body)
 
@@ -121,7 +126,7 @@ def run_e_path(
         return None
 
     bootstrap_version = str(registry.get_agent(agent_id)["active_version_id"])
-    play_limit = sigma_play_threshold() if sigma_play is None else sigma_play
+    play_limit = sigma_play if sigma_play is not None else sigma_play_threshold()
     suite_result = augment_sigma_sparse(
         sigma,
         coaching_root=coaching_root,

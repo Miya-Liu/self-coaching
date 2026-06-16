@@ -124,18 +124,19 @@ def iter_task_stream(path: str | Path) -> Iterator[dict[str, Any]]:
         yield task
 
 
-def default_client(coaching_root: str | Path) -> LoopClient:
+def default_client(coaching_root: str | Path, config: LoopConfig | None = None) -> LoopClient:
     try:
         from .loop_env import build_loop_client
     except ImportError:
         from loop_env import build_loop_client
 
-    return build_loop_client(coaching_root)
+    return build_loop_client(coaching_root, config=config)
 
 
 def run_tasks(
     coaching_root: str | Path,
     *,
+    config: LoopConfig | None = None,
     task_stream_path: str | Path | None = None,
     limit: int | None = None,
     tau_fail: float | None = None,
@@ -151,26 +152,35 @@ def run_tasks(
     self_play_engine: Any | None = None,
     agentevals_engine: Any | None = None,
 ) -> tuple[list[TaskScore], LoopState]:
-    """Process fixture tasks; route Sigma/B; run E-path and optional T-path."""
+    """Process fixture tasks; route Sigma/B; run E-path and optional T-path.
+
+    If config is provided, its values are used as defaults for thresholds.
+    Explicit keyword args (tau_fail, sigma_min, etc.) override the config.
+    """
     from mock_agent_registry import AgentRegistry
 
-    stream_path = Path(task_stream_path or DEFAULT_TASK_STREAM)
+    # Resolve config — explicit kwargs override config fields
+    cfg = config or LoopConfig.from_env()
+    stream_path = Path(task_stream_path or cfg.task_stream)
     root = Path(coaching_root).resolve()
+    agent = agent_id or cfg.agent_id
+
     store = LoopStateStore(root)
     loop_store = LoopStore(root)
     state = store.load()
-    state = store.sync_generation_from_registry(state, agent_id=agent_id or loop_agent_id())
+    state = store.sync_generation_from_registry(state, agent_id=agent)
 
-    agent = agent_id or loop_agent_id()
     registry = AgentRegistry(root)
     registry.ensure_agent(agent)
     if store.registry_generation(agent_id=agent) == 0 and state.generation == 0:
         store.write_registry_generation(0, agent_id=agent)
 
-    loop_client = client if client is not None else default_client(root)
-    threshold = tau_fail_threshold() if tau_fail is None else tau_fail
-    sigma_threshold = sigma_min_threshold() if sigma_min is None else sigma_min
-    free_time = FreeTimeSimulator(idle_after=idle_after)
+    loop_client = client if client is not None else default_client(root, config=cfg)
+    threshold = tau_fail if tau_fail is not None else cfg.tau_fail
+    sigma_threshold = sigma_min if sigma_min is not None else cfg.sigma_min
+    play_limit = sigma_play if sigma_play is not None else cfg.sigma_play
+    batch = beta if beta is not None else cfg.batch_size
+    free_time = FreeTimeSimulator(idle_after=idle_after if idle_after is not None else cfg.idle_after)
 
     sigma: list[SupportEntry] = []
     results: list[TaskScore] = []
@@ -208,7 +218,7 @@ def run_tasks(
                 loop_store=loop_store,
                 coaching_root=root,
                 agent_id=agent,
-                sigma_play=sigma_play,
+                sigma_play=play_limit,
                 self_play_engine=self_play_engine,
             )
             state.buffer_count = len(loop_store.active_buffer_rows())
@@ -222,7 +232,7 @@ def run_tasks(
                 state=state,
                 coaching_root=root,
                 agent_id=agent,
-                beta=beta,
+                beta=batch,
                 candidate_model_id=candidate_model_id,
                 self_play_engine=self_play_engine,
                 agentevals_engine=agentevals_engine,

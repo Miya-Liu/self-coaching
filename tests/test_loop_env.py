@@ -116,12 +116,14 @@ def test_mock_http_promotes_aerl_train_backend(monkeypatch: pytest.MonkeyPatch):
     assert "MOCK_AERL_URL" in profile.service_urls
 
 
-def test_loop_config_mock_http_infers_aerl_backend(monkeypatch: pytest.MonkeyPatch):
+def test_loop_config_mock_http_does_not_infer_backends(monkeypatch: pytest.MonkeyPatch):
+    """mock-http mode uses HTTP transport but keeps mock backends unless explicitly set."""
     from loop_config import LoopConfig
 
     monkeypatch.setenv("LOOP_SERVICE_MODE", "mock-http")
     monkeypatch.setenv("MOCK_AERL_URL", "http://127.0.0.1:38004")
     monkeypatch.setenv("ORCHESTRATOR_TRAIN_BACKEND", "mock")
     config = LoopConfig.from_env()
-    assert config.train_backend == "aerl"
+    # mock-http does NOT auto-infer backends — only live mode does
+    assert config.train_backend == "mock"
     assert config.aerl_url == "http://127.0.0.1:38004"

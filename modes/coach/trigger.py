@@ -8,15 +8,10 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from agent_bridge import ClockPlan, CoachAgentBridge, MockCoachAgentBridge
-from post import CoachPost, persist_post
-
-try:
-    from clock import load_scenario, run_tick
-    from registry import SupervisedAgent, load_registry
-except ImportError:
-    from modes.coach.clock import load_scenario, run_tick  # type: ignore[no-redef]
-    from modes.coach.registry import SupervisedAgent, load_registry  # type: ignore[no-redef]
+from coach.agent_bridge import ClockPlan, CoachAgentBridge, MockCoachAgentBridge
+from coach.post import CoachPost, persist_post
+from coach.clock import load_scenario, run_tick
+from coach.registry import SupervisedAgent, load_registry
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]

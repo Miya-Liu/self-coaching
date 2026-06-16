@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -26,27 +25,17 @@ _SC_ROOT = _COACH_ROOT.parent / "self-coaching"
 REPO_ROOT = _COACH_ROOT.parents[1]
 _MOCK_SERVICES = REPO_ROOT / "mock-services"
 
-for _entry in (
-    str(_MOCK_SERVICES),
-    str(REPO_ROOT),
-    str(_SC_ROOT),
-    str(_SC_ROOT / "self-learning"),
-    str(_COACH_ROOT),
-):
-    if _entry not in sys.path:
-        sys.path.insert(0, _entry)
+# Ensure mock-services and self-learning are importable for legacy callers
+import sys as _sys
+for _entry in (str(_MOCK_SERVICES), str(REPO_ROOT), str(_SC_ROOT), str(_SC_ROOT / "self-learning")):
+    if _entry not in _sys.path:
+        _sys.path.insert(0, _entry)
 
-try:
-    from loop_driver import run_tasks, run_t_path  # noqa: E402
-    from loop_env import build_loop_client  # noqa: E402
-    from loop_store import LoopStore  # noqa: E402
-    from state import LoopStateStore  # noqa: E402
-except ImportError as exc:
-    raise RuntimeError(
-        f"Cannot import self-coaching loop driver from {_SC_ROOT}. "
-        "Install with: pip install -e ."
-    ) from exc
-from mock_agent_registry import AgentRegistry  # noqa: E402
+from self_coaching.loop_driver import run_tasks, run_t_path
+from self_coaching.loop_env import build_loop_client
+from self_coaching.loop_store import LoopStore
+from self_coaching.state import LoopStateStore
+from mock_services.mock_agent_registry import AgentRegistry
 
 
 def _resolve_path(path: str | Path) -> Path:
@@ -94,10 +83,7 @@ def run_tick(
     )
 
     # Build a LoopConfig from scenario values — no permanent env mutation.
-    try:
-        from loop_config import LoopConfig
-    except ImportError:
-        from self_coaching.loop_config import LoopConfig  # type: ignore[no-redef]
+    from self_coaching.loop_config import LoopConfig
 
     sigma_min = int(loop_cfg.get("sigma_min", os.environ.get("LOOP_SIGMA_MIN", 3)))
     sigma_play = int(loop_cfg.get("sigma_play", os.environ.get("LOOP_SIGMA_PLAY", 3)))

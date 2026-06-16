@@ -113,7 +113,7 @@ class ClockScheduler:
 
     def _load_agents(self) -> None:
         """Load/reload agent configs from registry."""
-        from registry import load_registry, SupervisedAgent
+        from coach.registry import load_registry
 
         agents = load_registry(self._registry_path)
         for agent in agents:
@@ -240,8 +240,8 @@ class ClockScheduler:
 
         # Write tick event log
         try:
-            from trigger import resolve_coaching_root, find_agent
-            from registry import load_registry
+            from coach.trigger import resolve_coaching_root, find_agent
+            from coach.registry import load_registry
             agents = load_registry(self._registry_path)
             agent = find_agent(agents, agent_id)
             coaching_root = resolve_coaching_root(agent)
@@ -253,7 +253,7 @@ class ClockScheduler:
 
     def _run_default_tick(self, agent_id: str) -> dict[str, Any]:
         """Run the standard coach tick pipeline via trigger.handle_post_body."""
-        from trigger import handle_post_body
+        from coach.trigger import handle_post_body
 
         body = {
             "agent_id": agent_id,

@@ -8,12 +8,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
-from post import CoachPost, ClockAction
-
-try:
-    from registry import SupervisedAgent
-except ImportError:
-    from modes.coach.registry import SupervisedAgent  # type: ignore[no-redef]
+from coach.post import CoachPost, ClockAction
+from coach.registry import SupervisedAgent
 
 
 @dataclass(frozen=True)

@@ -13,16 +13,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-HERE = Path(__file__).resolve().parent
-REPO_ROOT = HERE.parents[1]
-for _entry in (str(HERE), str(REPO_ROOT)):
-    if _entry not in sys.path:
-        sys.path.insert(0, _entry)
-
-from agent_bridge import MockCoachAgentBridge  # noqa: E402
-from registry import default_registry_path, load_registry  # noqa: E402
-from scheduler import ClockScheduler  # noqa: E402
-from trigger import handle_post_body  # noqa: E402
+from coach.agent_bridge import MockCoachAgentBridge
+from coach.registry import default_registry_path, load_registry
+from coach.scheduler import ClockScheduler
+from coach.trigger import handle_post_body
 
 LOG = logging.getLogger("coach.service")
 

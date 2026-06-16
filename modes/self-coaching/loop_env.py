@@ -29,6 +29,7 @@ LOOP_DEFAULTS: dict[str, str] = {
     "LOOP_HOLDOUT_TIMEOUT_S": "5",
     "ORCHESTRATOR_EVAL_BACKEND": "mock",
     "ORCHESTRATOR_TRAIN_BACKEND": "mock",
+    "ORCHESTRATOR_LEARN_BACKEND": "mock",
     "ORCHESTRATOR_TRANSPORT": "module",
     "AGENTEVALS_SUITE_ID": "tool-use-canary",
     "AGENTEVALS_SUITE_ID_HOLDOUT": "tool-use-holdout",
@@ -108,6 +109,7 @@ def apply_service_mode(mode: str) -> None:
         os.environ.pop("TRAINER_BASE_URL", None)
         os.environ["ORCHESTRATOR_EVAL_BACKEND"] = "mock"
         os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = "mock"
+        os.environ["ORCHESTRATOR_LEARN_BACKEND"] = "mock"
         os.environ["ORCHESTRATOR_TRANSPORT"] = "module"
         return
 
@@ -179,7 +181,12 @@ def configure_demo_env(
     env_file: str | Path | None = None,
     with_http: bool = False,
 ) -> ServiceProfile:
-    """Load optional env file, resolve mode, apply profile. Call before demo run."""
+    """Load optional env file, resolve mode, apply profile. Call before demo run.
+
+    Also builds and returns a LoopConfig for callers that want it.
+    Legacy callers use the returned ServiceProfile; new code can call
+    configure_demo_env().config for the full LoopConfig.
+    """
     if env_file is not None:
         load_env_file(env_file)
     else:
@@ -223,9 +230,23 @@ def _repo_root() -> Path:
     )
 
 
-def build_loop_client(coaching_root: str | Path) -> Any:
-    """Build SelfCoaching loop client with composite eval/train adapters per env."""
+def build_loop_client(coaching_root: str | Path, config: Any | None = None) -> Any:
+    """Build SelfCoaching loop client with composite eval/train/learn adapters.
+
+    Args:
+        coaching_root: Path to the coaching root directory.
+        config: Optional LoopConfig. If None, builds from os.environ (legacy).
+    """
     import sys
+
+    # Lazy import to avoid circular dep at module level
+    try:
+        from .loop_config import LoopConfig
+    except ImportError:
+        from loop_config import LoopConfig
+
+    if config is None:
+        config = LoopConfig.from_env()
 
     repo_root = _repo_root()
     mock_services = repo_root / "mock-services"
@@ -236,13 +257,9 @@ def build_loop_client(coaching_root: str | Path) -> Any:
     import client as client_mod  # noqa: E402
 
     root = Path(coaching_root).resolve()
-    transport = os.environ.get("ORCHESTRATOR_TRANSPORT", "module").lower()
-    if transport == "http":
-        inner = client_mod.build_client(
-            "http",
-            base_url=os.environ.get("ORCHESTRATOR_BASE_URL", "http://127.0.0.1:8765"),
-            api_key=os.environ.get("MOCK_SERVICE_TOKEN"),
-        )
+    if config.transport == "http":
+        base_url = config.orchestrator_base_url or "http://127.0.0.1:8765"
+        inner = client_mod.build_client("http", base_url=base_url, api_key=config.api_token)
     else:
         inner = client_mod.ModuleClient(root)
 
@@ -252,6 +269,7 @@ def build_loop_client(coaching_root: str | Path) -> Any:
 
     return build_composite_client(
         inner,
-        eval_backend=os.environ.get("ORCHESTRATOR_EVAL_BACKEND", "mock"),
-        train_backend=os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock"),
+        eval_backend=config.eval_backend,
+        train_backend=config.train_backend,
+        learn_backend=config.learn_backend,
     )

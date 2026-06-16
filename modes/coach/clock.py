@@ -73,7 +73,13 @@ def run_tick(
     *,
     client: Any | None = None,
 ) -> dict[str, Any]:
-    """Run one autonomous evolution tick: E-path → buffer → T-path."""
+    """Run one autonomous evolution tick: E-path → buffer → T-path.
+
+    Sets AGENT_ID/LOOP_AGENT_ID in os.environ for the duration of the tick
+    (required by mock_self_coaching.learn() which reads it) but restores
+    previous values on exit to prevent cross-agent contamination in the
+    multi-agent scheduler.
+    """
     root = Path(coaching_root).resolve()
     root.mkdir(parents=True, exist_ok=True)
     agent_id = _scenario_agent_id(scenario)
@@ -87,29 +93,67 @@ def run_tick(
         streams.get("buffer") or "mock-services/fixtures/task_stream/clock_loop_buffer_v1.jsonl"
     )
 
-    os.environ["LOOP_AGENT_ID"] = agent_id
-    os.environ["AGENT_ID"] = agent_id
-    os.environ.setdefault("LOOP_EXECUTION_MODE", str(scenario.get("execution_mode") or "autonomous"))
-
-    loop_client = client or build_loop_client(root)
-    registry = AgentRegistry(root)
-    registry.ensure_agent(agent_id)
-    generation_before = LoopStateStore(root).load().generation
+    # Build a LoopConfig from scenario values — no permanent env mutation.
+    try:
+        from loop_config import LoopConfig
+    except ImportError:
+        from self_coaching.loop_config import LoopConfig  # type: ignore[no-redef]
 
     sigma_min = int(loop_cfg.get("sigma_min", os.environ.get("LOOP_SIGMA_MIN", 3)))
     sigma_play = int(loop_cfg.get("sigma_play", os.environ.get("LOOP_SIGMA_PLAY", 3)))
     beta = int(loop_cfg.get("beta", os.environ.get("LOOP_BATCH_SIZE", 4)))
     tau_fail = float(loop_cfg.get("tau_fail", os.environ.get("LOOP_TAU_FAIL", 0.75)))
 
+    config = LoopConfig(
+        agent_id=agent_id,
+        tau_fail=tau_fail,
+        sigma_min=sigma_min,
+        sigma_play=sigma_play,
+        batch_size=beta,
+        task_stream=e_path_stream,
+    )
+
+    # Scoped env-var set: mock_self_coaching.learn() reads AGENT_ID from env.
+    # Restore on exit so concurrent ticks for other agents don't get contaminated.
+    _prev_agent = os.environ.get("AGENT_ID")
+    _prev_loop_agent = os.environ.get("LOOP_AGENT_ID")
+    os.environ["AGENT_ID"] = agent_id
+    os.environ["LOOP_AGENT_ID"] = agent_id
+    try:
+        return _run_tick_inner(root, scenario, config, e_path_stream, buffer_stream, agent_id, client)
+    finally:
+        if _prev_agent is None:
+            os.environ.pop("AGENT_ID", None)
+        else:
+            os.environ["AGENT_ID"] = _prev_agent
+        if _prev_loop_agent is None:
+            os.environ.pop("LOOP_AGENT_ID", None)
+        else:
+            os.environ["LOOP_AGENT_ID"] = _prev_loop_agent
+
+
+def _run_tick_inner(
+    root: Path,
+    scenario: dict[str, Any],
+    config: Any,
+    e_path_stream: Path,
+    buffer_stream: Path,
+    agent_id: str,
+    client: Any | None,
+) -> dict[str, Any]:
+    """Inner tick logic (separated so run_tick can do env save/restore)."""
+    loop_client = client or build_loop_client(root, config=config)
+    registry = AgentRegistry(root)
+    registry.ensure_agent(agent_id)
+    generation_before = LoopStateStore(root).load().generation
+
     # Phase 1 — observe failures → self-evolution (sparse self-play + learn)
     run_tasks(
         root,
+        config=config,
         task_stream_path=e_path_stream,
         enable_e_path=True,
         enable_t_path=False,
-        sigma_min=sigma_min,
-        sigma_play=sigma_play,
-        tau_fail=tau_fail,
         client=loop_client,
         agent_id=agent_id,
     )
@@ -117,6 +161,7 @@ def run_tick(
     # Phase 2 — partial buffer fill (forces C07 batch self-play on T-path)
     run_tasks(
         root,
+        config=config,
         task_stream_path=buffer_stream,
         enable_e_path=False,
         enable_t_path=False,
@@ -144,7 +189,7 @@ def run_tick(
         state=state,
         coaching_root=root,
         agent_id=agent_id,
-        beta=beta,
+        beta=config.batch_size,
         self_play_engine=None,
     )
     if t_result is None:

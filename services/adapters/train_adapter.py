@@ -22,14 +22,15 @@ class AERLTrainAdapter:
         dataset: str | None = None,
         base_model: str = "mock-base",
         coaching_root: str | None = None,
+        agent_id: str | None = None,
     ) -> dict[str, Any]:
-        agent_id = os.environ.get("AGENT_ID")
+        resolved_agent_id = agent_id or os.environ.get("AGENT_ID")
         dataset_refs = [dataset] if dataset else None
         created = self._client.create_training_run(
             pipeline_id=pipeline,
             base_model=base_model,
             dataset_refs=dataset_refs,
-            agent_id=agent_id,
+            agent_id=resolved_agent_id,
             coaching_root=coaching_root,
         )
         run_id = str(created.get("id") or created.get("run_id") or "")

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-import os
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -70,8 +69,6 @@ def execute_plan(
         plan.scenario_overrides,
         agent.id,
     )
-    os.environ["LOOP_AGENT_ID"] = agent.id
-    os.environ["AGENT_ID"] = agent.id
     return run_tick(root, scenario, client=client)
 
 

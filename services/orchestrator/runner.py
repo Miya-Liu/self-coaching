@@ -51,6 +51,10 @@ def _min_cases_for_model() -> int:
     return int(os.environ.get("ORCHESTRATOR_MIN_CASES_FOR_MODEL", "100"))
 
 
+def _learn_backend() -> str:
+    return os.environ.get("ORCHESTRATOR_LEARN_BACKEND", "mock").lower()
+
+
 def _build_client(coaching_root: Path) -> Any:
     mock_services = _repo_root() / "mock-services"
     if str(mock_services) not in sys.path:
@@ -73,6 +77,7 @@ def _build_client(coaching_root: Path) -> Any:
         inner,
         eval_backend=_eval_backend(),
         train_backend=_train_backend(),
+        learn_backend=_learn_backend(),
     )
 
 

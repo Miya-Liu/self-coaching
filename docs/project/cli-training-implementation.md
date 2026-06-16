@@ -203,7 +203,7 @@ Calendar assumes ~3–4 working days per sprint. Adjust dates when each sprint s
 | CT-T07 | `services/adapters/cli_train_output.py` — parse `TRAINING_COMPLETE` marker + fallbacks | — | done |
 | CT-T08 | `services/adapters/cli_train_adapter.py` — `train()` implements CT-R5 contract | — | done |
 | CT-T09 | `tests/test_cli_train_adapter.py` — command build, marker parse, error paths (fakes) | — | done |
-| CT-T10 | AReaL host: add `TRAINING_COMPLETE` line to training script | AReaL | **requested** — see [areal_cli_training_request.md](../design/integrations/areal_cli_training_request.md) |
+| CT-T10 | AReaL host: add `TRAINING_COMPLETE` line to training script | AReaL | **requested** — [areal_cli_training_request.md](../design/integrations/areal_cli_training_request.md) · agent skill updated |
 
 **Sprint 1 exit criteria:**
 

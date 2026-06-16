@@ -15,9 +15,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 _SC = REPO_ROOT / "modes" / "self-coaching"
 _COACH = REPO_ROOT / "modes" / "coach"
+_MODES = REPO_ROOT / "modes"
 _MOCK = REPO_ROOT / "mock-services"
 _TOOLS = REPO_ROOT / "tools"
 for _entry in (
+    str(_MODES),
     str(_COACH),
     str(_SC),
     str(_SC / "self-learning"),

@@ -16,7 +16,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 _COACH = REPO_ROOT / "modes" / "coach"
 _SC = REPO_ROOT / "modes" / "self-coaching"
 _MOCK = REPO_ROOT / "mock-services"
-for _entry in (str(_COACH), str(_SC), str(_SC / "self-learning"), str(_MOCK), str(REPO_ROOT)):
+_MODES = REPO_ROOT / "modes"
+for _entry in (str(_MODES), str(_COACH), str(_SC), str(_SC / "self-learning"), str(_MOCK), str(REPO_ROOT)):
     if _entry not in sys.path:
         sys.path.insert(0, _entry)
 

@@ -35,7 +35,7 @@ from self_coaching.loop_driver import run_tasks, run_t_path
 from self_coaching.loop_env import build_loop_client
 from self_coaching.loop_store import LoopStore
 from self_coaching.state import LoopStateStore
-from mock_services.mock_agent_registry import AgentRegistry
+from mock_agent_registry import AgentRegistry
 
 
 def _resolve_path(path: str | Path) -> Path:

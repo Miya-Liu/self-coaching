@@ -17,9 +17,14 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MOCK_SERVICES = REPO_ROOT / "mock-services"
 MOCK_MAIN = MOCK_SERVICES / "mock_self_coaching.py"
+MODES = REPO_ROOT / "modes"
 
 if str(MOCK_SERVICES) not in sys.path:
     sys.path.insert(0, str(MOCK_SERVICES))
+
+# modes/ on path so `import coach.registry` etc. resolves (package-style imports)
+if str(MODES) not in sys.path:
+    sys.path.insert(0, str(MODES))
 
 
 # Localhost mock servers must never be reached through a system HTTP proxy

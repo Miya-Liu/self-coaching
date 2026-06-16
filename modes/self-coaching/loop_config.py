@@ -110,6 +110,12 @@ class LoopConfig:
     # ── Mock stack ──
     auto_start_mock_stack: bool = True
 
+    # ── Factories (injectable for production) ──
+    # Callable[[Path], AgentRegistry-like] — default uses mock_agent_registry
+    registry_factory: Any = None
+    # Callable[[Path], SelfPlayEngine-like] — default uses MockSelfPlayEngine
+    self_play_factory: Any = None
+
     @classmethod
     def from_env(cls) -> "LoopConfig":
         """Build config from environment variables."""

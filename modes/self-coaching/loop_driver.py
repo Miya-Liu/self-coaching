@@ -157,10 +157,13 @@ def run_tasks(
     If config is provided, its values are used as defaults for thresholds.
     Explicit keyword args (tau_fail, sigma_min, etc.) override the config.
     """
-    from mock_agent_registry import AgentRegistry
+    # Registry factory: use config.registry_factory if provided, else default mock
+    def _default_registry(root: Path) -> Any:
+        from mock_agent_registry import AgentRegistry
+        return AgentRegistry(root)
 
-    # Resolve config — explicit kwargs override config fields
     cfg = config or LoopConfig.from_env()
+    registry_factory = getattr(cfg, "registry_factory", None) or _default_registry
     stream_path = Path(task_stream_path or cfg.task_stream)
     root = Path(coaching_root).resolve()
     agent = agent_id or cfg.agent_id
@@ -170,7 +173,7 @@ def run_tasks(
     state = store.load()
     state = store.sync_generation_from_registry(state, agent_id=agent)
 
-    registry = AgentRegistry(root)
+    registry = registry_factory(root)
     registry.ensure_agent(agent)
     if store.registry_generation(agent_id=agent) == 0 and state.generation == 0:
         store.write_registry_generation(0, agent_id=agent)

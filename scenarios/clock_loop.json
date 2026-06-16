@@ -3,6 +3,7 @@
   "description": "Autonomous tick: self-evolution (E) with sparse self-play (C06), then self-tuning (T) with batch self-play fill (C07)",
   "agent_id": "demo-agent",
   "execution_mode": "autonomous",
+  "force_regression": true,
   "task_streams": {
     "e_path": "mock-services/fixtures/task_stream/clock_loop_e_v1.jsonl",
     "buffer": "mock-services/fixtures/task_stream/clock_loop_buffer_v1.jsonl"

@@ -85,6 +85,7 @@ class CompositeClient:
         dataset: str | None = None,
         base_model: str = "mock-base",
         coaching_root: str | None = None,
+        agent_id: str | None = None,
     ) -> dict[str, Any]:
         if self._train is None:
             return self._inner.train(pipeline=pipeline, dataset=dataset, base_model=base_model)
@@ -94,6 +95,7 @@ class CompositeClient:
             dataset=dataset,
             base_model=base_model,
             coaching_root=str(root) if root is not None else None,
+            agent_id=agent_id,
         )
 
     def run_all(self, *, capability: str = "tool_use", pipeline: str = "sft") -> dict[str, Any]:

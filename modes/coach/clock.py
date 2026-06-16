@@ -156,8 +156,8 @@ def _run_tick_inner(
     )
 
     # Phase 3 — optionally regress production model so holdout gate can promote candidate.
-    # This is demo scaffolding; real deployments skip it (force_regression: false in scenario).
-    if scenario.get("force_regression", True):
+    # Demo scenarios set force_regression: true; production defaults to false.
+    if scenario.get("force_regression", False):
         bad = registry.create_version(
             agent_id,
             components={"model_id": "bad-regress-v1"},

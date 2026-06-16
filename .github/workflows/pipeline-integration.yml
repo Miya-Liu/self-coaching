@@ -1,0 +1,51 @@
+name: pipeline-integration
+
+# Opt-in live probes against the Self-Questioning Pipeline Service.
+# Does NOT run on every PR — trigger manually from GitHub Actions.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pipeline_url:
+        description: Pipeline service base URL
+        required: true
+        default: http://10.110.158.146:8001
+      dry_run_only:
+        description: Run dry_run probes only (recommended)
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  pipeline-availability:
+    name: Pipeline service availability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run availability tests
+        env:
+          PIPELINE_INTEGRATION_TESTS: "1"
+          PIPELINE_SERVICE_URL: ${{ inputs.pipeline_url }}
+          PIPELINE_DRY_RUN: ${{ inputs.dry_run_only }}
+        run: pytest tests/integration/test_pipeline_service_availability.py -v
+
+      - name: Adapter dry_run smoke
+        if: inputs.dry_run_only == 'true'
+        env:
+          PIPELINE_SERVICE_URL: ${{ inputs.pipeline_url }}
+          PIPELINE_DRY_RUN: "1"
+        run: python scripts/pipeline_self_play_smoke.py

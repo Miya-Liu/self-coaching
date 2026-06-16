@@ -32,7 +32,7 @@ for _entry in (str(_MOCK_SERVICES), str(REPO_ROOT), str(_SC_ROOT), str(_SC_ROOT 
         _sys.path.insert(0, _entry)
 
 from self_coaching.loop_driver import run_tasks, run_t_path
-from self_coaching.loop_env import build_loop_client
+from self_coaching.loop_env import build_loop_client, build_self_play_engine
 from self_coaching.loop_store import LoopStore
 from self_coaching.state import LoopStateStore
 from mock_agent_registry import AgentRegistry
@@ -90,14 +90,13 @@ def run_tick(
     beta = int(loop_cfg.get("beta", os.environ.get("LOOP_BATCH_SIZE", 4)))
     tau_fail = float(loop_cfg.get("tau_fail", os.environ.get("LOOP_TAU_FAIL", 0.75)))
 
-    config = LoopConfig(
-        agent_id=agent_id,
-        tau_fail=tau_fail,
-        sigma_min=sigma_min,
-        sigma_play=sigma_play,
-        batch_size=beta,
-        task_stream=e_path_stream,
-    )
+    config = LoopConfig.from_env()
+    config.agent_id = agent_id
+    config.tau_fail = tau_fail
+    config.sigma_min = sigma_min
+    config.sigma_play = sigma_play
+    config.batch_size = beta
+    config.task_stream = e_path_stream
 
     # Scoped env-var set: mock_self_coaching.learn() reads AGENT_ID from env.
     # Restore on exit so concurrent ticks for other agents don't get contaminated.
@@ -129,6 +128,7 @@ def _run_tick_inner(
 ) -> dict[str, Any]:
     """Inner tick logic (separated so run_tick can do env save/restore)."""
     loop_client = client or build_loop_client(root, config=config)
+    self_play_engine = build_self_play_engine(root, config=config)
     registry = AgentRegistry(root)
     registry.ensure_agent(agent_id)
     generation_before = LoopStateStore(root).load().generation
@@ -142,6 +142,7 @@ def _run_tick_inner(
         enable_t_path=False,
         client=loop_client,
         agent_id=agent_id,
+        self_play_engine=self_play_engine,
     )
 
     # Phase 2 — partial buffer fill (forces C07 batch self-play on T-path)
@@ -153,6 +154,7 @@ def _run_tick_inner(
         enable_t_path=False,
         client=loop_client,
         agent_id=agent_id,
+        self_play_engine=self_play_engine,
     )
 
     # Phase 3 — optionally regress production model so holdout gate can promote candidate.
@@ -176,7 +178,8 @@ def _run_tick_inner(
         coaching_root=root,
         agent_id=agent_id,
         beta=config.batch_size,
-        self_play_engine=None,
+        self_play_engine=self_play_engine,
+        config=config,
     )
     if t_result is None:
         raise RuntimeError("T-path did not run (buffer batch not filled)")
@@ -202,8 +205,11 @@ def _run_tick_inner(
         "tasks_processed": final_state.tasks_processed,
         "version_count": len(versions),
         "active_version_id": active["active_version_id"],
-        "sparse_self_play_suite_id": (e_path_last.get("sparse_self_play") or {}).get("suite_id"),
-        "batch_self_play_suite_id": (t_result.get("batch_fill") or {}).get("suite_id"),
+        "sparse_self_play_suite_id": (e_path_last.get("sparse_self_play") or {}).get("suite_id")
+        or (e_path_last.get("sparse_self_play") or {}).get("job_id"),
+        "batch_self_play_suite_id": (t_result.get("batch_fill") or {}).get("suite_id")
+        or (t_result.get("batch_fill") or {}).get("job_id"),
+        "batch_self_play_proceed": (t_result.get("batch_fill") or {}).get("proceed"),
         "t_path_promoted": bool(t_result.get("promoted")),
         "coaching_root": str(root),
     }

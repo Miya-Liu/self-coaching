@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -30,6 +31,7 @@ LOOP_DEFAULTS: dict[str, str] = {
     "ORCHESTRATOR_EVAL_BACKEND": "mock",
     "ORCHESTRATOR_TRAIN_BACKEND": "mock",
     "ORCHESTRATOR_LEARN_BACKEND": "mock",
+    "ORCHESTRATOR_SELFPLAY_BACKEND": "mock",
     "ORCHESTRATOR_TRANSPORT": "module",
     "AGENTEVALS_SUITE_ID": "tool-use-canary",
     "AGENTEVALS_SUITE_ID_HOLDOUT": "tool-use-holdout",
@@ -47,6 +49,7 @@ class ServiceProfile:
     agent_id: str
     eval_backend: str
     train_backend: str
+    selfplay_backend: str
     auto_start_mock_stack: bool
     service_urls: dict[str, str]
 
@@ -114,6 +117,7 @@ def apply_service_mode(mode: str) -> None:
         os.environ["ORCHESTRATOR_EVAL_BACKEND"] = "mock"
         os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = "mock"
         os.environ["ORCHESTRATOR_LEARN_BACKEND"] = "mock"
+        os.environ["ORCHESTRATOR_SELFPLAY_BACKEND"] = "mock"
         os.environ["ORCHESTRATOR_TRANSPORT"] = "module"
         return
 
@@ -139,8 +143,19 @@ def apply_service_mode(mode: str) -> None:
     train_url = os.environ.get("TRAINER_BASE_URL") or os.environ.get("MOCK_AERL_URL")
     if os.environ.get("ORCHESTRATOR_EVAL_BACKEND", "mock") == "mock" and ae_url:
         os.environ["ORCHESTRATOR_EVAL_BACKEND"] = "agentevals"
-    if os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock") == "mock" and train_url:
-        os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = "aerl"
+    if os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock") == "mock":
+        if train_url:
+            os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = "aerl"
+        else:
+            try:
+                from .loop_config import cli_train_env_configured
+            except ImportError:
+                from loop_config import cli_train_env_configured
+            if cli_train_env_configured():
+                os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = "cli"
+    pipeline_url = os.environ.get("PIPELINE_SERVICE_URL") or os.environ.get("SELF_QUESTIONING_URL")
+    if os.environ.get("ORCHESTRATOR_SELFPLAY_BACKEND", "mock") == "mock" and pipeline_url:
+        os.environ["ORCHESTRATOR_SELFPLAY_BACKEND"] = "pipeline"
     os.environ.setdefault("LOOP_HOLDOUT_TIMEOUT_S", "300")
 
 
@@ -155,11 +170,16 @@ def service_profile(mode: str | None = None) -> ServiceProfile:
     urls = {key: os.environ[key] for key in MOCK_URL_KEYS if os.environ.get(key)}
     if os.environ.get("TRAINER_BASE_URL"):
         urls["TRAINER_BASE_URL"] = os.environ["TRAINER_BASE_URL"]
+    if os.environ.get("PIPELINE_SERVICE_URL"):
+        urls["PIPELINE_SERVICE_URL"] = os.environ["PIPELINE_SERVICE_URL"]
+    if os.environ.get("SUPABASE_URL"):
+        urls["SUPABASE_URL"] = os.environ["SUPABASE_URL"]
     return ServiceProfile(
         mode=resolved,
         agent_id=os.environ.get("LOOP_AGENT_ID", "demo-agent"),
         eval_backend=os.environ.get("ORCHESTRATOR_EVAL_BACKEND", "mock"),
         train_backend=os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock"),
+        selfplay_backend=os.environ.get("ORCHESTRATOR_SELFPLAY_BACKEND", "mock"),
         auto_start_mock_stack=should_auto_start_mock_stack(resolved),
         service_urls=urls,
     )
@@ -171,6 +191,7 @@ def format_service_profile(profile: ServiceProfile) -> str:
         f"agent_id: {profile.agent_id}",
         f"eval_backend: {profile.eval_backend}",
         f"train_backend: {profile.train_backend}",
+        f"selfplay_backend: {profile.selfplay_backend}",
     ]
     if profile.mode == "mock-http":
         lines.append(f"auto_start_mock_stack: {profile.auto_start_mock_stack}")
@@ -210,41 +231,23 @@ def default_env_file(repo_root: str | Path) -> Path | None:
     return candidate if candidate.is_file() else None
 
 
-def _skill_root_from_env() -> Path | None:
-    raw = os.environ.get("SELF_COACHING_SKILL_ROOT")
-    if not raw:
-        return None
-    root = Path(raw).expanduser().resolve()
-    if (root / "mock-services").is_dir() or (root / "assets" / "mock-services").is_dir():
-        return root
-    return None
-
-
 def _repo_root() -> Path:
     try:
-        from self_coaching._paths import repo_root
+        from ._paths import repo_root
         return repo_root()
     except ImportError:
-        pass
-    from_env = _skill_root_from_env()
-    if from_env is not None:
-        return from_env
-    here = Path(__file__).resolve().parent
-    for candidate in (here.parents[1], here.parents[2], here.parent):
-        if (candidate / "mock-services").is_dir():
-            return candidate
-        if (candidate / "assets" / "mock-services").is_dir():
-            return candidate
-    raise FileNotFoundError(
-        "Could not locate repo root (mock-services/). "
-        "Set SELF_COACHING_SKILL_ROOT to your Hermes install (~/.hermes/skills/self-coaching), "
-        "or: pip install -e ."
-    )
+        from _paths import repo_root
+        return repo_root()
 
 
 def _build_train_adapter(config: Any) -> Any | None:
-    """Build AERLTrainAdapter when train_backend=aerl (M4.3)."""
-    if str(getattr(config, "train_backend", "mock")).lower() != "aerl":
+    """Build train adapter when train_backend is aerl or cli."""
+    backend = str(getattr(config, "train_backend", "mock")).lower()
+    if backend == "cli":
+        from services.adapters.cli_train_adapter import CLITrainAdapter
+
+        return CLITrainAdapter()
+    if backend != "aerl":
         return None
     from services.adapters.train_adapter import AERLTrainAdapter
     from services.adapters.trainer_rest_client import RestClient
@@ -262,6 +265,31 @@ def _build_train_adapter(config: Any) -> Any | None:
         rest = RestClient(base_url)
         return AERLTrainAdapter(training_client=training, rest_client=rest)
     return AERLTrainAdapter()
+
+
+def build_self_play_engine(coaching_root: str | Path, config: Any | None = None) -> Any | None:
+    """Build self-play engine from LoopConfig (pipeline or mock)."""
+    try:
+        from .loop_config import LoopConfig
+        from .self_play_factory import build_self_play_engine as _build
+    except ImportError:
+        from loop_config import LoopConfig
+        from self_play_factory import build_self_play_engine as _build
+
+    cfg = config if config is not None else LoopConfig.from_env()
+    return _build(cfg, coaching_root)
+
+
+def _build_self_play_client_adapter(config: Any, coaching_root: Path) -> Any | None:
+    if str(getattr(config, "selfplay_backend", "mock")).lower() != "pipeline":
+        return None
+    if str(_repo_root()) not in sys.path:
+        sys.path.insert(0, str(_repo_root()))
+    from services.adapters.self_play_client_adapter import PipelineSelfPlayClientAdapter
+    from services.adapters.selfplay_pipeline_adapter import build_self_play_pipeline_engine
+
+    engine = build_self_play_pipeline_engine(getattr(config, "pipeline_service_url", None))
+    return PipelineSelfPlayClientAdapter(engine, coaching_root)
 
 
 def build_loop_client(coaching_root: str | Path, config: Any | None = None) -> Any:
@@ -302,10 +330,13 @@ def build_loop_client(coaching_root: str | Path, config: Any | None = None) -> A
     from services.adapters import build_composite_client  # noqa: E402
 
     train_adapter = _build_train_adapter(config)
+    self_play_adapter = _build_self_play_client_adapter(config, root)
     return build_composite_client(
         inner,
         eval_backend=config.eval_backend,
         train_backend=config.train_backend,
         learn_backend=config.learn_backend,
+        selfplay_backend=config.selfplay_backend,
         train_adapter=train_adapter,
+        self_play_adapter=self_play_adapter,
     )

@@ -11,20 +11,22 @@ try:
     from .loop_config import (
         THRESHOLDS_PATH,
         LoopClient,
-        _self_play_base_url,
+        LoopConfig,
         batch_size_threshold,
     )
     from .loop_store import LoopStore, read_jsonl
+    from .self_play_factory import run_batch_self_play
     from .state import LoopState
 except ImportError:
     from _paths import _SC_ROOT  # noqa: F401
     from loop_config import (
         THRESHOLDS_PATH,
         LoopClient,
-        _self_play_base_url,
+        LoopConfig,
         batch_size_threshold,
     )
     from loop_store import LoopStore, read_jsonl
+    from self_play_factory import run_batch_self_play
     from state import LoopState
 
 
@@ -38,35 +40,30 @@ def fill_buffer_batch(
     n: int,
     capability: str = "tool_use",
     self_play_engine: Any | None = None,
+    config: LoopConfig | None = None,
 ) -> dict[str, Any]:
     """C07: top up tuning buffer B via batch self-play."""
     if n <= 0:
         return {"status": "skipped", "count": 0}
 
     version_id = str(registry.get_agent(agent_id)["active_version_id"])
-    sp_url = _self_play_base_url()
-    if sp_url:
-        from mock_self_play import self_play_via_http
-
-        result = self_play_via_http(sp_url, coaching_root=coaching_root, capability=capability, n=n)
-    else:
-        try:
-            from mock_self_play import MockSelfPlayEngine
-        except ImportError:
-            raise RuntimeError(
-                "MockSelfPlayEngine not available. Set MOCK_SELF_PLAY_URL for HTTP mode, "
-                "or ensure mock-services/ is on sys.path."
-            )
-        engine = self_play_engine or MockSelfPlayEngine(coaching_root)
-        result = engine.generate_batch(coaching_root=coaching_root, capability=capability, n=n)
+    result = run_batch_self_play(
+        coaching_root=coaching_root,
+        capability=capability,
+        n=n,
+        config=config,
+        engine=self_play_engine,
+    )
 
     staging = coaching_root / ".self-coaching" / "curated" / "staging.jsonl"
-    for traj in read_jsonl(staging):
-        loop_store.append_buffer_from_trajectory(
-            traj,
-            generation=generation,
-            version_id=version_id,
-        )
+    # Pipeline backend: remote data stays in Supabase; only proceed signal matters.
+    if not result.get("pipeline_service"):
+        for traj in read_jsonl(staging):
+            loop_store.append_buffer_from_trajectory(
+                traj,
+                generation=generation,
+                version_id=version_id,
+            )
     return result
 
 
@@ -100,6 +97,7 @@ def run_t_path(
     candidate_model_id: str | None = None,
     self_play_engine: Any | None = None,
     agentevals_engine: Any | None = None,
+    config: LoopConfig | None = None,
 ) -> dict[str, Any] | None:
     """T-path: fill B, train, holdout gate, optional hot-swap, consume B."""
     from services.adapters.holdout_engine import build_holdout_engine
@@ -117,7 +115,22 @@ def run_t_path(
             generation=state.generation,
             n=batch_size - len(active_rows),
             self_play_engine=self_play_engine,
+            config=config,
         )
+        if batch_fill.get("pipeline_service") and not batch_fill.get("proceed"):
+            run_dir = coaching_root / ".self-coaching" / "loop" / "runs" / "t_path"
+            run_dir.mkdir(parents=True, exist_ok=True)
+            held = {
+                "promoted": False,
+                "held": True,
+                "gate_reasons": ["batch_self_play_failed"],
+                "batch_fill": batch_fill,
+                "run_dir": str(run_dir),
+            }
+            from services.orchestrator.eval_metrics import write_json
+
+            write_json(coaching_root / ".self-coaching" / "loop" / "t_path_last.json", held)
+            return held
         active_rows = loop_store.active_buffer_rows()
 
     if len(active_rows) < batch_size:

@@ -127,3 +127,30 @@ def test_loop_config_mock_http_does_not_infer_backends(monkeypatch: pytest.Monke
     # mock-http does NOT auto-infer backends — only live mode does
     assert config.train_backend == "mock"
     assert config.aerl_url == "http://127.0.0.1:38004"
+
+
+def test_live_mode_infers_cli_train_when_supabase_configured(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("LOOP_SERVICE_MODE", "live")
+    monkeypatch.delenv("TRAINER_BASE_URL", raising=False)
+    monkeypatch.delenv("MOCK_AERL_URL", raising=False)
+    monkeypatch.setenv("SUPABASE_URL", "http://db.example")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "secret")
+    monkeypatch.setenv("BRIDGE_USER_ID", "00000000-0000-0000-0000-000000000001")
+    profile = configure_demo_env()
+    assert profile.train_backend == "cli"
+
+
+def test_build_loop_client_cli_backend(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("ORCHESTRATOR_EVAL_BACKEND", "mock")
+    monkeypatch.setenv("ORCHESTRATOR_TRAIN_BACKEND", "cli")
+    monkeypatch.setenv("ORCHESTRATOR_TRANSPORT", "module")
+    monkeypatch.setenv("SUPABASE_URL", "http://db.example")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "secret")
+    monkeypatch.setenv("BRIDGE_USER_ID", "00000000-0000-0000-0000-000000000001")
+
+    from services.adapters.cli_train_adapter import CLITrainAdapter
+    from services.adapters.composite_client import CompositeClient
+
+    client = build_loop_client(tmp_path)
+    assert isinstance(client, CompositeClient)
+    assert isinstance(client._train, CLITrainAdapter)

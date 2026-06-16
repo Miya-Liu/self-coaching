@@ -1,0 +1,524 @@
+﻿{
+    "openapi":  "3.1.0",
+    "info":  {
+                 "title":  "Self-Questioning Agent Pipeline Service",
+                 "description":  "HTTP API to submit and monitor pipeline execution jobs",
+                 "version":  "1.0.0"
+             },
+    "paths":  {
+                  "/health":  {
+                                  "get":  {
+                                              "summary":  "Health Check",
+                                              "description":  "Health check endpoint.",
+                                              "operationId":  "health_check_health_get",
+                                              "responses":  {
+                                                                "200":  {
+                                                                            "description":  "Successful Response",
+                                                                            "content":  {
+                                                                                            "application/json":  {
+                                                                                                                     "schema":  {
+
+                                                                                                                                }
+                                                                                                                 }
+                                                                                        }
+                                                                        }
+                                                            }
+                                          }
+                              },
+                  "/api/pipeline/submit":  {
+                                               "post":  {
+                                                            "summary":  "Submit Pipeline",
+                                                            "description":  "Submit a new pipeline job.\n\nReturns a job_id immediately. The pipeline runs in the background.\nUse GET /api/pipeline/status/{job_id} to check progress.",
+                                                            "operationId":  "submit_pipeline_api_pipeline_submit_post",
+                                                            "requestBody":  {
+                                                                                "content":  {
+                                                                                                "application/json":  {
+                                                                                                                         "schema":  {
+                                                                                                                                        "$ref":  "#/components/schemas/PipelineRequest"
+                                                                                                                                    }
+                                                                                                                     }
+                                                                                            },
+                                                                                "required":  true
+                                                                            },
+                                                            "responses":  {
+                                                                              "200":  {
+                                                                                          "description":  "Successful Response",
+                                                                                          "content":  {
+                                                                                                          "application/json":  {
+                                                                                                                                   "schema":  {
+                                                                                                                                                  "$ref":  "#/components/schemas/PipelineTaskInfo"
+                                                                                                                                              }
+                                                                                                                               }
+                                                                                                      }
+                                                                                      },
+                                                                              "422":  {
+                                                                                          "description":  "Validation Error",
+                                                                                          "content":  {
+                                                                                                          "application/json":  {
+                                                                                                                                   "schema":  {
+                                                                                                                                                  "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                              }
+                                                                                                                               }
+                                                                                                      }
+                                                                                      }
+                                                                          }
+                                                        }
+                                           },
+                  "/api/pipeline/status/{job_id}":  {
+                                                        "get":  {
+                                                                    "summary":  "Get Pipeline Status",
+                                                                    "description":  "Get the status and logs of a pipeline job.",
+                                                                    "operationId":  "get_pipeline_status_api_pipeline_status__job_id__get",
+                                                                    "parameters":  [
+                                                                                       {
+                                                                                           "name":  "job_id",
+                                                                                           "in":  "path",
+                                                                                           "required":  true,
+                                                                                           "schema":  {
+                                                                                                          "type":  "string",
+                                                                                                          "title":  "Job Id"
+                                                                                                      }
+                                                                                       }
+                                                                                   ],
+                                                                    "responses":  {
+                                                                                      "200":  {
+                                                                                                  "description":  "Successful Response",
+                                                                                                  "content":  {
+                                                                                                                  "application/json":  {
+                                                                                                                                           "schema":  {
+                                                                                                                                                          "$ref":  "#/components/schemas/PipelineTaskInfo"
+                                                                                                                                                      }
+                                                                                                                                       }
+                                                                                                              }
+                                                                                              },
+                                                                                      "422":  {
+                                                                                                  "description":  "Validation Error",
+                                                                                                  "content":  {
+                                                                                                                  "application/json":  {
+                                                                                                                                           "schema":  {
+                                                                                                                                                          "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                                      }
+                                                                                                                                       }
+                                                                                                              }
+                                                                                              }
+                                                                                  }
+                                                                }
+                                                    },
+                  "/api/pipeline/tasks":  {
+                                              "get":  {
+                                                          "summary":  "List Pipeline Tasks",
+                                                          "description":  "List all pipeline jobs, optionally filtered by status.",
+                                                          "operationId":  "list_pipeline_tasks_api_pipeline_tasks_get",
+                                                          "parameters":  [
+                                                                             {
+                                                                                 "name":  "status",
+                                                                                 "in":  "query",
+                                                                                 "required":  false,
+                                                                                 "schema":  {
+                                                                                                "anyOf":  [
+                                                                                                              {
+                                                                                                                  "type":  "string"
+                                                                                                              },
+                                                                                                              {
+                                                                                                                  "type":  "null"
+                                                                                                              }
+                                                                                                          ],
+                                                                                                "title":  "Status"
+                                                                                            }
+                                                                             },
+                                                                             {
+                                                                                 "name":  "limit",
+                                                                                 "in":  "query",
+                                                                                 "required":  false,
+                                                                                 "schema":  {
+                                                                                                "type":  "integer",
+                                                                                                "default":  50,
+                                                                                                "title":  "Limit"
+                                                                                            }
+                                                                             }
+                                                                         ],
+                                                          "responses":  {
+                                                                            "200":  {
+                                                                                        "description":  "Successful Response",
+                                                                                        "content":  {
+                                                                                                        "application/json":  {
+                                                                                                                                 "schema":  {
+
+                                                                                                                                            }
+                                                                                                                             }
+                                                                                                    }
+                                                                                    },
+                                                                            "422":  {
+                                                                                        "description":  "Validation Error",
+                                                                                        "content":  {
+                                                                                                        "application/json":  {
+                                                                                                                                 "schema":  {
+                                                                                                                                                "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                            }
+                                                                                                                             }
+                                                                                                    }
+                                                                                    }
+                                                                        }
+                                                      }
+                                          },
+                  "/api/pipeline/logs/{job_id}":  {
+                                                      "get":  {
+                                                                  "summary":  "Get Pipeline Logs",
+                                                                  "description":  "Get full logs for a pipeline job.",
+                                                                  "operationId":  "get_pipeline_logs_api_pipeline_logs__job_id__get",
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "job_id",
+                                                                                         "in":  "path",
+                                                                                         "required":  true,
+                                                                                         "schema":  {
+                                                                                                        "type":  "string",
+                                                                                                        "title":  "Job Id"
+                                                                                                    }
+                                                                                     },
+                                                                                     {
+                                                                                         "name":  "lines",
+                                                                                         "in":  "query",
+                                                                                         "required":  false,
+                                                                                         "schema":  {
+                                                                                                        "type":  "integer",
+                                                                                                        "default":  100,
+                                                                                                        "title":  "Lines"
+                                                                                                    }
+                                                                                     }
+                                                                                 ],
+                                                                  "responses":  {
+                                                                                    "200":  {
+                                                                                                "description":  "Successful Response",
+                                                                                                "content":  {
+                                                                                                                "application/json":  {
+                                                                                                                                         "schema":  {
+
+                                                                                                                                                    }
+                                                                                                                                     }
+                                                                                                            }
+                                                                                            },
+                                                                                    "422":  {
+                                                                                                "description":  "Validation Error",
+                                                                                                "content":  {
+                                                                                                                "application/json":  {
+                                                                                                                                         "schema":  {
+                                                                                                                                                        "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                                    }
+                                                                                                                                     }
+                                                                                                            }
+                                                                                            }
+                                                                                }
+                                                              }
+                                                  },
+                  "/api/pipeline/run_sync":  {
+                                                 "post":  {
+                                                              "summary":  "Run Pipeline Sync",
+                                                              "description":  "Run the pipeline synchronously (blocks until completion).\n\nWARNING: This endpoint blocks the worker thread until the pipeline finishes.\nUse /api/pipeline/submit for async execution in production.",
+                                                              "operationId":  "run_pipeline_sync_api_pipeline_run_sync_post",
+                                                              "requestBody":  {
+                                                                                  "content":  {
+                                                                                                  "application/json":  {
+                                                                                                                           "schema":  {
+                                                                                                                                          "$ref":  "#/components/schemas/PipelineRequest"
+                                                                                                                                      }
+                                                                                                                       }
+                                                                                              },
+                                                                                  "required":  true
+                                                                              },
+                                                              "responses":  {
+                                                                                "200":  {
+                                                                                            "description":  "Successful Response",
+                                                                                            "content":  {
+                                                                                                            "application/json":  {
+                                                                                                                                     "schema":  {
+
+                                                                                                                                                }
+                                                                                                                                 }
+                                                                                                        }
+                                                                                        },
+                                                                                "422":  {
+                                                                                            "description":  "Validation Error",
+                                                                                            "content":  {
+                                                                                                            "application/json":  {
+                                                                                                                                     "schema":  {
+                                                                                                                                                    "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                                }
+                                                                                                                                 }
+                                                                                                        }
+                                                                                        }
+                                                                            }
+                                                          }
+                                             }
+              },
+    "components":  {
+                       "schemas":  {
+                                       "HTTPValidationError":  {
+                                                                   "properties":  {
+                                                                                      "detail":  {
+                                                                                                     "items":  {
+                                                                                                                   "$ref":  "#/components/schemas/ValidationError"
+                                                                                                               },
+                                                                                                     "type":  "array",
+                                                                                                     "title":  "Detail"
+                                                                                                 }
+                                                                                  },
+                                                                   "type":  "object",
+                                                                   "title":  "HTTPValidationError"
+                                                               },
+                                       "PipelineRequest":  {
+                                                               "properties":  {
+                                                                                  "start_stage":  {
+                                                                                                      "type":  "integer",
+                                                                                                      "maximum":  3.0,
+                                                                                                      "minimum":  1.0,
+                                                                                                      "title":  "Start Stage",
+                                                                                                      "description":  "Which stage to start from (1, 2, or 3)",
+                                                                                                      "default":  1
+                                                                                                  },
+                                                                                  "dry_run":  {
+                                                                                                  "type":  "boolean",
+                                                                                                  "title":  "Dry Run",
+                                                                                                  "description":  "If True, only print commands without executing",
+                                                                                                  "default":  false
+                                                                                              },
+                                                                                  "fail_fast":  {
+                                                                                                    "type":  "boolean",
+                                                                                                    "title":  "Fail Fast",
+                                                                                                    "description":  "Stop pipeline on first failure",
+                                                                                                    "default":  true
+                                                                                                },
+                                                                                  "generate_tasks_limit":  {
+                                                                                                               "type":  "integer",
+                                                                                                               "minimum":  0.0,
+                                                                                                               "title":  "Generate Tasks Limit",
+                                                                                                               "description":  "Limit for stage 1 (0 = all)",
+                                                                                                               "default":  0
+                                                                                                           },
+                                                                                  "train_eval_flag":  {
+                                                                                                          "type":  "string",
+                                                                                                          "pattern":  "^(train|eval)$",
+                                                                                                          "title":  "Train Eval Flag",
+                                                                                                          "description":  "Train/eval flag for stage 1 data source",
+                                                                                                          "default":  "eval"
+                                                                                                      },
+                                                                                  "env_type":  {
+                                                                                                   "anyOf":  [
+                                                                                                                 {
+                                                                                                                     "type":  "string"
+                                                                                                                 },
+                                                                                                                 {
+                                                                                                                     "type":  "null"
+                                                                                                                 }
+                                                                                                             ],
+                                                                                                   "title":  "Env Type",
+                                                                                                   "description":  "env_service.env_type",
+                                                                                                   "default":  "openworld"
+                                                                                               },
+                                                                                  "env_url":  {
+                                                                                                  "anyOf":  [
+                                                                                                                {
+                                                                                                                    "type":  "string"
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "type":  "null"
+                                                                                                                }
+                                                                                                            ],
+                                                                                                  "title":  "Env Url",
+                                                                                                  "description":  "env_service.env_url",
+                                                                                                  "default":  "http://127.0.0.1:7080"
+                                                                                              },
+                                                                                  "env_profile":  {
+                                                                                                      "anyOf":  [
+                                                                                                                    {
+                                                                                                                        "type":  "string"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "type":  "null"
+                                                                                                                    }
+                                                                                                                ],
+                                                                                                      "title":  "Env Profile",
+                                                                                                      "description":  "task_manager.env_profile",
+                                                                                                      "default":  "cookbook/env_profiles/openworld.json"
+                                                                                                  },
+                                                                                  "n":  {
+                                                                                            "anyOf":  [
+                                                                                                          {
+                                                                                                              "type":  "integer",
+                                                                                                              "minimum":  1.0
+                                                                                                          },
+                                                                                                          {
+                                                                                                              "type":  "null"
+                                                                                                          }
+                                                                                                      ],
+                                                                                            "title":  "N",
+                                                                                            "description":  "task_manager.n",
+                                                                                            "default":  8
+                                                                                        },
+                                                                                  "num_explore_threads":  {
+                                                                                                              "anyOf":  [
+                                                                                                                            {
+                                                                                                                                "type":  "integer",
+                                                                                                                                "minimum":  1.0
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "type":  "null"
+                                                                                                                            }
+                                                                                                                        ],
+                                                                                                              "title":  "Num Explore Threads",
+                                                                                                              "description":  "task_manager.num_explore_threads",
+                                                                                                              "default":  8
+                                                                                                          },
+                                                                                  "cpu_only":  {
+                                                                                                   "anyOf":  [
+                                                                                                                 {
+                                                                                                                     "type":  "boolean"
+                                                                                                                 },
+                                                                                                                 {
+                                                                                                                     "type":  "null"
+                                                                                                                 }
+                                                                                                             ],
+                                                                                                   "title":  "Cpu Only",
+                                                                                                   "description":  "task_manager.cpu_only",
+                                                                                                   "default":  true
+                                                                                               },
+                                                                                  "dry_run_import":  {
+                                                                                                         "type":  "boolean",
+                                                                                                         "title":  "Dry Run Import",
+                                                                                                         "description":  "If True, stage 3 import runs in dry-run mode (preview only)",
+                                                                                                         "default":  false
+                                                                                                     },
+                                                                                  "extra_env":  {
+                                                                                                    "anyOf":  [
+                                                                                                                  {
+                                                                                                                      "additionalProperties":  {
+                                                                                                                                                   "type":  "string"
+                                                                                                                                               },
+                                                                                                                      "type":  "object"
+                                                                                                                  },
+                                                                                                                  {
+                                                                                                                      "type":  "null"
+                                                                                                                  }
+                                                                                                              ],
+                                                                                                    "title":  "Extra Env",
+                                                                                                    "description":  "Additional env vars"
+                                                                                                }
+                                                                              },
+                                                               "type":  "object",
+                                                               "title":  "PipelineRequest",
+                                                               "description":  "Request body for submitting a pipeline job."
+                                                           },
+                                       "PipelineStatus":  {
+                                                              "type":  "string",
+                                                              "enum":  [
+                                                                           "pending",
+                                                                           "running",
+                                                                           "success",
+                                                                           "failed"
+                                                                       ],
+                                                              "title":  "PipelineStatus"
+                                                          },
+                                       "PipelineTaskInfo":  {
+                                                                "properties":  {
+                                                                                   "job_id":  {
+                                                                                                  "type":  "string",
+                                                                                                  "title":  "Job Id"
+                                                                                              },
+                                                                                   "status":  {
+                                                                                                  "$ref":  "#/components/schemas/PipelineStatus"
+                                                                                              },
+                                                                                   "created_at":  {
+                                                                                                      "type":  "string",
+                                                                                                      "title":  "Created At"
+                                                                                                  },
+                                                                                   "started_at":  {
+                                                                                                      "anyOf":  [
+                                                                                                                    {
+                                                                                                                        "type":  "string"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "type":  "null"
+                                                                                                                    }
+                                                                                                                ],
+                                                                                                      "title":  "Started At"
+                                                                                                  },
+                                                                                   "finished_at":  {
+                                                                                                       "anyOf":  [
+                                                                                                                     {
+                                                                                                                         "type":  "string"
+                                                                                                                     },
+                                                                                                                     {
+                                                                                                                         "type":  "null"
+                                                                                                                     }
+                                                                                                                 ],
+                                                                                                       "title":  "Finished At"
+                                                                                                   },
+                                                                                   "config":  {
+                                                                                                  "additionalProperties":  true,
+                                                                                                  "type":  "object",
+                                                                                                  "title":  "Config"
+                                                                                              },
+                                                                                   "stage_results":  {
+                                                                                                         "additionalProperties":  {
+                                                                                                                                      "type":  "boolean"
+                                                                                                                                  },
+                                                                                                         "type":  "object",
+                                                                                                         "title":  "Stage Results"
+                                                                                                     },
+                                                                                   "error":  {
+                                                                                                 "anyOf":  [
+                                                                                                               {
+                                                                                                                   "type":  "string"
+                                                                                                               },
+                                                                                                               {
+                                                                                                                   "type":  "null"
+                                                                                                               }
+                                                                                                           ],
+                                                                                                 "title":  "Error"
+                                                                                             }
+                                                                               },
+                                                                "type":  "object",
+                                                                "required":  [
+                                                                                 "job_id",
+                                                                                 "status",
+                                                                                 "created_at"
+                                                                             ],
+                                                                "title":  "PipelineTaskInfo",
+                                                                "description":  "Response model for a pipeline task."
+                                                            },
+                                       "ValidationError":  {
+                                                               "properties":  {
+                                                                                  "loc":  {
+                                                                                              "items":  {
+                                                                                                            "anyOf":  [
+                                                                                                                          {
+                                                                                                                              "type":  "string"
+                                                                                                                          },
+                                                                                                                          {
+                                                                                                                              "type":  "integer"
+                                                                                                                          }
+                                                                                                                      ]
+                                                                                                        },
+                                                                                              "type":  "array",
+                                                                                              "title":  "Location"
+                                                                                          },
+                                                                                  "msg":  {
+                                                                                              "type":  "string",
+                                                                                              "title":  "Message"
+                                                                                          },
+                                                                                  "type":  {
+                                                                                               "type":  "string",
+                                                                                               "title":  "Error Type"
+                                                                                           }
+                                                                              },
+                                                               "type":  "object",
+                                                               "required":  [
+                                                                                "loc",
+                                                                                "msg",
+                                                                                "type"
+                                                                            ],
+                                                               "title":  "ValidationError"
+                                                           }
+                                   }
+                   }
+}

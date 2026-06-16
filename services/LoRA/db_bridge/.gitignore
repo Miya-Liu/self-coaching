@@ -1,0 +1,9 @@
+# Local bridge environment files — contain live service-role keys. Never commit.
+.env
+.env.*
+!.env.*.example
+
+# Python caches
+__pycache__/
+*.pyc
+.pytest_cache/

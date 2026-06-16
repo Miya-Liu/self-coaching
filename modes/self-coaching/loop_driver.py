@@ -223,6 +223,7 @@ def run_tasks(
                 agent_id=agent,
                 sigma_play=play_limit,
                 self_play_engine=self_play_engine,
+                config=cfg,
             )
             state.buffer_count = len(loop_store.active_buffer_rows())
 
@@ -239,6 +240,7 @@ def run_tasks(
                 candidate_model_id=candidate_model_id,
                 self_play_engine=self_play_engine,
                 agentevals_engine=agentevals_engine,
+                config=cfg,
             )
             state.buffer_count = len(loop_store.active_buffer_rows())
 

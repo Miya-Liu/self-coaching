@@ -11,14 +11,7 @@ from pathlib import Path
 from .drop_detector import check_drop, load_thresholds
 from .eval_metrics import latest_metrics, metrics_store_path
 from .runner import record_eval, run_improvement
-
-
-def _repo_root() -> Path:
-    try:
-        from self_coaching._paths import repo_root
-        return repo_root()  # type: ignore[no-any-return]
-    except ImportError:
-        return Path(__file__).resolve().parents[2]
+from services._paths import repo_root as _repo_root
 
 
 def cmd_record_eval(args: argparse.Namespace) -> int:

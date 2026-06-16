@@ -4,11 +4,11 @@
 from __future__ import annotations
 
 import os
-import sys
 import time
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
+from services._paths import ensure_mock_services_importable
 from services.adapters.agentevals_mapping import build_agent_config, resolve_model_name
 from services.orchestrator.eval_metrics import EvalMetrics, normalize_from_agentevals
 
@@ -49,9 +49,7 @@ class AgentEvalsHoldoutEngine:
     """AgentEvals HTTP holdout with local registry for version metadata."""
 
     def __init__(self, coaching_root: str | Path, client: Any):
-        mock_services = _repo_root() / "mock-services"
-        if str(mock_services) not in sys.path:
-            sys.path.insert(0, str(mock_services))
+        ensure_mock_services_importable()
         from mock_agent_registry import AgentRegistry  # noqa: E402
 
         self.registry = AgentRegistry(coaching_root)
@@ -67,14 +65,6 @@ class AgentEvalsHoldoutEngine:
 
     def get_run(self, run_id: str) -> dict[str, Any]:
         return self._client.get_run(run_id)
-
-
-def _repo_root() -> Path:
-    try:
-        from self_coaching._paths import repo_root
-        return repo_root()
-    except ImportError:
-        return Path(__file__).resolve().parents[2]
 
 
 def _agentevals_base_url() -> str | None:
@@ -96,9 +86,7 @@ def build_holdout_engine(coaching_root: str | Path) -> HoldoutEngine:
         client = AgentEvalsClient(base_url=ae_url)
         return AgentEvalsHoldoutEngine(coaching_root, client)
 
-    mock_services = _repo_root() / "mock-services"
-    if str(mock_services) not in sys.path:
-        sys.path.insert(0, str(mock_services))
+    ensure_mock_services_importable()
     from mock_agentevals import MockAgentEvalsEngine  # noqa: E402
 
     return MockAgentEvalsEngine(coaching_root)

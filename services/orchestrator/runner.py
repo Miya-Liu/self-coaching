@@ -23,14 +23,6 @@ from .eval_metrics import (
 )
 
 
-def _repo_root() -> Path:
-    try:
-        from self_coaching._paths import repo_root
-        return repo_root()  # type: ignore[no-any-return]
-    except ImportError:
-        return Path(__file__).resolve().parents[2]
-
-
 def _default_thresholds_path() -> Path:
     return Path(__file__).resolve().parent / "config" / "thresholds.json"
 
@@ -60,29 +52,14 @@ def _learn_backend() -> str:
 
 
 def _build_client(coaching_root: Path) -> Any:
-    mock_services = _repo_root() / "mock-services"
-    if str(mock_services) not in sys.path:
-        sys.path.insert(0, str(mock_services))
-    import client as client_mod  # noqa: E402
+    repo_root = Path(__file__).resolve().parents[2]
+    sc_root = repo_root / "modes" / "self-coaching"
+    if str(sc_root) not in sys.path:
+        sys.path.insert(0, str(sc_root))
+    from loop_env import build_loop_client  # noqa: E402
+    from loop_config import LoopConfig  # noqa: E402
 
-    transport = os.environ.get("ORCHESTRATOR_TRANSPORT", "module").lower()
-    if transport == "http":
-        inner = client_mod.build_client(
-            "http",
-            base_url=os.environ.get("ORCHESTRATOR_BASE_URL", "http://127.0.0.1:8765"),
-            api_key=os.environ.get("MOCK_SERVICE_TOKEN"),
-        )
-    else:
-        inner = client_mod.build_client("module", root=coaching_root)
-
-    from services.adapters import build_composite_client  # noqa: E402
-
-    return build_composite_client(
-        inner,
-        eval_backend=_eval_backend(),
-        train_backend=_train_backend(),
-        learn_backend=_learn_backend(),
-    )
+    return build_loop_client(coaching_root, config=LoopConfig.from_env())
 
 
 def _normalize_eval(

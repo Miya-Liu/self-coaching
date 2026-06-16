@@ -9,13 +9,15 @@ from typing import Any
 
 try:
     from ._paths import _SC_ROOT  # noqa: F401 — triggers sys.path setup
-    from .loop_config import LoopClient, _self_play_base_url, sigma_play_threshold
+    from .loop_config import LoopClient, LoopConfig, sigma_play_threshold
     from .loop_store import LoopStore, SupportEntry, read_jsonl
+    from .self_play_factory import run_suite_self_play
     from .state import LoopState, LoopStateStore
 except ImportError:
     from _paths import _SC_ROOT  # noqa: F401
-    from loop_config import LoopClient, _self_play_base_url, sigma_play_threshold
+    from loop_config import LoopClient, LoopConfig, sigma_play_threshold
     from loop_store import LoopStore, SupportEntry, read_jsonl
+    from self_play_factory import run_suite_self_play
     from state import LoopState, LoopStateStore
 
 
@@ -41,6 +43,7 @@ def augment_sigma_sparse(
     generation: int,
     sigma_play: int,
     self_play_engine: Any | None = None,
+    config: LoopConfig | None = None,
 ) -> dict[str, Any] | None:
     """C06: sparse failure-conditioned self-play augments Sigma before E.learn."""
     if not sigma:
@@ -63,48 +66,41 @@ def augment_sigma_sparse(
         "version_id": version_id,
     }
 
-    sp_url = _self_play_base_url()
-    if sp_url:
-        from mock_self_play import generate_suite_via_http
-
-        result = generate_suite_via_http(sp_url, body)
-    else:
-        try:
-            from mock_self_play import MockSelfPlayEngine
-        except ImportError:
-            raise RuntimeError(
-                "MockSelfPlayEngine not available. Set MOCK_SELF_PLAY_URL for HTTP mode, "
-                "or ensure mock-services/ is on sys.path."
-            )
-        engine = self_play_engine or MockSelfPlayEngine(coaching_root)
-        result = engine.generate_suite(**body)
+    result = run_suite_self_play(
+        coaching_root=coaching_root,
+        body=body,
+        config=config,
+        engine=self_play_engine,
+    )
 
     staging = coaching_root / ".self-coaching" / "curated" / "staging.jsonl"
-    for traj in read_jsonl(staging):
-        traj_id, trajectory_ref = loop_store.save_trajectory(
-            str(traj.get("case_id") or traj.get("id") or "suite-variant"),
-            traj,
-        )
-        traj_score = float((traj.get("critique") or {}).get("score", 0.5))
-        traj_task_id = str(traj.get("case_id") or traj.get("id") or "suite-variant")
-        event_text = f"Synthetic adversarial failure on {traj_task_id} (score={traj_score:.2f})"
-        entry = SupportEntry(
-            task_id=str(traj.get("case_id") or traj.get("id") or "suite-variant"),
-            trajectory_id=traj_id,
-            trajectory_ref=trajectory_ref,
-            score=float((traj.get("critique") or {}).get("score", 0.5)),
-            event_text=event_text,
-        )
-        sigma.append(entry)
-        loop_store.append_support(
-            task_id=entry.task_id,
-            generation=generation,
-            version_id=version_id,
-            trajectory_id=traj_id,
-            trajectory_ref=trajectory_ref,
-            score=entry.score,
-            event_text=entry.event_text,
-        )
+    # Pipeline backend: remote data stays in Supabase; only proceed signal matters.
+    if not result.get("pipeline_service"):
+        for traj in read_jsonl(staging):
+            traj_id, trajectory_ref = loop_store.save_trajectory(
+                str(traj.get("case_id") or traj.get("id") or "suite-variant"),
+                traj,
+            )
+            traj_score = float((traj.get("critique") or {}).get("score", 0.5))
+            traj_task_id = str(traj.get("case_id") or traj.get("id") or "suite-variant")
+            event_text = f"Synthetic adversarial failure on {traj_task_id} (score={traj_score:.2f})"
+            entry = SupportEntry(
+                task_id=str(traj.get("case_id") or traj.get("id") or "suite-variant"),
+                trajectory_id=traj_id,
+                trajectory_ref=trajectory_ref,
+                score=float((traj.get("critique") or {}).get("score", 0.5)),
+                event_text=event_text,
+            )
+            sigma.append(entry)
+            loop_store.append_support(
+                task_id=entry.task_id,
+                generation=generation,
+                version_id=version_id,
+                trajectory_id=traj_id,
+                trajectory_ref=trajectory_ref,
+                score=entry.score,
+                event_text=entry.event_text,
+            )
     return result
 
 
@@ -120,6 +116,7 @@ def run_e_path(
     agent_id: str,
     sigma_play: int | None = None,
     self_play_engine: Any | None = None,
+    config: LoopConfig | None = None,
 ) -> dict[str, Any] | None:
     """E-path: optional sparse self-play, learn, activate draft, bump g, flush stale B."""
     if not sigma:
@@ -136,7 +133,27 @@ def run_e_path(
         generation=state.generation,
         sigma_play=play_limit,
         self_play_engine=self_play_engine,
+        config=config,
     )
+
+    if suite_result and suite_result.get("pipeline_service") and not suite_result.get("proceed"):
+        held = {
+            "status": "held",
+            "reason": "sparse_self_play_failed",
+            "e_path": {
+                "generation": state.generation,
+                "parent_version_id": bootstrap_version,
+                "sparse_self_play": suite_result,
+                "sigma_size_before_learn": len(sigma),
+            },
+        }
+        audit_path = coaching_root / ".self-coaching" / "loop" / "e_path_last.json"
+        audit_path.parent.mkdir(parents=True, exist_ok=True)
+        audit_path.write_text(
+            json.dumps(held["e_path"], ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        return held
 
     sigma_size_before_learn = len(sigma)
     result = learn_from_sigma(client, sigma)

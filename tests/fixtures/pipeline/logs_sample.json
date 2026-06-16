@@ -1,0 +1,9 @@
+{
+  "job_id": "fixture-job-pending01",
+  "total_lines": 3,
+  "logs": [
+    "[09:30:24] Pipeline Summary",
+    "[09:30:24]   Stage 1 (Generate tasks from messages): SUCCESS",
+    "[09:30:24] Pipeline succeeded"
+  ]
+}

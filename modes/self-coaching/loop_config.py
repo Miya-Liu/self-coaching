@@ -27,6 +27,15 @@ THRESHOLDS_PATH = _REPO_ROOT / "services" / "orchestrator" / "config" / "thresho
 HOLDOUT_SUITE_ID = "tool-use-holdout"
 
 
+def cli_train_env_configured() -> bool:
+    """True when Supabase credentials exist for db_bridge CLI training."""
+    return bool(
+        os.environ.get("SUPABASE_URL")
+        and os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        and os.environ.get("BRIDGE_USER_ID")
+    )
+
+
 # ─── Protocol ────────────────────────────────────────────────────────────────
 
 @runtime_checkable
@@ -86,8 +95,9 @@ class LoopConfig:
 
     # ── Backends ──
     eval_backend: str = "mock"       # mock | agentevals
-    train_backend: str = "mock"      # mock | aerl
+    train_backend: str = "mock"      # mock | aerl | cli
     learn_backend: str = "mock"      # mock | self-learning
+    selfplay_backend: str = "mock"   # mock | pipeline
     transport: str = "module"        # module | http
 
     # ── Service URLs (None = in-process mock) ──
@@ -95,6 +105,7 @@ class LoopConfig:
     agentevals_url: str | None = None
     self_learning_url: str | None = None
     self_play_url: str | None = None
+    pipeline_service_url: str | None = None
     aerl_url: str | None = None
 
     # ── AgentEvals suite IDs ──
@@ -125,19 +136,26 @@ class LoopConfig:
         ae_url = os.environ.get("AGENTEVALS_BASE_URL") or os.environ.get("MOCK_AGENTEVALS_URL")
         sl_url = os.environ.get("SELF_LEARNING_BASE_URL") or os.environ.get("MOCK_SELF_LEARNING_URL")
         sp_url = os.environ.get("SELF_PLAY_BASE_URL") or os.environ.get("MOCK_SELF_PLAY_URL")
+        pipeline_url = os.environ.get("PIPELINE_SERVICE_URL") or os.environ.get("SELF_QUESTIONING_URL")
         aerl_url = os.environ.get("TRAINER_BASE_URL") or os.environ.get("MOCK_AERL_URL") or os.environ.get("AERL_BASE_URL")
 
         # Resolve backends (explicit env takes priority, else infer from URLs in live mode)
         eval_be = os.environ.get("ORCHESTRATOR_EVAL_BACKEND", "mock").lower()
         train_be = os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock").lower()
         learn_be = os.environ.get("ORCHESTRATOR_LEARN_BACKEND", "mock").lower()
+        selfplay_be = os.environ.get("ORCHESTRATOR_SELFPLAY_BACKEND", "mock").lower()
         if mode == "live":
             if eval_be == "mock" and ae_url:
                 eval_be = "agentevals"
-            if train_be == "mock" and aerl_url:
-                train_be = "aerl"
+            if train_be == "mock":
+                if aerl_url:
+                    train_be = "aerl"
+                elif cli_train_env_configured():
+                    train_be = "cli"
             if learn_be == "mock" and sl_url:
                 learn_be = "self-learning"
+            if selfplay_be == "mock" and pipeline_url:
+                selfplay_be = "pipeline"
 
         return cls(
             tau_fail=float(os.environ.get("LOOP_TAU_FAIL", str(DEFAULT_TAU_FAIL))),
@@ -152,11 +170,13 @@ class LoopConfig:
             eval_backend=eval_be,
             train_backend=train_be,
             learn_backend=learn_be,
+            selfplay_backend=selfplay_be,
             transport=os.environ.get("ORCHESTRATOR_TRANSPORT", "module").lower(),
             orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL"),
             agentevals_url=ae_url or None,
             self_learning_url=sl_url or None,
             self_play_url=sp_url or None,
+            pipeline_service_url=pipeline_url or None,
             aerl_url=aerl_url or None,
             agentevals_suite_id=os.environ.get("AGENTEVALS_SUITE_ID", "tool-use-canary"),
             api_token=os.environ.get("AGENT_API_TOKEN") or os.environ.get("MOCK_SERVICE_TOKEN"),

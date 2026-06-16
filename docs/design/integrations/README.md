@@ -8,6 +8,8 @@ How external systems connect to the shared **evolution engine** via adapters. On
 | [production_agent.md](production_agent.md) | **Production agent API** | Trajectories, versions, skills, deploy/rollback |
 | [coaching_api.md](coaching_api.md) | **Coaching API (T2)** | HTTP spine for learn / self-play / eval / train |
 | [aerl.md](aerl.md) | **AERL** | SFT / GRPO training pipelines |
+| [db_bridge_remote_shell.md](db_bridge_remote_shell.md) | **db_bridge remote shell** | CLI command dispatch to AReaL GPU host via Supabase |
+| [areal_cli_training_request.md](areal_cli_training_request.md) | **AReaL training script** | `TRAINING_COMPLETE` stdout marker (external request) |
 
 ## Adapter layout
 
@@ -19,7 +21,7 @@ SelfCoachingClient  <-- mock-services/client.py
        |
        +-- evaluate / eval_report  -> AgentEvals adapter (live: migration M1 PASS)
        +-- learn / self_play       -> Coaching API mock; learn evolve API migration M2 (spec only)
-       +-- train                   -> mock_aerl + partial aerl_client/train_adapter; production trainer migration M4 (spec only)
+       +-- train                   -> mock_aerl | aerl HTTP | cli (db_bridge); see [cli-training-implementation.md](../../project/cli-training-implementation.md)
        +-- (trajectory / deploy)    -> Production agent adapter (planned)
 ```
 

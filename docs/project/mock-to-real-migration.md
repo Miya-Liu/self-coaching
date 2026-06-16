@@ -142,14 +142,15 @@ Reuse **existing** repo names — no parallel `SELF_*_BASE_URL` tree.
 3. ~~**`full_loop_live.json`**~~ — shipped; opt-in smoke `scripts/full_loop_live_smoke.py` (C12+C18 golden).
 4. **Self-play** read path uses `curated/staging.jsonl` — real adapters must **write back** the same file (writeback contract §4.5; **M3**).
 
-### 4.5 Self-play writeback contract (M3)
+### 4.5 Self-play proceed contract (M3)
 
-`augment_sigma_sparse` and `fill_buffer_batch` read `.self-coaching/curated/staging.jsonl`. Real self-play HTTP clients must:
+Pipeline backend returns **`proceed: true/false`** after a remote job completes. The loop uses this to decide whether to advance; it does **not** mirror Supabase rows into `staging.jsonl` at this stage.
 
-1. Return trajectories in the HTTP response, **and**
-2. Write the same rows to `staging.jsonl` so the loop read path stays unchanged.
+Mock backend still writes `staging.jsonl` and the loop reads it. Pipeline backend sets `pipeline_service: true` and skips the local read path.
 
-C06 uses `POST /self-play/generate-suite`; C07 uses `POST /self-play/generate` — **not** a single endpoint with a mode flag.
+C06 uses `generate_suite`; C07 uses `generate_batch` — both map to `POST /api/pipeline/submit` + poll.
+
+**Deferred:** Supabase `query_bank` → `staging.jsonl` export (only needed if T-path must train from locally curated pipeline data).
 
 ---
 
@@ -179,6 +180,7 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 - [x] `tests/fixtures/agentevals/run_detail_memoryarena_succeeded.json` (live capture)
 - [x] [mapping.md](../integration/mapping.md) — AgentEvals `RunDetail` → `EvalMetrics` (active)
 - [x] `docs/integration/api-snapshots/self-learning-openapi.json` — migration M2.0
+- [x] `docs/integration/api-snapshots/pipeline-service-openapi.json` — migration M3.0 (2026-06-16)
 - [ ] `docs/integration/api-snapshots/self-play-openapi.json`
 - [x] `docs/integration/api-snapshots/aerl-openapi.json` — migration M4.0 (2026-06-16)
 - [ ] Document auth per service in one place (Bearer, API keys) — partial via env templates
@@ -231,24 +233,30 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 
 ### M3 — Self-play real adapter (~3 days)
 
+**Tracker:** [self-play-pipeline-implementation.md](self-play-pipeline-implementation.md) (sprint tasks SP-T01–SP-T24).  
+**Service:** Self-Questioning Pipeline API (`PIPELINE_SERVICE_URL`) — not the mock `/self-play/generate` shape.
+
 **Build:**
 
-- `generate_suite` (C06) vs `generate_batch` (C07) — distinct endpoints
-- Writeback to `staging.jsonl` (§4.5)
-- Factory keyed off `MOCK_SELF_PLAY_URL`
+- `PipelineServiceClient` + `SelfPlayPipelineEngine` (maps C06/C07 → `/api/pipeline/submit`)
+- Writeback to `staging.jsonl` (§4.5) — Supabase export or pipeline-team option
+- Factory keyed off `ORCHESTRATOR_SELFPLAY_BACKEND` + `PIPELINE_SERVICE_URL`
 
 **Tests:**
 
-- `test_loop_self_play_sparse` against staging
-- `tests/test_self_play_endpoint_distinction.py`
+- `tests/integration/test_pipeline_service_availability.py` (dry_run, opt-in live)
+- `test_loop_self_play_sparse` / `test_loop_t_path` against staging (C06/C07)
+- R5 mock-module unchanged
 
-**Exit:** C06 + C07 pass on staging; mock path unchanged when URL unset.
+**Exit:** C07 then C06 pass on staging; mock path unchanged when backend=mock.
 
 ---
 
-### M4 — AERL training real adapter (~5 days) — **partial** (M4.0–M4.3 + M4.5 done; M4.4 staging pending)
+### M4 — AERL training real adapter (~5 days) — **partial** (M4.0–M4.3 + M4.5 done; production CLI pending)
 
-**Spec:** [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) — frozen M4.0; mock trainer + `TrainingClient`/`RestClient` + loop wiring shipped.
+**HTTP mock spec:** [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) — frozen M4.0; mock trainer + `TrainingClient`/`RestClient` + loop wiring shipped.  
+**Production path:** [cli-training-integration-plan.md](cli-training-integration-plan.md) — db_bridge remote shell (supersedes HTTP for GPU host).  
+**Tracker:** [cli-training-implementation.md](cli-training-implementation.md) — sprint tasks CT-T01+; v1 scope = trigger + status only.
 
 **Done (2026-06-16):**
 
@@ -260,8 +268,9 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 
 **Remaining:**
 
-- [ ] Staging smoke (`scripts/aerl_live_smoke.py`) + live T-path (M4.4)
-- [ ] `tests/test_aerl_train_timeout.py` (long GRPO poll budget)
+- [ ] CLI train adapter + transport — [cli-training-implementation.md](cli-training-implementation.md) Sprint 0–2
+- [ ] `scripts/cli_train_smoke.py` + live smoke (replaces HTTP `aerl_live_smoke.py` for production)
+- [ ] `tests/test_aerl_train_timeout.py` (long GRPO poll budget) — reuse for CLI timeout tests
 
 **Build:**
 

@@ -74,6 +74,13 @@ jobs:
           python -m py_compile services/adapters/training_client.py
           python -m py_compile services/adapters/trainer_rest_client.py
           python -m py_compile services/adapters/train_mapping.py
+          python -m py_compile services/adapters/pipeline_http.py
+          python -m py_compile services/adapters/pipeline_service_client.py
+          python -m py_compile services/adapters/pipeline_mapping.py
+          python -m py_compile services/adapters/selfplay_pipeline_adapter.py
+          python -m py_compile services/adapters/self_play_client_adapter.py
+          python -m py_compile modes/self-coaching/self_play_factory.py
+          python -m py_compile scripts/pipeline_self_play_smoke.py
 
       - name: Mock AgentEvals Phase 0 smoke
         run: bash scripts/mock-agentevals-smoke.sh

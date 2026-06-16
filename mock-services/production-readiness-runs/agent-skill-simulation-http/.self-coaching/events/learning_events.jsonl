@@ -1,1 +1,0 @@
-{"capability": ["tool_use"], "classification": "eval_case_candidate", "durable_artifact": "self_play_seed", "event": "HTTP agent-skill simulation event", "id": "learn-4ef3cc0d27", "notes": "Mock learning event. No secrets or raw transcript stored.", "privacy_checked": true, "source": "production-readiness", "timestamp": "2026-05-19T01:43:16Z"}

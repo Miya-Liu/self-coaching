@@ -12,9 +12,14 @@ mock-services/demo-run*/
 mock-services/demo-stack/
 mock-services/ci-*/
 mock-services/demo-loop/
+mock-services/production-readiness-runs/
 references/superpowers-skills/
 modes/self-coaching/self-tuning/services/.env
 uv.lock
 
 # Cursor local state (not part of the skill pack)
 .cursor/
+
+# CI install verification artifacts (regenerate via: bash scripts/install-skill-pack.sh --hermes)
+.ci-verify-hermes/
+.ci-verify-install/

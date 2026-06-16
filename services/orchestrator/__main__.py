@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("record-eval", help="Run eval and append EvalMetrics to the metrics store")
     p.add_argument("--coaching-root", required=True, help="Root with .self-coaching/ layout")
-    p.add_argument("--agent-id", default="default-agent")
+    p.add_argument("--agent-id", default="demo-agent")
     p.add_argument("--candidate", default="mock-candidate-v1")
     p.add_argument("--baseline", default="mock-baseline-v0")
     p.add_argument("--skill-bundle-version", default="unknown")
@@ -89,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("run", help="Run improvement loop into --run-dir (dry deploy)")
     p.add_argument("--coaching-root", required=True)
     p.add_argument("--run-dir", required=True)
-    p.add_argument("--agent-id", default="default-agent")
+    p.add_argument("--agent-id", default="demo-agent")
     p.add_argument("--force-trigger", action="store_true",
                    help="Skip drop check and run improvement anyway")
     p.add_argument("--thresholds", default=None)

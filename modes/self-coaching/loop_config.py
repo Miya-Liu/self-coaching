@@ -161,7 +161,11 @@ class LoopConfig:
 
     @classmethod
     def from_env_file(cls, path: str | Path) -> "LoopConfig":
-        """Load a .env file into os.environ, then build from env."""
+        """Load a .env file into os.environ, then build from env.
+
+        File values override existing env vars (file-wins semantics,
+        matching loop_env.load_env_file default behavior).
+        """
         env_path = Path(path).resolve()
         if not env_path.is_file():
             raise FileNotFoundError(f"env file not found: {env_path}")
@@ -178,7 +182,7 @@ class LoopConfig:
             if not key:
                 continue
             value = value.split("#", 1)[0].strip().strip("'\"")
-            os.environ.setdefault(key, value)
+            os.environ[key] = value  # file wins (overwrite)
         return cls.from_env()
 
 

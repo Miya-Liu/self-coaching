@@ -43,7 +43,7 @@ One evolution engine, one `SelfCoachingClient`, many adapters.
 
 ### M0 — Baseline (skill pack deployable) ✓
 
-- [x] CI: doctor, shellcheck, mock smoke `run-all` (pytest suite runs locally, not yet wired into CI)
+- [x] CI: doctor, shellcheck, mock smoke `run-all`, pytest (3.10–3.12), mypy
 - [x] `scripts/install-skill-pack.sh` + `docs/guides/deploy-skill-pack.md`
 - [x] `modes/self-coaching/SKILL_PACK_VERSION` + `project/changelog-skills.md`
 - [x] Shell strictness on shipped scripts; `run-pipeline.sh` + mock loop demo
@@ -104,8 +104,12 @@ Phase-0 integration smoke (`mapping.md` confirmed against a live succeeded `RunD
 
 ### M5 — Coach mode shell
 
-- [ ] Supervision registry (`modes/coach/agents.yaml` schema + loader)
+- [x] Supervision registry (`modes/coach/agents.clock.yaml` schema + loader)
+- [x] Coach clock service (`service.py` HTTP/WS ingress + `clock.py` tick driver)
+- [x] `ClockScheduler` — periodic per-agent ticks with locking and tick event log
+- [x] Per-agent `interval_s` configuration in registry YAML
 - [ ] Per-agent coaching root convention documented and validated
+- [ ] Production agent bridge (replace `MockCoachAgentBridge`)
 - [ ] Scheduler examples (cron/systemd) for multi-agent `record-eval` / `check-drop` / `run`
 - [ ] Optional LLM proxy spike (trajectory capture only; eval remains AgentEvals)
 

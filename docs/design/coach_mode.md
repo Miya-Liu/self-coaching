@@ -37,12 +37,30 @@ Loop execution modes: [self_coaching_mode.md](self_coaching_mode.md#loop-executi
 
 ## Coach clock service
 
-Inbound post drives one evolution tick (E → sparse/batch play → T):
+The coach service runs as a 24×7 HTTP ingress with an integrated periodic scheduler:
 
 ```bash
 python modes/coach/service.py serve \
   --registry modes/coach/agents.clock.yaml --bind 127.0.0.1:8768
 ```
+
+This starts:
+1. **HTTP server** — accepts `POST /coach/post` for on-demand ticks
+2. **ClockScheduler** — periodically ticks each enabled agent at its configured `interval_s`
+
+Entry points (after `pip install -e ".[coach]"`):
+- `coach-serve serve --registry agents.yaml --bind 0.0.0.0:8768`
+- `coach-clock run --root /path/to/coaching --scenario scenarios/clock_loop.json`
+
+### Periodic scheduler
+
+Each agent in the registry with `coach_clock.enabled: true` gets scheduled at `interval_s` (default 1800s / 30 min). Features:
+- Per-agent lock — no concurrent ticks on the same agent
+- Tick dispatch in worker threads — non-blocking scheduler loop
+- Structured tick log — `{coaching_root}/.self-coaching/coach/ticks/tick_log.jsonl`
+- Graceful shutdown — drains in-flight ticks on SIGINT
+
+### On-demand POST
 
 `POST /coach/post`:
 
@@ -62,7 +80,19 @@ python modes/coach/service.py serve \
 
 Mock bridge when `agent_chat_url` unset: `MockCoachAgentBridge`. Production: [agent_bridge.py](../../modes/coach/agent_bridge.py).
 
-Smoke: `python scripts/clock_loop_smoke.py` · `pytest tests/test_coach_service.py`
+### Registry config (per-agent)
+
+```yaml
+agents:
+  - id: my-agent
+    coaching_root: /var/lib/coach/agents/my-agent
+    coach_clock:
+      enabled: true
+      interval_s: 1800       # 30 minutes
+      scenario: scenarios/clock_loop.json
+```
+
+Smoke: `python scripts/clock_loop_smoke.py` · `pytest tests/test_coach_service.py` · `pytest tests/test_scheduler.py`
 
 ## Scheduler (cron)
 

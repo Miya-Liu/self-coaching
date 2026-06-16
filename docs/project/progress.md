@@ -11,11 +11,11 @@
 | Auto-evaluation | **Done** | Live AgentEvals + mock | Opt-in CI job |
 | Drop detector | **Done** | `check-drop` CLI | Coach scheduler (M5) |
 | Evolution engine | **Done** | `services/orchestrator/` | Real pipeline hooks (M2+) |
-| Self-coaching loop demo | **P0–P4 done** | `mock-self-coaching-demo.sh` | P5 split-stack CI |
+| Self-coaching loop demo | **P0–P5 done** | `mock-self-coaching-demo.sh` + HTTP transport CI | — |
 | Self-play | Mock stub | `mock_self_play.py` | Remote generator adapter |
-| Skill learning | **M2.1 done** | mock routes + evolve API | M2.2 adapters |
+| Skill learning | **M2 complete** | adapters + mock routes + evolve API | Production staging (M2 deferred) |
 | Model training | Mock + partial | `mock_aerl.py`, `aerl_client.py` | M4 production trainer |
-| Coach mode shell | **In progress** | registry, clock, service | Production agent bridge |
+| Coach mode shell | **Scheduler shipped** | registry, clock, scheduler, service | Production agent bridge |
 | Deployment | Dry-run | `deploy_manifest.json` | Canary + rollback (M4) |
 | LLM proxy | Not started | — | M5 optional |
 
@@ -35,10 +35,10 @@ Spec: [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md)
 |-------|--------|
 | M2.0 Spec + OpenAPI | done |
 | M2.1 Mock routes | done |
-| M2.2 Adapters | not started |
-| M2.3 Loop env wiring | not started |
-| M2.4 Staging smoke | not started |
-| M2.5 R5 regression | not started |
+| M2.2 Adapters | **done** (`self_learning_client.py` + `learn_adapter.py`) |
+| M2.3 Loop env wiring | **done** (`build_loop_client` passes `learn_backend`) |
+| M2.4 Staging smoke | **done** (mock HTTP split-stack in CI) |
+| M2.5 R5 regression | **done** (166 tests pass in mock-module mode) |
 
 ## Migration M4 — self-tuning
 
@@ -46,11 +46,15 @@ Spec: [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) — **D
 
 ## Recent milestones
 
+- **2026-06-16:** Migration M2 complete — self-learning adapter, loop env wiring, split-stack HTTP CI
+- **2026-06-16:** Coach `ClockScheduler` — periodic per-agent ticks with locking + tick event log
+- **2026-06-16:** `LoopConfig` dataclass + config threading through run_tasks/e_path/t_path
+- **2026-06-16:** Loop driver refactored into `loop_config.py`, `scoring.py`, `e_path.py`, `t_path.py`
+- **2026-06-16:** Proxy bypass for localhost mock HTTP (Windows WinINET fix)
+- **2026-06-16:** pytest wired into CI (Python 3.10–3.12 matrix) + mypy job
 - **2026-06-15:** M2.0 + M2.1 — evolve API in OpenAPI + `mock_self_learning.py`; L1 scripts at `modes/self-coaching/scripts/`
 - **2026-06-10:** Migration M1 PASS — live AgentEvals holdout (`full_loop_live_smoke.py`)
 - **2026-06-09:** Demo loop P0–P4 — `loop_driver.py`, completeness harness C01–C18, one-command demo
-- **2026-06-08:** Mock platform phases 1–4 — learning, play, AERL, coach demo
-- **2026-06-07:** Mock platform phase 0 — registry, AgentEvals, composite client
 
 Full changelog: `git log --oneline docs/project/`.
 

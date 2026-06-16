@@ -16,7 +16,7 @@ from .runner import record_eval, run_improvement
 def _repo_root() -> Path:
     try:
         from self_coaching._paths import repo_root
-        return repo_root()
+        return repo_root()  # type: ignore[no-any-return]
     except ImportError:
         return Path(__file__).resolve().parents[2]
 
@@ -104,7 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=cmd_run)
 
     args = parser.parse_args(argv)
-    return args.func(args)
+    return int(args.func(args))
 
 
 if __name__ == "__main__":

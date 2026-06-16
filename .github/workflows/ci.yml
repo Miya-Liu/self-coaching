@@ -165,7 +165,7 @@ jobs:
           pip install mypy
 
       - name: Run mypy on services/
-        run: mypy services/ --no-error-summary || true
+        run: mypy services/ --no-error-summary
 
   integration-mock-stack:
     name: integration mock stack (coach demo)

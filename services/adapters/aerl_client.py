@@ -14,7 +14,7 @@ AERLError = TrainerHTTPError
 class AERLClient(TrainingClient):
     """Deprecated alias for :class:`TrainingClient`. Prefer ``TrainingClient`` in new code."""
 
-    def create_training_run(
+    def create_training_run(  # type: ignore[override]
         self,
         *,
         pipeline_id: str,

@@ -26,7 +26,7 @@ from .eval_metrics import (
 def _repo_root() -> Path:
     try:
         from self_coaching._paths import repo_root
-        return repo_root()
+        return repo_root()  # type: ignore[no-any-return]
     except ImportError:
         return Path(__file__).resolve().parents[2]
 
@@ -169,6 +169,7 @@ def run_improvement(
 
         latest = latest_metrics(store, agent_id)
 
+    trigger_metrics: EvalMetrics | None = None
     if not force_trigger:
         if latest is None:
             raise RuntimeError(

@@ -99,7 +99,7 @@ class CompositeClient:
         )
 
     def run_all(self, *, capability: str = "tool_use", pipeline: str = "sft") -> dict[str, Any]:
-        return self._inner.run_all(capability=capability, pipeline=pipeline)
+        return self._inner.run_all(capability=capability, pipeline=pipeline)  # type: ignore[no-any-return]
 
 
 def build_composite_client(
@@ -111,7 +111,7 @@ def build_composite_client(
     eval_adapter: AgentEvalsEvalAdapter | None = None,
     train_adapter: AERLTrainAdapter | None = None,
     learn_adapter: SelfLearningAdapter | None = None,
-) -> Any:
+) -> Any:  # noqa: ANN401
     """Return inner unchanged when all backends are mock, else CompositeClient."""
     use_eval = eval_backend.lower() == "agentevals"
     use_train = train_backend.lower() == "aerl"
@@ -128,4 +128,4 @@ def build_composite_client(
 
 def with_agentevals_eval(inner: Any, eval_adapter: AgentEvalsEvalAdapter | None = None) -> CompositeClient:
     """Wrap a SelfCoachingClient so evaluate/eval_report use AgentEvals."""
-    return build_composite_client(inner, eval_backend="agentevals", eval_adapter=eval_adapter)
+    return build_composite_client(inner, eval_backend="agentevals", eval_adapter=eval_adapter)  # type: ignore[no-any-return]

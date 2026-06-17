@@ -15,6 +15,8 @@ mock-services/demo-loop/
 mock-services/production-readiness-runs/
 references/superpowers-skills/
 modes/self-coaching/self-tuning/services/.env
+scenarios/demo.*.env
+!scenarios/demo.*.env.example
 uv.lock
 
 # Cursor local state (not part of the skill pack)

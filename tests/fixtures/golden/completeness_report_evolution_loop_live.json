@@ -1,0 +1,11 @@
+{
+  "scenario": "evolution_loop_live",
+  "status": "PASS",
+  "required_rows": ["C06", "C07", "C12", "C18"],
+  "rows": [
+    {"id": "C06", "invocation": "pass", "semantic": null},
+    {"id": "C07", "invocation": "pass", "semantic": null},
+    {"id": "C12", "invocation": "pass", "semantic": null},
+    {"id": "C18", "invocation": null, "semantic": "pass"}
+  ]
+}

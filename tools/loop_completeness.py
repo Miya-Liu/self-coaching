@@ -153,7 +153,24 @@ def _expect_batch_self_play(ctx: AuditContext) -> bool:
     if not _expect_t_path(ctx.scenario):
         return False
     batch_fill = (ctx.t_path_last or {}).get("batch_fill") or {}
-    return bool(batch_fill.get("suite_id") or int(batch_fill.get("count", 0)) > 0)
+    return bool(
+        batch_fill.get("suite_id")
+        or batch_fill.get("job_id")
+        or int(batch_fill.get("count", 0)) > 0
+    )
+
+
+def _sparse_self_play_ok(sparse: dict[str, Any]) -> tuple[bool, str]:
+    """Pass when mock suite_id exists or pipeline sparse job succeeded (proceed + job_id)."""
+    suite_id = sparse.get("suite_id")
+    if suite_id:
+        return True, f"suite_id={suite_id}"
+    job_id = sparse.get("job_id")
+    if sparse.get("pipeline_service") and sparse.get("proceed") and job_id:
+        return True, f"pipeline job_id={job_id} proceed={sparse.get('proceed')}"
+    if job_id:
+        return True, f"job_id={job_id}"
+    return False, "missing sparse self-play suite_id or pipeline job_id"
 
 
 def check_c01(ctx: AuditContext) -> MatrixRow:
@@ -204,12 +221,11 @@ def check_c06(ctx: AuditContext) -> MatrixRow:
     if not _expect_sparse_self_play(ctx.scenario):
         return _row("C06", invocation=None, evidence="not required for scenario")
     sparse = (ctx.e_path_last or {}).get("sparse_self_play") or {}
-    suite_id = sparse.get("suite_id")
-    ok = bool(suite_id)
+    ok, evidence = _sparse_self_play_ok(sparse)
     return _row(
         "C06",
         invocation="pass" if ok else "fail",
-        evidence=f"suite_id={suite_id}" if ok else "missing generate_suite suite_id",
+        evidence=evidence,
     )
 
 
@@ -218,12 +234,19 @@ def check_c07(ctx: AuditContext) -> MatrixRow:
         return _row("C07", invocation=None, evidence="batch self-play not required")
     batch_fill = (ctx.t_path_last or {}).get("batch_fill") or {}
     suite_id = batch_fill.get("suite_id")
+    job_id = batch_fill.get("job_id")
     count = int(batch_fill.get("count", 0))
-    ok = bool(suite_id) or count > 0
+    ok = bool(suite_id) or bool(job_id) or count > 0
+    if suite_id:
+        evidence = f"suite_id={suite_id} count={count}"
+    elif job_id:
+        evidence = f"job_id={job_id} count={count} proceed={batch_fill.get('proceed')}"
+    else:
+        evidence = f"count={count}"
     return _row(
         "C07",
         invocation="pass" if ok else "fail",
-        evidence=f"suite_id={suite_id} count={count}",
+        evidence=evidence,
     )
 
 

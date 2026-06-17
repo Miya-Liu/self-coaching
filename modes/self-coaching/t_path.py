@@ -133,7 +133,12 @@ def run_t_path(
             return held
         active_rows = loop_store.active_buffer_rows()
 
-    if len(active_rows) < batch_size:
+    pipeline_batch_ok = (
+        batch_fill is not None
+        and batch_fill.get("pipeline_service")
+        and batch_fill.get("proceed")
+    )
+    if len(active_rows) < batch_size and not pipeline_batch_ok:
         return None
 
     production_version = str(registry.get_agent(agent_id)["active_version_id"])

@@ -310,6 +310,40 @@ def test_e2e_full_loop_completeness_pass(tmp_path: Path, monkeypatch: pytest.Mon
     assert exit_code == 0
 
 
+def test_c06_passes_for_pipeline_job_id(tmp_path: Path):
+    """Pipeline sparse self-play uses job_id + proceed, not AgentEvals suite_id."""
+    scenario = {
+        "name": "pipeline_sparse",
+        "agent_id": "demo-agent",
+        "e_path": {"expect_sparse_self_play": True},
+    }
+    root = tmp_path / "pipeline-c06"
+    loop_dir = root / ".self-coaching" / "loop"
+    loop_dir.mkdir(parents=True)
+    (loop_dir / "e_path_last.json").write_text(
+        json.dumps(
+            {
+                "sparse_self_play": {
+                    "status": "registered",
+                    "pipeline_service": True,
+                    "proceed": True,
+                    "job_id": "job-sparse-abc123",
+                    "count": 3,
+                }
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    AgentRegistry(root).ensure_agent("demo-agent")
+
+    report = run_audit(build_context(root, scenario))
+    rows = {row["id"]: row for row in report["rows"]}
+    assert rows["C06"]["invocation"] == "pass"
+    assert "job-sparse-abc123" in rows["C06"]["evidence"]
+
+
 def test_full_loop_live_require_pass_ignores_c14_fail(tmp_path: Path):
     """Live scenario only requires C12 + C18; C14 promote failure is allowed."""
     root = tmp_path / "live-audit"

@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 """Live availability probes for the Pipeline Service (opt-in).
 
-Set PIPELINE_INTEGRATION_TESTS=1 to run against PIPELINE_SERVICE_URL
-(default http://10.110.158.146:8001). Uses dry_run only — no GPU/LLM work.
+Set PIPELINE_INTEGRATION_TESTS=1 to run against PIPELINE_SERVICE_URL.
+Uses dry_run only — no GPU/LLM work.
 """
 
 from __future__ import annotations

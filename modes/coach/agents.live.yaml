@@ -1,0 +1,22 @@
+# Coach clock registry — live evolution loop verification
+# Backend: pipeline self-play + cli self-tuning (db_bridge/AReaL)
+#
+# Usage:
+#   python -m modes.coach.service serve --registry modes/coach/agents.live.yaml
+#   python scripts/evolution_loop_clock_smoke.py --env-file scenarios/demo.evolution-loop.env
+
+agents:
+  - id: evolution-loop-agent
+    coaching_root: mock-services/ci-evolution-loop
+    model: Qwen3-5L-9B
+    prefer_skill_first: true
+    coach_clock:
+      enabled: true
+      scenario: scenarios/evolution_loop_live.json
+      interval_s: 1800  # 30 min default; use manual trigger for verification
+    eval:
+      suite_id_canary: tool-use-canary
+      suite_id_holdout: tool-use-holdout
+    improvement:
+      train_pipeline: sft
+      min_cases_for_model_path: 2

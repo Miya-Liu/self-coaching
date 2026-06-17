@@ -1,0 +1,34 @@
+{
+  "name": "evolution_loop_live",
+  "description": "Live evolution loop: real self-play (pipeline service) + real self-tuning (cli train via db_bridge). Verifies E-path sparse self-play, T-path batch fill, and training dispatch.",
+  "agent_id": "evolution-loop-agent",
+  "execution_mode": "autonomous",
+  "force_regression": true,
+  "task_streams": {
+    "e_path": "mock-services/fixtures/task_stream/clock_loop_e_v1.jsonl",
+    "buffer": "mock-services/fixtures/task_stream/clock_loop_buffer_v1.jsonl"
+  },
+  "e_path": {
+    "expect_sparse_self_play": true,
+    "min_generation_bump": 1
+  },
+  "t_path": {
+    "outcome": "promote",
+    "semantic_checks": ["C18"]
+  },
+  "loop": {
+    "sigma_min": 3,
+    "sigma_play": 3,
+    "beta": 4,
+    "tau_fail": 0.75,
+    "idle_after": 0,
+    "enable_e_path": true,
+    "enable_t_path": true
+  },
+  "backends": {
+    "selfplay": "pipeline",
+    "train": "cli",
+    "eval": "mock",
+    "learn": "mock"
+  }
+}

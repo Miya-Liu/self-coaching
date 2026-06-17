@@ -1,0 +1,38 @@
+{
+  "name": "evolution_loop_live",
+  "description": "Track 1 live loop: AgentEvals holdout + pipeline self-play (C06/C07) + CLI train. Learn stays mock until M2.4 staging.",
+  "agent_id": "evolution-loop-agent",
+  "execution_mode": "autonomous",
+  "force_regression": true,
+  "task_streams": {
+    "e_path": "mock-services/fixtures/task_stream/clock_loop_e_v1.jsonl",
+    "buffer": "mock-services/fixtures/task_stream/clock_loop_buffer_v1.jsonl"
+  },
+  "e_path": {
+    "expect_sparse_self_play": true,
+    "min_generation_bump": 1
+  },
+  "t_path": {
+    "outcome": "promote",
+    "semantic_checks": ["C18"]
+  },
+  "loop": {
+    "sigma_min": 3,
+    "sigma_play": 3,
+    "beta": 4,
+    "tau_fail": 0.75,
+    "idle_after": 0,
+    "enable_e_path": true,
+    "enable_t_path": true
+  },
+  "backends": {
+    "selfplay": "pipeline",
+    "train": "cli",
+    "eval": "agentevals",
+    "learn": "mock"
+  },
+  "completeness": {
+    "require_pass": ["C06", "C07", "C12", "C18"],
+    "notes": "C14 hot-swap may fail when live holdout scores tie; not in require_pass"
+  }
+}

@@ -86,13 +86,10 @@ class PipelineServiceClient(PipelineHTTPBase):
         *,
         timeout_s: float | None = None,
     ) -> dict[str, Any]:
-        prev_timeout = self.timeout_s
-        if timeout_s is not None:
-            self.timeout_s = timeout_s
-        try:
-            return self._request("POST", "/api/pipeline/run_sync", body or {})
-        finally:
-            self.timeout_s = prev_timeout
+        effective_timeout = timeout_s if timeout_s is not None else self.timeout_s
+        return self._request(
+            "POST", "/api/pipeline/run_sync", body or {}, timeout_s=effective_timeout
+        )
 
 
 __all__ = ["PipelineHTTPError", "PipelineServiceClient"]

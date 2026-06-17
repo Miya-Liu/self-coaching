@@ -22,7 +22,10 @@ from services.adapters.selfplay_pipeline_adapter import build_self_play_pipeline
 
 def main() -> int:
     os.environ.setdefault("PIPELINE_DRY_RUN", "1")
-    base = os.environ.get("PIPELINE_SERVICE_URL", "http://10.110.158.146:8001")
+    base = os.environ.get("PIPELINE_SERVICE_URL")
+    if not base:
+        print("pipeline_self_play_smoke: SKIP — PIPELINE_SERVICE_URL not set", file=sys.stderr)
+        return 0
     engine = build_self_play_pipeline_engine(base)
 
     health = engine._client.health()

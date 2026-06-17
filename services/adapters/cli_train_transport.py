@@ -55,8 +55,7 @@ class CLITrainTransport:
         self.poll_timeout_s = poll_timeout_s
         self.poll_grace_s = poll_grace_s
         self.http_timeout_s = http_timeout_s
-        self._client = client
-        self._owns_client = client is None
+        self._external_client = client  # caller-owned; we never close it
         self._lazy_client: httpx.Client | None = None
 
     @classmethod
@@ -113,8 +112,8 @@ class CLITrainTransport:
         return headers
 
     def _http_client(self) -> httpx.Client:
-        if self._client is not None:
-            return self._client
+        if self._external_client is not None:
+            return self._external_client
         if self._lazy_client is None:
             self._lazy_client = httpx.Client(timeout=self.http_timeout_s)
         return self._lazy_client
@@ -242,8 +241,7 @@ class CLITrainTransport:
         )
 
     def close(self) -> None:
-        if self._client is not None and self._owns_client:
-            self._client.close()
+        # Only close the lazy client we created; _external_client is caller-owned.
         if self._lazy_client is not None:
             self._lazy_client.close()
             self._lazy_client = None

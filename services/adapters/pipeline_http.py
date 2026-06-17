@@ -21,12 +21,17 @@ class PipelineHTTPError(RuntimeError):
 
 
 def resolve_pipeline_base_url(base_url: str | None = None) -> str:
-    return (
+    resolved = (
         base_url
         or os.environ.get("PIPELINE_SERVICE_URL")
         or os.environ.get("SELF_QUESTIONING_URL")
-        or "http://10.110.158.146:8001"
-    ).rstrip("/")
+    )
+    if not resolved:
+        raise ValueError(
+            "Pipeline Service URL is required: set PIPELINE_SERVICE_URL or "
+            "SELF_QUESTIONING_URL, or pass base_url explicitly"
+        )
+    return resolved.rstrip("/")
 
 
 def build_pipeline_opener(base_url: str) -> urllib.request.OpenerDirector:
@@ -45,33 +50,66 @@ class PipelineHTTPBase:
         base_url: str | None = None,
         *,
         timeout_s: float = 30.0,
+        max_retries: int = 2,
+        backoff_initial_s: float = 1.0,
+        backoff_factor: float = 2.0,
     ):
         self.base_url = resolve_pipeline_base_url(base_url)
         self.timeout_s = timeout_s
+        self.max_retries = max(0, max_retries)
+        self.backoff_initial_s = backoff_initial_s
+        self.backoff_factor = backoff_factor
         self._opener = build_pipeline_opener(self.base_url)
 
-    def _request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
+    def _request(
+        self,
+        method: str,
+        path: str,
+        payload: dict[str, Any] | None = None,
+        *,
+        timeout_s: float | None = None,
+    ) -> Any:
         url = f"{self.base_url}{path}"
         body = json.dumps(payload).encode("utf-8") if payload is not None else None
         headers = {"Accept": "application/json"}
         if body is not None:
             headers["Content-Type"] = "application/json"
         req = urllib.request.Request(url, data=body, headers=headers, method=method)
-        try:
-            with self._opener.open(req, timeout=self.timeout_s) as resp:
-                raw = resp.read().decode("utf-8")
-                if not raw:
-                    return {}
-                return json.loads(raw)
-        except urllib.error.HTTPError as exc:
+        effective_timeout = timeout_s if timeout_s is not None else self.timeout_s
+
+        retries_allowed = self.max_retries if method == "GET" else 1
+        delay = self.backoff_initial_s
+        last_exc: Exception | None = None
+
+        for attempt in range(1, max(retries_allowed, 1) + 1):
             try:
-                err_body = json.loads(exc.read().decode("utf-8"))
-            except Exception:
-                err_body = exc.reason
-            raise PipelineHTTPError(
-                f"{method} {url} failed: HTTP {exc.code}",
-                status=exc.code,
-                body=err_body,
-            ) from exc
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise PipelineHTTPError(f"{method} {url} failed: {exc}") from exc
+                with self._opener.open(req, timeout=effective_timeout) as resp:
+                    raw = resp.read().decode("utf-8")
+                    if not raw:
+                        return {}
+                    return json.loads(raw)
+            except urllib.error.HTTPError as exc:
+                try:
+                    err_body = json.loads(exc.read().decode("utf-8"))
+                except Exception:
+                    err_body = exc.reason
+                if 500 <= exc.code < 600 and attempt < retries_allowed:
+                    last_exc = exc
+                else:
+                    raise PipelineHTTPError(
+                        f"{method} {url} failed: HTTP {exc.code}",
+                        status=exc.code,
+                        body=err_body,
+                    ) from exc
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                last_exc = exc
+                if attempt >= retries_allowed:
+                    raise PipelineHTTPError(f"{method} {url} failed: {exc}") from exc
+            import time as _time
+
+            _time.sleep(delay)
+            delay *= self.backoff_factor
+
+        raise PipelineHTTPError(
+            f"{method} {url} exhausted retries: {last_exc}"
+        )

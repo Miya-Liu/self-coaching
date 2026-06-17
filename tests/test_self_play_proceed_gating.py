@@ -111,3 +111,45 @@ def test_t_path_holds_when_pipeline_batch_fails(tmp_path: Path):
     assert result.get("held") is True
     assert "batch_self_play_failed" in result.get("gate_reasons", [])
     client.train.assert_not_called()
+
+
+def _pipeline_ok_result() -> dict:
+    return {
+        "status": "generated",
+        "proceed": True,
+        "pipeline_service": True,
+        "count": 2,
+        "job_id": "job-ok",
+        "stage_results": {"1": True, "2": True, "3": True},
+    }
+
+
+def test_t_path_trains_when_pipeline_batch_proceeds_without_local_buffer(tmp_path: Path):
+    root = tmp_path / "coach"
+    root.mkdir()
+    registry = AgentRegistry(root)
+    registry.ensure_agent("demo-agent")
+    loop_store = LoopStore(root)
+    state = LoopState(generation=0)
+
+    engine = MagicMock()
+    engine.generate_batch.return_value = _pipeline_ok_result()
+    config = LoopConfig(selfplay_backend="pipeline", batch_size=4)
+    client = MagicMock()
+    client.train.return_value = {"status": "trained", "candidate": "remote-candidate", "run_id": "train-1"}
+
+    result = run_t_path(
+        client=client,
+        registry=registry,
+        loop_store=loop_store,
+        state=state,
+        coaching_root=root,
+        agent_id="demo-agent",
+        beta=4,
+        self_play_engine=engine,
+        config=config,
+    )
+
+    assert result is not None
+    assert result.get("held") is not True
+    client.train.assert_called_once()

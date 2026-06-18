@@ -16,4 +16,4 @@ agents:
     coach_clock:
       enabled: true
       scenario: scenarios/clock_loop.json
-      # agent_chat_url: https://agent.example.com/v1/chat  # production: real agent decides route
+      # subject_chat_url: https://agent.example.com/v1/chat  # live subject the coach drives for trajectories (SubjectTaskSource)

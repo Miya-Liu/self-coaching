@@ -80,6 +80,7 @@ jobs:
           python -m py_compile services/adapters/selfplay_pipeline_adapter.py
           python -m py_compile services/adapters/self_play_client_adapter.py
           python -m py_compile modes/self-coaching/self_play_factory.py
+          python -m py_compile modes/self-coaching/subject_source.py
           python -m py_compile scripts/pipeline_self_play_smoke.py
 
       - name: Mock AgentEvals Phase 0 smoke

@@ -47,6 +47,29 @@ def merge_scenario(base: dict[str, Any], overrides: dict[str, Any], agent_id: st
     return merged
 
 
+def _subject_source_for(agent: SupervisedAgent) -> Any | None:
+    """Build a live SubjectTaskSource from coach_clock.subject_chat_url, else None.
+
+    When no subject_chat_url is configured the loop falls back to the fixture
+    trajectory simulator (Phase 1 behavior).
+    """
+    import os
+
+    cc = agent.coach_clock
+    subject_url = getattr(cc, "subject_chat_url", None) if cc is not None else None
+    if not subject_url:
+        return None
+    from self_coaching.subject_source import build_subject_source
+
+    return build_subject_source(
+        subject_url,
+        api_key=os.environ.get("SUBJECT_AGENT_API_KEY"),
+        model=os.environ.get("SUBJECT_AGENT_MODEL"),
+        path=os.environ.get("SUBJECT_AGENT_PATH", "/chat/completions"),
+        timeout_s=float(os.environ.get("SUBJECT_AGENT_TIMEOUT_S", "60")),
+    )
+
+
 def execute_plan(
     agent: SupervisedAgent,
     plan: ClockPlan,
@@ -55,16 +78,165 @@ def execute_plan(
 ) -> dict[str, Any] | None:
     if plan.action == "hold":
         return None
-    if plan.action != "full_tick":
-        # Partial routes (learn/play/tune) map to full_tick in mock spine until M5 adapters wire stages.
-        pass
     root = resolve_coaching_root(agent)
     scenario = merge_scenario(
         load_scenario(scenario_path_for_agent(agent)),
         plan.scenario_overrides,
         agent.id,
     )
-    return run_tick(root, scenario, client=client)
+    trajectory_fn = _subject_source_for(agent)
+    if plan.action == "full_tick":
+        return run_tick(root, scenario, client=client, trajectory_fn=trajectory_fn)
+    # Partial routes: learn / play / tune target specific loop phases.
+    return _execute_partial(root, scenario, plan.action, client=client, trajectory_fn=trajectory_fn)
+
+
+def _execute_partial(
+    root: Path,
+    scenario: dict[str, Any],
+    action: str,
+    *,
+    client: Any | None = None,
+    trajectory_fn: Any | None = None,
+) -> dict[str, Any]:
+    """Run a single loop phase (learn / play / tune) instead of the full E→P→T tick.
+
+    Uses the same env-scoped setup as clock.run_tick but only executes the
+    targeted phase, returning a result dict with an "action" key.
+    """
+    import os
+
+    from self_coaching.loop_config import LoopConfig
+    from self_coaching.loop_driver import run_tasks
+    from self_coaching.loop_env import build_loop_client, build_self_play_engine
+    from self_coaching.loop_store import LoopStore
+    from self_coaching.state import LoopStateStore
+    from self_coaching.t_path import run_t_path
+    from mock_agent_registry import AgentRegistry
+
+    agent_id = str(scenario.get("agent_id") or os.environ.get("LOOP_AGENT_ID") or "demo-agent")
+    loop_cfg = scenario.get("loop") or {}
+    streams = scenario.get("task_streams") or {}
+
+    e_path_stream = Path(
+        streams.get("e_path") or "mock-services/fixtures/task_stream/clock_loop_e_v1.jsonl"
+    )
+    if not e_path_stream.is_absolute():
+        e_path_stream = (REPO_ROOT / e_path_stream).resolve()
+
+    config = LoopConfig.from_env()
+    config.agent_id = agent_id
+    config.sigma_min = int(loop_cfg.get("sigma_min", config.sigma_min))
+    config.sigma_play = int(loop_cfg.get("sigma_play", config.sigma_play))
+    config.batch_size = int(loop_cfg.get("beta", config.batch_size))
+    config.tau_fail = float(loop_cfg.get("tau_fail", config.tau_fail))
+    config.task_stream = e_path_stream
+
+    # Scoped env set (same pattern as clock.run_tick)
+    _prev_agent = os.environ.get("AGENT_ID")
+    _prev_loop = os.environ.get("LOOP_AGENT_ID")
+    os.environ["AGENT_ID"] = agent_id
+    os.environ["LOOP_AGENT_ID"] = agent_id
+    try:
+        loop_client = client or build_loop_client(root, config=config)
+        self_play_engine = build_self_play_engine(root, config=config)
+        registry = AgentRegistry(root)
+        registry.ensure_agent(agent_id)
+
+        if action == "learn":
+            # E-path only: score tasks → accumulate Σ → sparse self-play → learn
+            run_tasks(
+                root,
+                config=config,
+                task_stream_path=e_path_stream,
+                enable_e_path=True,
+                enable_t_path=False,
+                client=loop_client,
+                agent_id=agent_id,
+                self_play_engine=self_play_engine,
+                trajectory_fn=trajectory_fn,
+            )
+            state = LoopStateStore(root).load()
+            return {
+                "action": "learn",
+                "generation": state.generation,
+                "tasks_processed": state.tasks_processed,
+            }
+
+        if action == "play":
+            # Self-play only: batch fill (C07) without training
+            from self_coaching.t_path import fill_buffer_batch
+
+            state = LoopStateStore(root).load()
+            loop_store = LoopStore(root)
+            current_buffer = len(loop_store.active_buffer_rows())
+            n = max(0, config.batch_size - current_buffer)
+            if n == 0:
+                return {
+                    "action": "play",
+                    "batch_fill": {"status": "skipped", "count": 0, "reason": "buffer already full"},
+                    "buffer_size": current_buffer,
+                }
+            batch_fill = fill_buffer_batch(
+                coaching_root=root,
+                loop_store=loop_store,
+                registry=registry,
+                agent_id=agent_id,
+                generation=state.generation,
+                n=n,
+                self_play_engine=self_play_engine,
+                config=config,
+            )
+            return {
+                "action": "play",
+                "batch_fill": batch_fill,
+                "buffer_size": len(loop_store.active_buffer_rows()),
+            }
+
+        if action == "tune":
+            # T-path only: fill buffer + train + holdout gate
+            state = LoopStateStore(root).load()
+            loop_store = LoopStore(root)
+            # Honor force_regression from scenario (needed for demo promotion)
+            if scenario.get("force_regression", False):
+                bad = registry.create_version(
+                    agent_id,
+                    components={"model_id": "bad-regress-v1"},
+                    source="clock-t-path-setup",
+                )
+                registry.activate(agent_id, bad["version_id"])
+            t_result = run_t_path(
+                client=loop_client,
+                registry=registry,
+                loop_store=loop_store,
+                state=state,
+                coaching_root=root,
+                agent_id=agent_id,
+                beta=config.batch_size,
+                self_play_engine=self_play_engine,
+                config=config,
+            )
+            if t_result is not None:
+                LoopStateStore(root).save(state)
+            return {
+                "action": "tune",
+                "t_path": t_result,
+                "t_path_promoted": bool((t_result or {}).get("promoted")),
+            }
+
+        # Unknown partial action — fall back to full tick (defensive)
+        from coach.clock import run_tick as _full_tick
+
+        return _full_tick(root, scenario, client=client, trajectory_fn=trajectory_fn)
+    finally:
+        if _prev_agent is None:
+            os.environ.pop("AGENT_ID", None)
+        else:
+            os.environ["AGENT_ID"] = _prev_agent
+        if _prev_loop is None:
+            os.environ.pop("LOOP_AGENT_ID", None)
+        else:
+            os.environ["LOOP_AGENT_ID"] = _prev_loop
 
 
 def handle_coach_post(

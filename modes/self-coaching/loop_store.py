@@ -66,6 +66,8 @@ class LoopStore:
             "final_answer": xi.get("final_answer"),
             "capability": xi.get("capability") or ["tool_use"],
         }
+        if xi.get("_source"):
+            record["_source"] = xi["_source"]
         if rubric_result is not None:
             record["rubric_result"] = rubric_result
         self.trajectories_dir.mkdir(parents=True, exist_ok=True)

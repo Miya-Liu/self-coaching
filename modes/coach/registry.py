@@ -20,7 +20,7 @@ class CoachClockConfig:
 
     enabled: bool = True
     scenario: str | None = None
-    agent_chat_url: str | None = None
+    subject_chat_url: str | None = None
     interval_s: float = 1800.0  # 30 minutes default
 
 
@@ -116,13 +116,13 @@ def _parse_agent(raw: dict[str, Any]) -> SupervisedAgent:
         scenario = cc.get("scenario")
         if scenario is not None and not isinstance(scenario, str):
             raise RegistryError(f"agent {agent_id!r}: coach_clock.scenario must be a string")
-        chat_url = cc.get("agent_chat_url")
+        chat_url = cc.get("subject_chat_url", cc.get("agent_chat_url"))
         if chat_url is not None and not isinstance(chat_url, str):
-            raise RegistryError(f"agent {agent_id!r}: coach_clock.agent_chat_url must be a string")
+            raise RegistryError(f"agent {agent_id!r}: coach_clock.subject_chat_url must be a string")
         coach_clock_cfg = CoachClockConfig(
             enabled=enabled,
             scenario=scenario,
-            agent_chat_url=chat_url,
+            subject_chat_url=chat_url,
             interval_s=float(cc.get("interval_s", 1800.0)),
         )
 

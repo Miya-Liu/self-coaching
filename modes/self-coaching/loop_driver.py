@@ -151,6 +151,7 @@ def run_tasks(
     candidate_model_id: str | None = None,
     self_play_engine: Any | None = None,
     agentevals_engine: Any | None = None,
+    trajectory_fn: Any | None = None,
 ) -> tuple[list[TaskScore], LoopState]:
     """Process fixture tasks; route Sigma/B; run E-path and optional T-path.
 
@@ -199,6 +200,7 @@ def run_tasks(
             generation=state.generation,
             version_id=version_id,
             tau_fail=threshold,
+            trajectory_fn=trajectory_fn,
         )
         results.append(result)
         state.tasks_processed += 1

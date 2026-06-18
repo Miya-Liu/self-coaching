@@ -258,6 +258,9 @@ class ClockScheduler:
         body = {
             "agent_id": agent_id,
             "event": "scheduled_tick",
-            "payload": {"action": "full_tick", "reason": "scheduler interval elapsed"},
+            # suggested_action is a non-binding hint: MockCoachAgentBridge ignores
+            # it (defaults to full_tick for CI determinism); AgentCoachBridge reads
+            # it as a hint but the coach brain makes the final decision.
+            "payload": {"suggested_action": "full_tick", "reason": "scheduler interval elapsed"},
         }
         return handle_post_body(body, self._registry_path, self._bridge, client=self._client)

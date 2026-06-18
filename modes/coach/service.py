@@ -21,6 +21,37 @@ from coach.trigger import handle_post_body
 LOG = logging.getLogger("coach.service")
 
 
+def build_coach_bridge() -> Any:
+    """Select the coach bridge from env.
+
+    COACH_BRIDGE=mock   (default) → MockCoachAgentBridge (deterministic, CI-safe)
+    COACH_BRIDGE=agent            → AgentCoachBridge over an HTTP coach agent
+
+    For COACH_BRIDGE=agent, COACH_AGENT_URL is required. Optional:
+      COACH_AGENT_API_KEY, COACH_AGENT_MODEL, COACH_AGENT_TIMEOUT_S.
+    """
+    import os
+
+    kind = os.environ.get("COACH_BRIDGE", "mock").strip().lower()
+    if kind in ("", "mock"):
+        return MockCoachAgentBridge()
+    if kind == "agent":
+        base_url = os.environ.get("COACH_AGENT_URL")
+        if not base_url:
+            raise SystemExit("COACH_BRIDGE=agent requires COACH_AGENT_URL")
+        from coach.agent_bridge_live import AgentCoachBridge, HttpCoachTransport
+
+        transport = HttpCoachTransport(
+            base_url,
+            api_key=os.environ.get("COACH_AGENT_API_KEY"),
+            model=os.environ.get("COACH_AGENT_MODEL"),
+            timeout_s=float(os.environ.get("COACH_AGENT_TIMEOUT_S", "60")),
+            path=os.environ.get("COACH_AGENT_PATH", "/chat/completions"),
+        )
+        return AgentCoachBridge(transport)
+    raise SystemExit(f"unknown COACH_BRIDGE={kind!r} (expected 'mock' or 'agent')")
+
+
 class CoachServiceState:
     def __init__(self, registry_path: Path, bridge: Any | None = None):
         self.registry_path = registry_path
@@ -146,7 +177,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     if not registry_path.is_file():
         raise SystemExit(f"registry not found: {registry_path}")
 
-    state = CoachServiceState(registry_path)
+    state = CoachServiceState(registry_path, bridge=build_coach_bridge())
     host, port = _parse_bind(args.bind)
     http_server = run_http_server(state, host, port)
 

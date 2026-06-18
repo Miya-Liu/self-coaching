@@ -62,7 +62,7 @@ Each agent in the registry with `coach_clock.enabled: true` gets scheduled at `i
 
 ### On-demand POST
 
-`POST /coach/post`:
+`POST /coach/post` — **inbound trigger** from external systems or the supervised subject pushing events to the coach service. This is URL #1 (inbound):
 
 ```json
 {
@@ -75,10 +75,95 @@ Each agent in the registry with `coach_clock.enabled: true` gets scheduled at `i
 | `payload.action` | Behavior |
 |------------------|----------|
 | `hold` | Record only |
-| `learn` / `play` / `tune` | Partial routes |
-| `full_tick` | Full `clock.run_tick` |
+| `learn` | E-path only: score tasks → Σ → sparse self-play (C06) → learn |
+| `play` | Self-play only: C07 batch buffer fill (no learn, no train) |
+| `tune` | T-path only: fill buffer + train + holdout gate |
+| `full_tick` | Full `clock.run_tick` (E + P + T) |
 
-Mock bridge when `agent_chat_url` unset: `MockCoachAgentBridge`. Production: [agent_bridge.py](../../modes/coach/agent_bridge.py).
+Note: `payload.action` on scheduler-generated ticks is a **non-binding hint** (`suggested_action`); the coach brain makes the final decision. On HTTP POST, if `COACH_BRIDGE=mock` the action is respected directly; if `COACH_BRIDGE=agent` the live coach brain may override it.
+
+### Coach brain — `AgentCoachBridge` (`COACH_AGENT_URL`)
+
+URL #2 (**outbound** — coach service → coach brain):
+
+```text
+Trigger (scheduler | HTTP POST)
+  → handle_post_body()
+  → CoachAgentBridge.setup_clock()
+      └─ mock:  reads payload.action directly (deterministic, CI-safe)
+      └─ agent: sends decision prompt + live state to COACH_AGENT_URL,
+                parses ClockPlan from response
+  → execute_plan()
+      └─ hold:      skip
+      └─ full_tick: clock.run_tick() (E→P→T)
+      └─ learn:     E-path only (scoring + sparse self-play + learn)
+      └─ play:      C07 batch self-play buffer fill only
+      └─ tune:      T-path (buffer fill + train + holdout gate)
+```
+
+Env:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `COACH_BRIDGE` | `mock` | `mock` (rules) or `agent` (live coach brain) |
+| `COACH_AGENT_URL` | — | Required when `agent`; base URL for the coach agent |
+| `COACH_AGENT_PATH` | `/chat/completions` | Chat endpoint path appended to base URL |
+| `COACH_AGENT_API_KEY` | — | Optional bearer token |
+| `COACH_AGENT_MODEL` | `coach` | Model name in chat request |
+| `COACH_AGENT_TIMEOUT_S` | `60` | HTTP timeout |
+
+The coach brain receives:
+- The `_SETUP_PROMPT` with the inbound post JSON
+- Live loop state: generation, support set Σ size, buffer B size, tasks processed
+- The scheduler hint (if present)
+
+It returns `ClockPlan` JSON: `{"action": "hold"|"...", "reason": "...", "scenario_overrides": {}}`. On failure or unparseable output, the bridge **fails safe to `hold`** (real coach should not burn a tick on uncertainty).
+
+Audit: prompt + raw response + parsed plan written to `{coaching_root}/.self-coaching/coach/audit/{agent_id}/`.
+
+Implementation: [`agent_bridge_live.py`](../../modes/coach/agent_bridge_live.py).
+
+### Subject chat — `subject_chat_url` (live trajectories)
+
+URL #3 (**outbound** — coach platform → supervised subject for trajectories):
+
+```yaml
+agents:
+  - id: target-agent
+    coaching_root: /var/lib/coach/agents/target-agent
+    coach_clock:
+      enabled: true
+      subject_chat_url: http://target-host:8000/chat   # the agent being improved
+```
+
+When set, the loop drives the subject for **real** trajectories instead of the
+fixture simulator: for each task it POSTs the `user_request` to the subject's
+OpenAI-style `/chat/completions`, then shapes the response (assistant content +
+`tool_calls`) into the trajectory `xi` the rubric scorer consumes. The subject's
+real behavior — including failing to invoke required tools — is scored faithfully.
+
+Env (optional overrides):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `SUBJECT_AGENT_PATH` | `/chat/completions` | Chat endpoint path |
+| `SUBJECT_AGENT_API_KEY` | — | Optional bearer token |
+| `SUBJECT_AGENT_MODEL` | `subject` | Model name in request |
+| `SUBJECT_AGENT_TIMEOUT_S` | `60` | HTTP timeout |
+
+- **Cross-coaching**: `subject_chat_url` points at a separate agent runtime.
+- **Self-coaching**: `subject_chat_url` points back at the coach agent itself (`= COACH_AGENT_URL`).
+
+When `subject_chat_url` is unset, the loop falls back to fixture task streams
+(deterministic, CI-safe). Implementation: [`subject_source.py`](../../modes/self-coaching/subject_source.py).
+
+### Three-URL summary
+
+| URL / Variable | Direction | Role | Status |
+|----------------|-----------|------|--------|
+| `POST /coach/post` | external → coach service | Inbound event trigger | ✅ shipped |
+| `COACH_AGENT_URL` | coach service → coach brain | Decision (ClockPlan) | ✅ shipped |
+| `coach_clock.subject_chat_url` | coach platform → subject | Drive tasks / collect trajectories | ✅ shipped |
 
 ### Registry config (per-agent)
 
@@ -90,6 +175,7 @@ agents:
       enabled: true
       interval_s: 1800       # 30 minutes
       scenario: scenarios/clock_loop.json
+      subject_chat_url: http://target-host:8000/chat  # Phase 2: live subject
 ```
 
 Smoke: `python scripts/clock_loop_smoke.py` · `pytest tests/test_coach_service.py` · `pytest tests/test_scheduler.py`
@@ -105,9 +191,9 @@ python -m services.orchestrator check-drop --metrics-dir "$ROOT/.self-coaching/m
 
 Env: `ORCHESTRATOR_EVAL_BACKEND=agentevals`, `AGENTEVALS_*`, `ORCHESTRATOR_TRANSPORT=http`.
 
-## LLM proxy (planned)
+## LLM proxy (optional, observation-only)
 
-Observation only — scored eval stays on AgentEvals.
+If the supervised subject's LLM calls route through a proxy (e.g. db_bridge `chat_completions` gateway), the coach platform can capture trajectories passively — scored eval still stays on AgentEvals. Not required for Phase 1 or 2; purely an observability layer.
 
 ## Related
 

@@ -61,6 +61,7 @@ def run_tick(
     scenario: dict[str, Any],
     *,
     client: Any | None = None,
+    trajectory_fn: Any | None = None,
 ) -> dict[str, Any]:
     """Run one autonomous evolution tick: E-path → buffer → T-path.
 
@@ -105,7 +106,7 @@ def run_tick(
     os.environ["AGENT_ID"] = agent_id
     os.environ["LOOP_AGENT_ID"] = agent_id
     try:
-        return _run_tick_inner(root, scenario, config, e_path_stream, buffer_stream, agent_id, client)
+        return _run_tick_inner(root, scenario, config, e_path_stream, buffer_stream, agent_id, client, trajectory_fn)
     finally:
         if _prev_agent is None:
             os.environ.pop("AGENT_ID", None)
@@ -125,6 +126,7 @@ def _run_tick_inner(
     buffer_stream: Path,
     agent_id: str,
     client: Any | None,
+    trajectory_fn: Any | None = None,
 ) -> dict[str, Any]:
     """Inner tick logic (separated so run_tick can do env save/restore)."""
     loop_client = client or build_loop_client(root, config=config)
@@ -143,6 +145,7 @@ def _run_tick_inner(
         client=loop_client,
         agent_id=agent_id,
         self_play_engine=self_play_engine,
+        trajectory_fn=trajectory_fn,
     )
 
     # Phase 2 — partial buffer fill (forces C07 batch self-play on T-path)
@@ -155,6 +158,7 @@ def _run_tick_inner(
         client=loop_client,
         agent_id=agent_id,
         self_play_engine=self_play_engine,
+        trajectory_fn=trajectory_fn,
     )
 
     # Phase 3 — optionally regress production model so holdout gate can promote candidate.

@@ -39,8 +39,10 @@ def process_task(
     generation: int,
     version_id: str,
     tau_fail: float | None = None,
+    trajectory_fn: Any | None = None,
 ) -> tuple[TaskScore, dict[str, Any], SupportEntry | None]:
-    xi = simulate_trajectory(tau)
+    producer = trajectory_fn if trajectory_fn is not None else simulate_trajectory
+    xi = producer(tau)
     rubric = score_trajectory(xi, tau)
     task_id = str(tau.get("task_id") or "")
     trajectory_id, trajectory_ref = loop_store.save_trajectory(task_id, xi, rubric_result=rubric)

@@ -94,6 +94,34 @@ def _check_golden(report: dict[str, Any], golden: dict[str, Any]) -> list[str]:
     return errors
 
 
+def golden_from_report(report: dict[str, Any], *, row_ids: list[str] | None = None) -> dict[str, Any]:
+    """Build a stable golden subset from a live completeness audit report."""
+    ids = row_ids or ["C06", "C07", "C12", "C18"]
+    rows_by_id = {row["id"]: row for row in report.get("rows", [])}
+    return {
+        "scenario": report.get("scenario"),
+        "status": report.get("status"),
+        "required_rows": ids,
+        "rows": [
+            {
+                "id": row_id,
+                "invocation": rows_by_id[row_id].get("invocation"),
+                "semantic": rows_by_id[row_id].get("semantic"),
+            }
+            for row_id in ids
+            if row_id in rows_by_id
+        ],
+    }
+
+
+def write_golden(report: dict[str, Any], path: Path = GOLDEN) -> Path:
+    """Persist golden fixture from a passing audit report (M-W2)."""
+    payload = golden_from_report(report)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 def preflight(*, probe_cli: bool = False) -> dict[str, bool]:
     """Check connectivity to configured real services before a full tick."""
     results: dict[str, bool] = {}
@@ -287,11 +315,15 @@ def run_clock_tick(
     from clock import load_scenario, run_tick
 
     saved_train_backend: str | None = None
+    saved_supabase_url: str | None = None
     if dry_run:
         os.environ["PIPELINE_DRY_RUN"] = "1"
         if _backend("ORCHESTRATOR_TRAIN_BACKEND") == "cli":
             saved_train_backend = os.environ.get("ORCHESTRATOR_TRAIN_BACKEND")
             os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = "mock"
+            # Temporarily hide Supabase creds so LoopConfig live-mode auto-detection
+            # doesn't override mock→cli via cli_train_env_configured().
+            saved_supabase_url = os.environ.pop("SUPABASE_URL", None)
 
     if not keep_state and ROOT.exists():
         shutil.rmtree(ROOT)
@@ -313,8 +345,11 @@ def run_clock_tick(
     try:
         summary = run_tick(ROOT, scenario)
     finally:
+        os.environ.pop("PIPELINE_DRY_RUN", None)
         if saved_train_backend is not None:
             os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = saved_train_backend
+        if saved_supabase_url is not None:
+            os.environ["SUPABASE_URL"] = saved_supabase_url
     elapsed = time.time() - t0
 
     print(f"  [tick] completed in {elapsed:.1f}s")
@@ -381,6 +416,11 @@ def main(argv: list[str] | None = None) -> int:
         help="During preflight, run a short CLI train echo probe via db_bridge",
     )
     parser.add_argument("--json", action="store_true", help="Emit JSON summary on stdout")
+    parser.add_argument(
+        "--write-golden",
+        action="store_true",
+        help="After a PASS audit, write tests/fixtures/golden/completeness_report_evolution_loop_live.json (M-W2)",
+    )
     args = parser.parse_args(argv)
 
     from loop_env import apply_loop_defaults, apply_service_mode, load_env_file
@@ -465,6 +505,12 @@ def main(argv: list[str] | None = None) -> int:
                 errors.extend(golden_errors)
         else:
             print(f"  WARNING: golden fixture missing: {GOLDEN}", file=sys.stderr)
+        if args.write_golden:
+            if report.get("status") != "PASS":
+                errors.append("cannot --write-golden unless audit status=PASS")
+            else:
+                out = write_golden(report)
+                print(f"  [golden] wrote {out}")
         print()
 
     status = "PASS" if not errors else "FAIL"

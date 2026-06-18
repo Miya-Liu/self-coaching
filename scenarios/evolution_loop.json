@@ -1,5 +1,5 @@
 {
-  "name": "evolution_loop_live",
+  "name": "evolution_loop",
   "description": "Live evolution loop: real self-play (pipeline service) + real self-tuning (cli train via db_bridge). Verifies E-path sparse self-play, T-path batch fill, and training dispatch.",
   "agent_id": "evolution-loop-agent",
   "execution_mode": "autonomous",

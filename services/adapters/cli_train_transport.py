@@ -216,6 +216,27 @@ class CLITrainTransport:
             body=last or None,
         )
 
+    def request_cancel(self, cmd_id: str) -> dict[str, Any] | None:
+        """Request cancellation of a pending/running command via Supabase RPC.
+
+        Returns ``{"ok": True, "status": "CANCELLED"|"CANCEL_REQUESTED"}`` on success,
+        ``{"ok": False, "status": "<terminal>"}`` if already terminal, or ``None`` on
+        network/auth failure.
+        """
+        client = self._http_client()
+        try:
+            resp = client.post(
+                f"{self.supabase_url}/rest/v1/rpc/areal_shell_request_cancel",
+                headers=self._headers(prefer_representation=True),
+                json={"p_id": cmd_id, "p_user_id": self.user_id},
+            )
+        except Exception:
+            return None
+        if resp.status_code not in (200, 201):
+            return None
+        data = resp.json()
+        return data if isinstance(data, dict) else None
+
     def send_and_wait(
         self,
         command: str,

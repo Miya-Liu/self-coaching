@@ -94,12 +94,20 @@ class CLITrainAdapter:
 
         spec = build_train_command_spec(pipeline=pipeline, base_model=base_model)
         transport = self._transport_or_env()
-        row = transport.send_and_wait(
-            spec.command,
-            cwd=spec.cwd,
-            tmux_id=spec.tmux_id,
-            timeout_seconds=spec.timeout_seconds,
-        )
+        try:
+            row = transport.send_and_wait(
+                spec.command,
+                cwd=spec.cwd,
+                tmux_id=spec.tmux_id,
+                timeout_seconds=spec.timeout_seconds,
+            )
+        except TrainerTimeoutError as exc:
+            if exc.cmd_id:
+                try:
+                    transport.request_cancel(exc.cmd_id)
+                except Exception:
+                    pass
+            raise
         cmd_id = str(row.get("id") or "")
         _raise_for_terminal_status(row, cmd_id=cmd_id or spec.run_id)
 

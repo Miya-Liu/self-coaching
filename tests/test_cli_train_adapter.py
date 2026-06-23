@@ -169,6 +169,36 @@ def test_adapter_train_timed_out_raises():
         adapter.train(pipeline="grpo")
 
 
+def test_adapter_poll_timeout_requests_cancel():
+    transport = MagicMock()
+    transport.send_and_wait.side_effect = TrainerTimeoutError(
+        "poll budget exceeded",
+        cmd_id="cmd-timeout-1",
+    )
+    transport.request_cancel.return_value = {"ok": True, "status": "CANCEL_REQUESTED"}
+
+    adapter = CLITrainAdapter(transport=transport)
+    with pytest.raises(TrainerTimeoutError, match="poll budget"):
+        adapter.train(pipeline="grpo")
+
+    transport.request_cancel.assert_called_once_with("cmd-timeout-1")
+
+
+def test_adapter_poll_timeout_cancel_failure_still_raises():
+    transport = MagicMock()
+    transport.send_and_wait.side_effect = TrainerTimeoutError(
+        "poll budget exceeded",
+        cmd_id="cmd-timeout-2",
+    )
+    transport.request_cancel.side_effect = RuntimeError("rpc down")
+
+    adapter = CLITrainAdapter(transport=transport)
+    with pytest.raises(TrainerTimeoutError, match="poll budget"):
+        adapter.train(pipeline="grpo")
+
+    transport.request_cancel.assert_called_once_with("cmd-timeout-2")
+
+
 def test_adapter_ignores_dataset_in_v1():
     transport = MagicMock()
     transport.send_and_wait.return_value = {

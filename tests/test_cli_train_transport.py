@@ -191,3 +191,35 @@ def test_send_and_wait_end_to_end():
     result = transport.send_and_wait("echo ok", tmux_id="train-e2e", timeout_seconds=30)
     assert result["status"] == "SUCCEEDED"
     assert result["stdout_tail"] == "ok\n"
+
+
+def test_request_cancel_success():
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path.endswith("/rpc/areal_shell_request_cancel")
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(200, json={"ok": True, "status": "CANCEL_REQUESTED"})
+
+    transport = _make_transport(httpx.MockTransport(handler))
+    result = transport.request_cancel(CMD_ID)
+
+    assert result == {"ok": True, "status": "CANCEL_REQUESTED"}
+    assert captured["body"] == {"p_id": CMD_ID, "p_user_id": USER_ID}
+
+
+def test_request_cancel_network_failure_returns_none():
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused")
+
+    transport = _make_transport(httpx.MockTransport(handler))
+    assert transport.request_cancel(CMD_ID) is None
+
+
+def test_request_cancel_http_error_returns_none():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, text="forbidden")
+
+    transport = _make_transport(httpx.MockTransport(handler))
+    assert transport.request_cancel(CMD_ID) is None

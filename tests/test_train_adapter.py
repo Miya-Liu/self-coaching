@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Tests for train adapter mapping and TrainingClient + RestClient integration."""
+"""Tests for train adapter mapping and TrainerClient + RestClient integration."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from mock_aerl import MockAERLEngine, _AERLHandler  # noqa: E402
 from services.adapters.train_adapter import AERLTrainAdapter  # noqa: E402
 from services.adapters.train_mapping import map_train_result  # noqa: E402
 from services.adapters.trainer_rest_client import RestClient  # noqa: E402
-from services.adapters.training_client import TrainingClient  # noqa: E402
+from services.adapters.trainer_client import TrainerClient  # noqa: E402
 
 
 def test_map_train_result_fixture_replay():
@@ -47,13 +47,13 @@ def test_train_adapter_fixture_replay_with_mocks():
     run = json.loads((FIXTURES / "run_completed_sft.json").read_text(encoding="utf-8"))
     checkpoint = json.loads((FIXTURES / "checkpoint_sft.json").read_text(encoding="utf-8"))
 
-    training = MagicMock(spec=TrainingClient)
+    training = MagicMock(spec=TrainerClient)
     training.create_training_run.return_value = {"id": run["id"], "status": "queued"}
     training.wait_for_training_run.return_value = run
     rest = MagicMock(spec=RestClient)
     rest.get_checkpoint.return_value = checkpoint
 
-    adapter = AERLTrainAdapter(training_client=training, rest_client=rest)
+    adapter = AERLTrainAdapter(trainer_client=training, rest_client=rest)
     result = adapter.train(pipeline="sft", base_model="mock-base-v1", dataset="/data/train.jsonl")
     assert result["status"] == "trained"
     assert result["weights_uri"].startswith("mock://")
@@ -85,9 +85,9 @@ def test_train_adapter_http_integration(http_server: str, tmp_path: Path):
     curated.mkdir(parents=True)
     (curated / "train.jsonl").write_text('{"id":"ex-1","type":"sft"}\n', encoding="utf-8")
 
-    training = TrainingClient(http_server, poll_interval_s=0.05, poll_timeout_s=30)
+    training = TrainerClient(http_server, poll_interval_s=0.05, poll_timeout_s=30)
     rest = RestClient(http_server)
-    adapter = AERLTrainAdapter(training_client=training, rest_client=rest)
+    adapter = AERLTrainAdapter(trainer_client=training, rest_client=rest)
 
     result = adapter.train(
         pipeline="sft",

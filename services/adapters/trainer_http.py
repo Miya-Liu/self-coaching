@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Shared HTTP utilities for trainer service clients (TrainingClient + RestClient)."""
+"""Shared HTTP utilities for trainer service clients (TrainerClient + RestClient)."""
 
 from __future__ import annotations
 

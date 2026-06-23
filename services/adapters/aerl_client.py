@@ -1,18 +1,23 @@
+# ⚠️ ON-HOLD: AERL services not yet deployed
+# This module depends on the AERL training platform which is not available
+# in the current deployment. Kept for future integration when AERL is live.
+# Status: ON-HOLD — do not remove, do not invest further until AERL deploys.
+
 # SPDX-License-Identifier: MIT
-"""Low-level HTTP client for AERL — deprecated alias of TrainingClient (M4.2)."""
+"""Low-level HTTP client for AERL — deprecated alias of TrainerClient (M4.2)."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from .training_client import TrainingClient, TrainerHTTPError
+from .trainer_client import TrainerClient, TrainerHTTPError
 
 # Backward-compatible error alias
 AERLError = TrainerHTTPError
 
 
-class AERLClient(TrainingClient):
-    """Deprecated alias for :class:`TrainingClient`. Prefer ``TrainingClient`` in new code."""
+class AERLClient(TrainerClient):
+    """Deprecated alias for :class:`TrainerClient`. Prefer ``TrainerClient`` in new code."""
 
     def create_training_run(  # type: ignore[override]
         self,

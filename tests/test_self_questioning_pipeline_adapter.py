@@ -63,6 +63,23 @@ def test_generate_batch_failure_holds_loop():
     assert not pipeline_job_succeeded(result)
 
 
+def test_generate_batch_poll_timeout_logs_warning(caplog: pytest.LogCaptureFixture):
+    client = MagicMock()
+    client.submit.return_value = {"job_id": "job-slow", "status": "pending"}
+    client.wait_for_job.side_effect = PipelineHTTPError(
+        "pipeline job job-slow did not complete within 120.0s",
+        body={"job_id": "job-slow", "status": "running"},
+    )
+
+    engine = SelfQuestioningPipelineEngine(client)
+    with caplog.at_level("WARNING", logger="selfplay.pipeline"):
+        result = engine.generate_batch(n=2)
+
+    assert result["proceed"] is False
+    assert result["job_id"] == "job-slow"
+    assert any("job-slow" in record.message and "timed out" in record.message for record in caplog.records)
+
+
 def test_generate_suite_success_registered():
     client = MagicMock()
     client.submit.return_value = {"job_id": "job-suite", "status": "pending"}

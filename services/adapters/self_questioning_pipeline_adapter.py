@@ -3,9 +3,12 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Any
+
+LOG = logging.getLogger("selfplay.pipeline")
 
 from .pipeline_http import PipelineHTTPError
 from .pipeline_mapping import (
@@ -42,6 +45,20 @@ class SelfQuestioningPipelineEngine:
             }
         self._use_sync = use_sync
 
+    def _handle_pipeline_error(
+        self,
+        exc: PipelineHTTPError,
+        *,
+        job_id: str | None,
+        mode: str,
+    ) -> dict[str, Any]:
+        if "did not complete within" in str(exc):
+            LOG.warning(
+                "pipeline job %s timed out — job may still be running on remote service",
+                job_id,
+            )
+        return map_pipeline_error(exc, job_id=job_id, mode=mode)
+
     def _run(self, body: dict[str, Any]) -> dict[str, Any]:
         if self._use_sync:
             sync_timeout = float(os.environ.get("PIPELINE_SYNC_TIMEOUT_S", "3600"))
@@ -73,7 +90,7 @@ class SelfQuestioningPipelineEngine:
                 finished = self._client.wait_for_job(job_id)
             return map_batch_result(finished, requested_n=n)
         except PipelineHTTPError as exc:
-            return map_pipeline_error(exc, job_id=job_id, mode="batch")
+            return self._handle_pipeline_error(exc, job_id=job_id, mode="batch")
 
     def generate_suite(
         self,
@@ -103,7 +120,7 @@ class SelfQuestioningPipelineEngine:
                 finished = self._client.wait_for_job(job_id)
             return map_suite_result(finished, requested_n=n_variants)
         except PipelineHTTPError as exc:
-            return map_pipeline_error(exc, job_id=job_id, mode="suite")
+            return self._handle_pipeline_error(exc, job_id=job_id, mode="suite")
 
 
 def build_self_questioning_pipeline_engine(

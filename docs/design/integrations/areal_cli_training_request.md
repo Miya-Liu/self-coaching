@@ -53,7 +53,7 @@ Coaching host dispatches:
 
 ```bash
 uv run customized_areal/tpfc/scripts/train_tpfc_tree_search.py \
-  --config customized_areal/tpfc/configs/config_tpfc_Qwen3-5L-9B_tree_search_self_play.yaml \
+  --config customized_areal/tpfc/configs/config_tpfc_Qwen3-5L-9B_tree_search_self_questioning.yaml \
   2>&1 | tee training_<run_id>.log
 ```
 

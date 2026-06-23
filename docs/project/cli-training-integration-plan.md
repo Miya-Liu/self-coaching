@@ -157,7 +157,7 @@ If no marker is found, the adapter falls back to:
 | `ORCHESTRATOR_TRAIN_BACKEND` | Backend | Behavior |
 |------------------------------|---------|----------|
 | `mock` (default) | In-process `mock_aerl` | Deterministic, fast, no network |
-| `aerl` | HTTP TrainingClient | M4 mock HTTP or future real HTTP |
+| `aerl` | HTTP TrainerClient | M4 mock HTTP or future real HTTP |
 | `cli` | **CLITrainAdapter** | db_bridge remote shell to AReaL host |
 
 ---
@@ -240,7 +240,7 @@ Same `tmux_id` guarantees:
 |----------|--------|
 | M4.0 spec | Archived — this doc supersedes for production path |
 | M4.1 mock HTTP | **Keep** — still useful for CI unit tests |
-| M4.2 TrainingClient | **Keep** — HTTP path remains as fallback or future option |
+| M4.2 TrainerClient | **Keep** — HTTP path remains as fallback or future option |
 | M4.3 loop env wiring | **Extend** — add `cli` backend alongside `mock` and `aerl` |
 | M4.4 staging smoke | **Replace** — use `scripts/send_command.py` probe instead |
 | M4.5 R5 regression | **Unchanged** — mock-module path unaffected |
@@ -307,7 +307,7 @@ Loop (run_tasks) → T-path triggers → client.train(pipeline, dataset, base_mo
                                               ↓
                               AERLTrainAdapter.train()
                                               ↓
-                              TrainingClient → POST /v1/training/runs (HTTP)
+                              TrainerClient → POST /v1/training/runs (HTTP)
                                               ↓
                               wait_for_run() → poll GET until terminal
                                               ↓
@@ -337,8 +337,8 @@ Loop → client.train(pipeline, dataset, base_model)
 Your real training command is:
 ```bash
 uv run customized_areal/tpfc/scripts/train_tpfc_tree_search.py \
-    --config customized_areal/tpfc/configs/config_tpfc_Qwen3-5L-9B_tree_search_self_play.yaml \
-    2>&1 | tee training_self_play.log
+    --config customized_areal/tpfc/configs/config_tpfc_Qwen3-5L-9B_tree_search_self_questioning.yaml \
+    2>&1 | tee training_self_questioning.log
 ```
 
 This tells me:
@@ -378,7 +378,7 @@ The adapter maps `(pipeline, base_model)` → a config file path on the remote h
 
 ```python
 CONFIG_MAP = {
-    ("grpo", "qwen3-8b"): "customized_areal/tpfc/configs/config_tpfc_Qwen3-5L-9B_tree_search_self_play.yaml",
+    ("grpo", "qwen3-8b"): "customized_areal/tpfc/configs/config_tpfc_Qwen3-5L-9B_tree_search_self_questioning.yaml",
     ("sft", "qwen3-8b"): "customized_areal/tpfc/configs/config_sft_qwen3_8b.yaml",
 }
 ```
@@ -407,7 +407,7 @@ The loop expects:
     "candidate": "<checkpoint-path-or-id>",
     "candidate_model_id": "<same>",
     "metrics": {"train_loss": ..., "reward_mean": ...},  # parsed from stdout
-    "log_file": "training_self_play.log",  # remote path
+    "log_file": "training_self_questioning.log",  # remote path
     "_train_backend": "cli",
 }
 ```

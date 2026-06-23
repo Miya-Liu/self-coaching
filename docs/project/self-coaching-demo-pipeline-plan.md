@@ -54,7 +54,7 @@ M_g = (θ_g, mem_g, S_g)
 
 ## 3. Formal pipeline (canonical spec)
 
-Modules: **E** (self-learning), **P** (self-play), **T** (self-tuning / AERL), **R** (eval), **F** (free-time detector). Task stream `{τᵢ}`.
+Modules: **E** (self-learning), **P** (self-questioning), **T** (self-tuning / AERL), **R** (eval), **F** (free-time detector). Task stream `{τᵢ}`.
 
 ### 3.1 Initialization
 
@@ -112,7 +112,7 @@ if |Σ| ≥ σ_min:
   if 0 < |Σ| ≤ σ_play:                    // sparse real failures
     P.generate_similar(Σ) → augment Σ     // see API binding below (C06)
   else:
-    skip extra self-play                  // enough real failures
+    skip extra self-questioning                  // enough real failures
 
   Δ ← E.learn(Σ)                          // memory and/or skill patch
   M_{g+1} ← apply( M_g, Δ )               // registry draft; S_{g+1} ← S_g ∪ ΔS, etc.
@@ -122,9 +122,9 @@ if |Σ| ≥ σ_min:
   optionally: R_suite on holdout → record metrics (no θ change)
 ```
 
-**Clarification:** Original line 13 (“not empty but not greater than threshold”) is interpreted as: **self-play augments when failure count is positive but ≤ `σ_play`** (default `3`). Above `σ_play`, real failures are sufficient.
+**Clarification:** Original line 13 (“not empty but not greater than threshold”) is interpreted as: **self-questioning augments when failure count is positive but ≤ `σ_play`** (default `3`). Above `σ_play`, real failures are sufficient.
 
-**API binding (C06 — sparse, failure-conditioned):** not `SelfCoachingClient.self_play()` (that wraps batch generate only). The loop calls **`MockSelfPlayEngine.generate_suite()`** in-process, or **`POST /self-play/generate-suite`** on `:8767` when `MOCK_SELF_PLAY_URL` is set:
+**API binding (C06 — sparse, failure-conditioned):** not `SelfCoachingClient.self_questioning()` (that wraps batch generate only). The loop calls **`MockSelfQuestioningEngine.generate_suite()`** in-process, or **`POST /self-questioning/generate-suite`** on `:8767` when `MOCK_SELF_QUESTIONING_URL` is set:
 
 | Param | Source |
 |-------|--------|
@@ -155,9 +155,9 @@ if F.idle():
 
 **Safety:** Unlike the draft pseudocode, **no hot-swap without holdout gate** — reuse `check_promotion()` from `services/orchestrator/drop_detector.py`.
 
-**Clarification:** Original line 20 (“`|B| < batch` → self-play”) is **fill buffer when under batch** before training. Training runs only when `|B| ≥ β` after fill.
+**Clarification:** Original line 20 (“`|B| < batch` → self-questioning”) is **fill buffer when under batch** before training. Training runs only when `|B| ≥ β` after fill.
 
-**API binding (C07 — batch buffer top-up):** **`MockSelfPlayEngine.generate_batch()`** in-process, or **`POST /self-play/generate`** on `:8767` (Coaching API shape; also what `SelfCoachingClient.self_play()` / `mock_self_coaching.self_play()` delegate to):
+**API binding (C07 — batch buffer top-up):** **`MockSelfQuestioningEngine.generate_batch()`** in-process, or **`POST /self-questioning/generate`** on `:8767` (Coaching API shape; also what `SelfCoachingClient.self_questioning()` / `mock_self_coaching.self_questioning()` delegate to):
 
 | Param | Source |
 |-------|--------|
@@ -220,7 +220,7 @@ Phase 2 enforces I2 only by flushing `B` (`generation ≤ g`); production must a
 | Client        |      | (lineage)     |      | Reporter      |
 | (composite)   |      +---------------+      +---------------+
 +-------+-------+
-        | learn / self_play / evaluate / train
+        | learn / self_questioning / evaluate / train
         v
 +----------------------------------------------------------+
 | Mock stack (existing)                                     |
@@ -233,7 +233,7 @@ Phase 2 enforces I2 only by flushing `B` (`generation ≤ g`); production must a
 
 | Layer | Role in demo |
 |-------|----------------|
-| **Loop driver** | Simulates `{τᵢ}`, maintains `Σ`, `B`, `g`; calls `client.learn()` / `client.train()` / eval; **C06** uses `generate_suite` directly (§3.3), **C07** uses `client.self_play()` → `generate_batch` (§3.4) |
+| **Loop driver** | Simulates `{τᵢ}`, maintains `Σ`, `B`, `g`; calls `client.learn()` / `client.train()` / eval; **C06** uses `generate_suite` directly (§3.3), **C07** uses `client.self_questioning()` → `generate_batch` (§3.4) |
 | **Orchestrator** | **Promotion gates only** for θ path (`check_promotion`); optional `record-eval` after E-path suite eval |
 | **Coach demo** | Unchanged; remains the coach-mode reference |
 
@@ -272,10 +272,10 @@ The demo implements one **scheduler tick** per `run_tasks()` invocation — not 
 | Task stream `{τᵢ}` | — | Fixture JSONL + loader | P0 |
 | `Retrieve(S, τ)` | — | Stub retriever | P0 |
 | `AgentServe` → ξᵢ | — | `TrajectorySimulator` | P0 |
-| `R_online(ξᵢ)` | rubric in self-play cases | `trajectory_scorer.score_trajectory()` per §3.2.1 | P0 |
+| `R_online(ξᵢ)` | rubric in self-questioning cases | `trajectory_scorer.score_trajectory()` per §3.2.1 | P0 |
 | Support set Σ | learning events (implicit) | `.self-coaching/loop/support.jsonl` | P1 |
 | Buffer B + `g` stamp | `curated/*.jsonl` (no `g`) | `.self-coaching/loop/tuning_buffer.jsonl` | P1 |
-| E-path trigger + self-play sparse | `mock_self_play.generate_suite` | Loop wiring + thresholds | P2 |
+| E-path trigger + self-questioning sparse | `mock_self_questioning.generate_suite` | Loop wiring + thresholds | P2 |
 | Registry apply + `g++` | `create_version` / `activate` | `GenerationState.bump()` | P2 |
 | Flush B on `g++` | — | Buffer filter by generation | P2 |
 | F-path free-time | — | `FreeTimeSimulator` (step budget) | P3 |
@@ -370,8 +370,8 @@ Each demo run produces counts against this matrix. Rows split into two **indepen
 | C03 | Online eval | `score_trajectory` | yes | — | `rubric_result` on trajectory |
 | C04 | Append Σ | loop store | yes | — | `support.jsonl` |
 | C05 | Append B | loop store | yes | — | `tuning_buffer.jsonl` |
-| C06 | Sparse self-play | `mock_self_play` | conditional | — | `POST /self-play/generate-suite` (or `generate_suite`) → `suite_id` when `0 < \|Σ\| ≤ σ_play` |
-| C07 | Batch self-play | `mock_self_play` | conditional | — | `POST /self-play/generate` (or `generate_batch`) when `\|B\| < β` and idle |
+| C06 | Sparse self-questioning | `mock_self_questioning` | conditional | — | `POST /self-questioning/generate-suite` (or `generate_suite`) → `suite_id` when `0 < \|Σ\| ≤ σ_play` |
+| C07 | Batch self-questioning | `mock_self_questioning` | conditional | — | `POST /self-questioning/generate` (or `generate_batch`) when `\|B\| < β` and idle |
 | C08 | Self-learning | `mock_self_learning` | yes | — | draft `skill_bundle_version` or `memory_ref` |
 | C09 | Registry draft | `mock_agent_registry` | yes | — | new `versions/*.json` |
 | C10 | Generation bump | loop + registry | yes | — | `state.generation` increased |
@@ -379,7 +379,7 @@ Each demo run produces counts against this matrix. Rows split into two **indepen
 | C12 | Suite eval (gate) | `mock_agentevals` | yes | — | eval report before θ swap |
 | C13 | Train | `mock_aerl` | conditional | — | when `\|B\| ≥ β` and idle |
 | C14 | Hot-swap | registry `activate` | conditional | — | `active.json` updated on promote |
-| C15 | Split hygiene | `curate_data` | yes | — | validation/holdout non-empty if self-play ran |
+| C15 | Split hygiene | `curate_data` | yes | — | validation/holdout non-empty if self-questioning ran |
 | C16 | Invariant I1 | — | — | yes | `train ∩ holdout` empty (reuse production_readiness check) |
 | C17 | Invariant I2 | — | — | yes | no training on flushed generations |
 | C18 | Promote gate (score) | `loop_completeness` | — | conditional | `candidate_eval.score >= current_eval.score` when scenario expects T-path **promote** |
@@ -468,18 +468,18 @@ Scenarios (JSON):
 
 ---
 
-### Phase P2 — Sparse self-play + T-path — **done** (plan had T-path as P3; implemented early)
+### Phase P2 — Sparse self-questioning + T-path — **done** (plan had T-path as P3; implemented early)
 
 **Deliverables**
 
 | Item | Path (implemented) |
 |------|------|
-| Sparse self-play (C06) | `augment_sigma_sparse()` → `MockSelfPlayEngine.generate_suite()` before `learn()` |
-| Buffer top-up (C07) | `fill_buffer_batch()` → `generate_batch()` / `MOCK_SELF_PLAY_URL` |
+| Sparse self-questioning (C06) | `augment_sigma_sparse()` → `MockSelfQuestioningEngine.generate_suite()` before `learn()` |
+| Buffer top-up (C07) | `fill_buffer_batch()` → `generate_batch()` / `MOCK_SELF_QUESTIONING_URL` |
 | T-path train + gate | `run_t_path()` → `client.train()`, holdout `MockAgentEvalsEngine`, `check_promotion()`, hot-swap |
 | Free-time | `modes/self-coaching/free_time.py` (`LOOP_IDLE_AFTER`) |
 | Buffer flush on E-path | `loop_store.flush_buffer_stale(g)` |
-| Tests | `tests/test_loop_self_play_sparse.py`, `tests/test_loop_t_path.py`; fixtures `sparse_play_v1.jsonl`, `t_path_v1.jsonl` |
+| Tests | `tests/test_loop_self_questioning_sparse.py`, `tests/test_loop_t_path.py`; fixtures `sparse_play_v1.jsonl`, `t_path_v1.jsonl` |
 
 **Exit:** 3 failures → skill draft + `skill_bundle_version` change + B flushed + `g++`; T-path promotes on holdout pass and preserves B on reject. **Met.**
 
@@ -492,7 +492,7 @@ Scenarios (JSON):
 | Item | Path (implemented) |
 |------|------|
 | Free-time simulator | `modes/self-coaching/free_time.py` |
-| Buffer fill self-play | `fill_buffer_batch()` → `generate_batch` (C07) |
+| Buffer fill self-questioning | `fill_buffer_batch()` → `generate_batch` (C07) |
 | AERL train | `run_t_path()` → `client.train()` |
 | Promotion gate | `check_promotion()` before `registry.activate` |
 | Tests | `tests/test_loop_t_path.py` |
@@ -596,7 +596,7 @@ python tools/loop_completeness.py --root mock-services/demo-loop \
 | `LOOP_AGENT_ID` | `demo-agent` | Registry agent |
 | `LOOP_SCENARIO` | `full_loop.json` | Task + expectation manifest |
 | `LOOP_SIGMA_MIN` | `1` | Min failures to trigger E-path |
-| `LOOP_SIGMA_PLAY` | `3` | Max \|Σ\| for sparse self-play |
+| `LOOP_SIGMA_PLAY` | `3` | Max \|Σ\| for sparse self-questioning |
 | `LOOP_BATCH_SIZE` | `4` | β for T-path |
 | `LOOP_TAU_FAIL` | `0.75` | Online failure threshold (τ_fail) |
 | `LOOP_IDLE_AFTER` | `8` | Tasks before free-time window |
@@ -651,7 +651,7 @@ python tools/loop_completeness.py --root mock-services/demo-loop \
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Ambiguous E-path self-play threshold | Wrong demo narrative | Fixed in §3.3; scenario JSON asserts C06 |
+| Ambiguous E-path self-questioning threshold | Wrong demo narrative | Fixed in §3.3; scenario JSON asserts C06 |
 | Concurrent E + T | Stale training data | E before T; generation tags; pause stream in P3 |
 | Per-task vs suite eval confusion | Integrators miswire R | Document two-tier eval; matrix C03 vs C12 |
 | Invocation vs semantic conflation | PASS while candidate regresses | C12 **[INVOCATION]** only; C18 **[SEMANTIC]** score gate on `full_loop` promote branch |
@@ -726,7 +726,7 @@ mock-services/fixtures/task_stream/*.jsonl
 scenarios/{full_loop,sparse_failures,dense_failures}.json
 tools/loop_completeness.py
 scripts/mock-self-coaching-demo.sh          # P4
-tests/test_loop_{completeness,e_path,t_path,self_play_sparse,driver_skeleton}.py
+tests/test_loop_{completeness,e_path,t_path,self_questioning_sparse,driver_skeleton}.py
   test_trajectory_scorer.py
 docs/project/self-coaching-demo-pipeline-plan.md
 ```

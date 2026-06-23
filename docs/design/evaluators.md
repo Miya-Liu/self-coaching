@@ -8,7 +8,7 @@ How self-coaching **measures subject agent performance**, detects regressions, a
 |------|---------|------------------------|
 | **Benchmark eval** | Scored suites for drop detection and holdout gates | **AgentEvals** (coach); mock (dev) |
 | **Training metric** | Worktree / AERL run quality (`val_bpb`, `val_loss`) | `logs/<id>.log`, pipeline reports |
-| **Self-judgment** | Agent critique during self-play / learn | Policy in phase skills — not a promotion gate alone |
+| **Self-judgment** | Agent critique during self-questioning / learn | Policy in phase skills — not a promotion gate alone |
 | **Regression suite** | Frozen cases never used for training | AgentEvals suite or `.self-coaching/cases/` |
 
 **Rule:** promotion decisions use **benchmark eval** on holdout (or equivalent), not raw training loss alone.

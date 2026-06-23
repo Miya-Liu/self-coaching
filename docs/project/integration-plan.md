@@ -14,7 +14,7 @@ Design: [architecture.md](../design/architecture.md), [coach_mode.md](../design/
 |--------|----------|------------------|
 | **Production agent** | `http://10.110.158.146:8000/docs` | Serving agent: trajectories, versions, skills, deploy/rollback |
 | **AgentEvals** | `http://localhost:8080/docs` | Benchmark suites, async eval runs, metrics for drop detection |
-| **Coaching API (T2)** | `mock-services/contracts/openapi.yaml` | Contract spine: learn, self-play, eval, train |
+| **Coaching API (T2)** | `mock-services/contracts/openapi.yaml` | Contract spine: learn, self-questioning, eval, train |
 
 **Rule:** one evolution engine, one `SelfCoachingClient` surface, many **adapters** — do not add parallel integration APIs per component.
 
@@ -39,7 +39,7 @@ Orchestrator commands take `--coaching-root` and `--agent-id` for that subject. 
 | Layer | Location | Status |
 |-------|----------|--------|
 | Coaching contract | `mock-services/contracts/openapi.yaml` | Source of truth for HTTP |
-| Mock implementation | `mock-services/mock_self_coaching.py` | Deterministic learn → self-play → eval → train |
+| Mock implementation | `mock-services/mock_self_coaching.py` | Deterministic learn → self-questioning → eval → train |
 | Client | `mock-services/client.py` | `ModuleClient`, `CLIClient`, `HTTPClient` |
 | Evolution engine (T3 / M1) | `services/orchestrator/` | `record-eval`, `check-drop`, `run` (dry deploy) |
 | Metrics contract | `services/orchestrator/eval_metrics.py` | `EvalMetrics` + `normalize_from_mock_eval()` |
@@ -64,7 +64,7 @@ T1 (self-coaching pack) is the **active** deploy target. T2/T3 are optional unti
               +--------v-----+  +-----v------+  +----v-----------+
               | AgentEvals   |  | Mock / AERL |  | Prod. agent   |
               | adapter      |  | (train,     |  | adapter       |
-              | (eval)       |  |  self-play) |  | (trajectory,  |
+              | (eval)       |  |  self-questioning) |  | (trajectory,  |
               +------+-------+  +-------------+  |  deploy)     |
                      |                            +-------+-------+
               :8080 /api/runs                            |
@@ -120,7 +120,7 @@ The production agent API is a **large** platform (agents, tasks, versions, skill
 | Mock endpoint | Real backend (later) |
 |---------------|----------------------|
 | `POST /training/runs` | AERL HTTP (`TRAINER_BASE_URL` in `modes/self-coaching/self-tuning/services/example.env`) |
-| `POST /self-play/generate` | Remote generator or mock through M3 |
+| `POST /self-questioning/generate` | Remote generator or mock through M3 |
 | `POST /learning/events` | Orchestrator + trajectory exporter (same JSONL shape) |
 
 ---
@@ -179,7 +179,7 @@ curl -s -H "Authorization: Bearer ${AGENT_API_TOKEN}" \
 | Step | Action |
 |------|--------|
 | 2.1 | `CompositeClient` implementing `SelfCoachingClient` | `services/adapters/composite_client.py` | ✓ |
-| 2.2 | Delegate `evaluate` / `eval_report` → AgentEvals; `learn` / `self_play` / `train` → mock (until M3/M2-train) | ✓ |
+| 2.2 | Delegate `evaluate` / `eval_report` → AgentEvals; `learn` / `self_questioning` / `train` → mock (until M3/M2-train) | ✓ |
 | 2.3 | Optional gateway | `mock_self_coaching.py serve --eval-backend agentevals` for HTTP contract tests |
 
 **Exit:** `run --force` produces `current_eval.json` and `candidate_eval.json` from AgentEvals when backend flag set; existing mock CI unchanged.
@@ -267,7 +267,7 @@ Document operational values in [`deploy-overview.md`](../guides/deploy-overview.
 ### Layer C — Local integration harness
 
 1. AgentEvals on `:8080`
-2. Mock coaching on `:8765` (learn / train / self-play)
+2. Mock coaching on `:8765` (learn / train / self-questioning)
 3. VPN access to `10.110.158.146:8000` for agent API
 
 ```bash

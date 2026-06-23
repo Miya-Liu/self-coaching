@@ -4,7 +4,7 @@ Version is tracked in [`modes/self-coaching/SKILL_PACK_VERSION`](../../modes/sel
 
 ## Unreleased (docs)
 
-- Canonical naming: repo **self-coaching**; modes **self-coaching** / **coach**; submodules **self-learning**, **self-play**, **self-evaluation**, **self-tuning**
+- Canonical naming: repo **self-coaching**; modes **self-coaching** / **coach**; submodules **self-learning**, **self-questioning**, **self-evaluation**, **self-tuning**
 - Coach mode design: per-agent coaching roots, supervision registry, optional LLM proxy (M5)
 
 ## 0.2.0

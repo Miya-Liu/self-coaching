@@ -75,7 +75,7 @@ Each agent in the registry with `coach_clock.enabled: true` gets scheduled at `i
 | `payload.action` | Behavior |
 |------------------|----------|
 | `hold` | Record only |
-| `learn` | E-path only: score tasks → Σ → sparse self-play (C06) → learn |
+| `learn` | E-path only: score tasks → Σ → sparse self-questioning (C06) → learn |
 | `play` | Self-play only: C07 batch buffer fill (no learn, no train) |
 | `tune` | T-path only: fill buffer + train + holdout gate |
 | `full_tick` | Full `clock.run_tick` (E + P + T) |
@@ -96,8 +96,8 @@ Trigger (scheduler | HTTP POST)
   → execute_plan()
       └─ hold:      skip
       └─ full_tick: clock.run_tick() (E→P→T)
-      └─ learn:     E-path only (scoring + sparse self-play + learn)
-      └─ play:      C07 batch self-play buffer fill only
+      └─ learn:     E-path only (scoring + sparse self-questioning + learn)
+      └─ play:      C07 batch self-questioning buffer fill only
       └─ tune:      T-path (buffer fill + train + holdout gate)
 ```
 

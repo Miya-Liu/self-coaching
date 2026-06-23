@@ -7,7 +7,7 @@
 | Artifact | Path |
 |----------|------|
 | Orchestration policy | `modes/self-coaching/SKILL.md` |
-| Submodules | `modes/self-coaching/{self-learning,self-play,self-evaluation,self-tuning}/` |
+| Submodules | `modes/self-coaching/{self-learning,self-questioning,self-evaluation,self-tuning}/` |
 | Training pipelines | `modes/self-coaching/self-tuning/pipelines/` |
 | Experience templates | `experience/` |
 | Version | `modes/self-coaching/SKILL_PACK_VERSION` |

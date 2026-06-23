@@ -1,6 +1,6 @@
 # Self-Play Pipeline Service — Implementation Tracker
 
-> **Authoritative tracker** for integrating the real **Self-Questioning Agent Pipeline Service** as the self-play backend (migration **M3**). Analysis and API mapping: [self-play-integration-plan.md](self-play-integration-plan.md). Migration rules: [mock-to-real-migration.md](mock-to-real-migration.md).
+> **Authoritative tracker** for integrating the real **Self-Questioning Agent Pipeline Service** as the self-questioning backend (migration **M3**). Analysis and API mapping: [self-questioning-integration-plan.md](self-questioning-integration-plan.md). Migration rules: [mock-to-real-migration.md](mock-to-real-migration.md).
 
 **Status:** Complete (2026-06-16) — Sprints 0–3 shipped; live dry_run smoke verified  
 **Scope (2026-06-16):** **Success signal only** — adapter reports whether the pipeline job completed (`proceed: true/false`). Generated data stays in the remote store; **no Supabase → `staging.jsonl` export** at this stage.
@@ -11,12 +11,12 @@
 
 ## 1. Goal
 
-Wire the coaching loop to the real pipeline service at `http://10.110.158.146:8001` while keeping the mock self-play path unchanged for CI and local dev.
+Wire the coaching loop to the real pipeline service at `http://10.110.158.146:8001` while keeping the mock self-questioning path unchanged for CI and local dev.
 
 | Principle | Rule |
 |-----------|------|
 | **SP-R1** | Adapter parity — extend `services/adapters/`; do not fork parallel client trees |
-| **SP-R2** | Explicit backend — `ORCHESTRATOR_SELFPLAY_BACKEND=mock\|pipeline` |
+| **SP-R2** | Explicit backend — `ORCHESTRATOR_SELF_QUESTIONING_BACKEND=mock\|pipeline` |
 | **SP-R3** | Mock CI unchanged — R5 (`LOOP_SERVICE_MODE=mock-module`) stays green every PR |
 | **SP-R4** | **Proceed signal** — `proceed: true` when all pipeline stages succeed; loop advances without local data writeback |
 | **SP-R5** | Ship C07 before C06 — batch T-path is lower risk than failure-conditioned sparse |
@@ -65,11 +65,11 @@ Wire the coaching loop to the real pipeline service at `http://10.110.158.146:80
 ```
 Coach / loop_driver / orchestrator
         │
-        ├─ ORCHESTRATOR_SELFPLAY_BACKEND=mock
-        │       → MockSelfPlayEngine (mock-services/mock_self_play.py)
+        ├─ ORCHESTRATOR_SELF_QUESTIONING_BACKEND=mock
+        │       → MockSelfQuestioningEngine (mock-services/mock_self_questioning.py)
         │
-        └─ ORCHESTRATOR_SELFPLAY_BACKEND=pipeline
-                → SelfPlayPipelineEngine (services/adapters/)
+        └─ ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline
+                → SelfQuestioningPipelineEngine (services/adapters/)
                         → PipelineServiceClient
                                 → POST /api/pipeline/submit
                                 → GET  /api/pipeline/status/{job_id}
@@ -80,17 +80,17 @@ Coach / loop_driver / orchestrator
 
 | ID | Step | File | Mock today | Pipeline mapping |
 |----|------|------|------------|------------------|
-| **C06** | Sparse self-play (E-path) | `modes/self-coaching/e_path.py` | `generate_suite` | Stage 1–3, `train_eval_flag=eval`, limit = σ size |
+| **C06** | Sparse self-questioning (E-path) | `modes/self-coaching/e_path.py` | `generate_suite` | Stage 1–3, `train_eval_flag=eval`, limit = σ size |
 | **C07** | Batch buffer fill (T-path) | `modes/self-coaching/t_path.py` | `generate_batch` | Stage 1–3, `train_eval_flag=train`, limit = `n` |
-| **C08** | Orchestrator collect | `services/orchestrator/runner.py` | `client.self_play()` | Same as C07 |
+| **C08** | Orchestrator collect | `services/orchestrator/runner.py` | `client.self_questioning()` | Same as C07 |
 
-**Not yet wired:** `CompositeClient.self_play()` always delegates to inner mock — needs adapter in Sprint 2.
+**Not yet wired:** `CompositeClient.self_questioning()` always delegates to inner mock — needs adapter in Sprint 2.
 
 ---
 
 ## 4. Proceed contract (success signal)
 
-The loop needs to know **whether self-play finished successfully** so the agent can move to the next step (learn, eval, train, etc.). It does **not** need locally mirrored trajectory rows at this stage.
+The loop needs to know **whether self-questioning finished successfully** so the agent can move to the next step (learn, eval, train, etc.). It does **not** need locally mirrored trajectory rows at this stage.
 
 ### Adapter return shape
 
@@ -127,7 +127,7 @@ The loop needs to know **whether self-play finished successfully** so the agent 
 
 ### Loop read path (mock vs pipeline)
 
-| Backend | After self-play | Buffer / Σ update |
+| Backend | After self-questioning | Buffer / Σ update |
 |---------|-----------------|-------------------|
 | **mock** | Reads `.self-coaching/curated/staging.jsonl` | Yes — trajectories appended locally |
 | **pipeline** | Skips `staging.jsonl` read | No — remote data only; `proceed` gates next step |
@@ -144,7 +144,7 @@ Exporting Supabase `query_bank` → `staging.jsonl` is **deferred**. Revisit onl
 
 ```env
 # Backend switch
-ORCHESTRATOR_SELFPLAY_BACKEND=pipeline   # mock | pipeline
+ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline   # mock | pipeline
 
 # Service URL (canonical)
 PIPELINE_SERVICE_URL=http://10.110.158.146:8001
@@ -170,7 +170,7 @@ LOOP_SERVICE_MODE=live
 LOOP_HOLDOUT_TIMEOUT_S=300
 ORCHESTRATOR_EVAL_BACKEND=agentevals
 ORCHESTRATOR_LEARN_BACKEND=self-learning
-ORCHESTRATOR_SELFPLAY_BACKEND=pipeline
+ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline
 PIPELINE_SERVICE_URL=http://10.110.158.146:8001
 ```
 
@@ -206,14 +206,14 @@ Calendar assumes ~3–4 working days per sprint. Adjust dates when sprint starts
 
 ### Sprint 1 — Adapter + C07 (batch T-path)
 
-**Target:** `SelfPlayPipelineEngine.generate_batch()` submits pipeline jobs and returns `proceed` signal.
+**Target:** `SelfQuestioningPipelineEngine.generate_batch()` submits pipeline jobs and returns `proceed` signal.
 
 | ID | Task | Owner | Status |
 |----|------|-------|--------|
 | SP-T06 | ~~`staging_writeback.py`~~ — **deferred** (no Supabase export) | — | cancelled |
-| SP-T07 | `services/adapters/selfplay_pipeline_adapter.py` — `SelfPlayPipelineEngine` | — | done |
+| SP-T07 | `services/adapters/self_questioning_pipeline_adapter.py` — `SelfQuestioningPipelineEngine` | — | done |
 | SP-T08 | `services/adapters/pipeline_mapping.py` — C07/C06 request + result mapping | — | done |
-| SP-T09 | `tests/test_selfplay_pipeline_adapter.py` | — | done |
+| SP-T09 | `tests/test_self_questioning_pipeline_adapter.py` | — | done |
 | SP-T10 | `e_path` / `t_path` skip `staging.jsonl` when `pipeline_service` | — | done |
 
 **Sprint 1 exit criteria:**
@@ -232,19 +232,19 @@ Calendar assumes ~3–4 working days per sprint. Adjust dates when sprint starts
 
 | ID | Task | Owner | Status |
 |----|------|-------|--------|
-| SP-T11 | `LoopConfig` — `selfplay_backend`, `pipeline_service_url` | — | done |
-| SP-T12 | `loop_env.py` — `ORCHESTRATOR_SELFPLAY_BACKEND`, `build_self_play_engine()` | — | done |
-| SP-T13 | `self_play_factory.py` + `t_path` / `e_path` factory routing | — | done |
-| SP-T14 | `composite_client.py` + `PipelineSelfPlayClientAdapter` | — | done |
+| SP-T11 | `LoopConfig` — `self_questioning_backend`, `pipeline_service_url` | — | done |
+| SP-T12 | `loop_env.py` — `ORCHESTRATOR_SELF_QUESTIONING_BACKEND`, `build_self_questioning_engine()` | — | done |
+| SP-T13 | `self_questioning_factory.py` + `t_path` / `e_path` factory routing | — | done |
+| SP-T14 | `composite_client.py` + `PipelineSelfQuestioningClientAdapter` | — | done |
 | SP-T15 | `services/orchestrator/runner.py` → `build_loop_client()` | — | done |
 | SP-T16 | `scenarios/demo.env.example` — pipeline env block | — | done |
 | SP-T17 | Staging smoke: `clock_loop_smoke.py` with pipeline env | — | manual |
 
 **Sprint 2 exit criteria:**
 
-- [x] `ORCHESTRATOR_SELFPLAY_BACKEND=pipeline` drives self-play via factory
-- [x] `ORCHESTRATOR_SELFPLAY_BACKEND=mock` unchanged (default)
-- [x] Orchestrator `client.self_play()` uses pipeline adapter when configured
+- [x] `ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline` drives self-questioning via factory
+- [x] `ORCHESTRATOR_SELF_QUESTIONING_BACKEND=mock` unchanged (default)
+- [x] Orchestrator `client.self_questioning()` uses pipeline adapter when configured
 - [ ] Coach clock smoke with live pipeline (manual)
 - [x] R5 mock-module demo still green
 
@@ -252,17 +252,17 @@ Calendar assumes ~3–4 working days per sprint. Adjust dates when sprint starts
 
 ### Sprint 3 — C06 sparse + coach + hardening
 
-**Target:** E-path sparse self-play; coach clock; docs and opt-in CI.
+**Target:** E-path sparse self-questioning; coach clock; docs and opt-in CI.
 
 | ID | Task | Owner | Status |
 |----|------|-------|--------|
-| SP-T18 | `SelfPlayPipelineEngine.generate_suite()` — C06 mapping | — | done (Sprint 1) |
-| SP-T19 | `e_path` via `run_suite_self_play` factory | — | done (Sprint 2) |
-| SP-T20 | `clock.py` passes `build_self_play_engine()` | — | done (Sprint 2) |
+| SP-T18 | `SelfQuestioningPipelineEngine.generate_suite()` — C06 mapping | — | done (Sprint 1) |
+| SP-T19 | `e_path` via `run_suite_self_questioning` factory | — | done (Sprint 2) |
+| SP-T20 | `clock.py` passes `build_self_questioning_engine()` | — | done (Sprint 2) |
 | SP-T21 | C06 prerequisite documented (Supabase messages) | — | done |
-| SP-T22 | `docs/guides/runbook.md` — pipeline self-play section | — | done |
+| SP-T22 | `docs/guides/runbook.md` — pipeline self-questioning section | — | done |
 | SP-T23 | Opt-in CI `.github/workflows/pipeline-integration.yml` | — | done |
-| SP-T24 | `scenarios/demo.pipeline.env.example` + `scripts/pipeline_self_play_smoke.py` | — | done |
+| SP-T24 | `scenarios/demo.pipeline.env.example` + `scripts/pipeline_self_questioning_smoke.py` | — | done |
 
 **Sprint 3 exit criteria:**
 
@@ -282,16 +282,16 @@ Calendar assumes ~3–4 working days per sprint. Adjust dates when sprint starts
 | `services/adapters/pipeline_service_client.py` | 0 | HTTP client |
 | `services/adapters/pipeline_http.py` | 0 | Optional shared HTTP base (if needed) |
 | `services/adapters/pipeline_mapping.py` | 1 | Request builders + `proceed` mapping |
-| `services/adapters/selfplay_pipeline_adapter.py` | 1 | `SelfPlayPipelineEngine` |
+| `services/adapters/self_questioning_pipeline_adapter.py` | 1 | `SelfQuestioningPipelineEngine` |
 | `tests/integration/test_pipeline_service_availability.py` | 0 | Live opt-in probes |
 | `tests/test_pipeline_service_client.py` | 0 | Offline client tests |
-| `tests/test_selfplay_pipeline_adapter.py` | 1 | Adapter unit tests |
+| `tests/test_self_questioning_pipeline_adapter.py` | 1 | Adapter unit tests |
 | `tests/fixtures/pipeline/*.json` | 0 | Recorded responses |
 | `modes/self-coaching/loop_config.py` | 2 | Config fields |
 | `modes/self-coaching/loop_env.py` | 2 | Factory wiring |
 | `modes/self-coaching/t_path.py` | 2 | Factory call site |
 | `modes/self-coaching/e_path.py` | 3 | Factory call site |
-| `services/adapters/composite_client.py` | 2 | Orchestrator `self_play` |
+| `services/adapters/composite_client.py` | 2 | Orchestrator `self_questioning` |
 | `scenarios/demo.env.example` | 2 | Env template |
 
 ---
@@ -302,10 +302,10 @@ Calendar assumes ~3–4 working days per sprint. Adjust dates when sprint starts
 |-------|----------------|---------|---------|
 | Mock regression (R5) | `bash tests/test_mock_self_coaching_demo.sh` | none | **required** |
 | Client unit | `pytest tests/test_pipeline_service_client.py` | none | required |
-| Adapter unit | `pytest tests/test_selfplay_pipeline_adapter.py` | none | required |
+| Adapter unit | `pytest tests/test_self_questioning_pipeline_adapter.py` | none | required |
 | Availability (dry_run) | `pytest tests/integration/test_pipeline_service_availability.py` | live VPN | opt-in |
 | T-path loop | `pytest tests/test_loop_t_path.py` | none (mock) | required |
-| Sparse loop | `pytest tests/test_loop_self_play_sparse.py` | none (mock) | required |
+| Sparse loop | `pytest tests/test_loop_self_questioning_sparse.py` | none (mock) | required |
 | Coach smoke | `python scripts/clock_loop_smoke.py` | staging | manual |
 | Full live | `scripts/full_loop_live_smoke.py` | staging | manual |
 

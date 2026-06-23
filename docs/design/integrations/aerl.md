@@ -1,6 +1,6 @@
 # AERL integration
 
-**AERL** is the training backend for the **model path** in [pipelines.md](../pipelines.md): SFT and GRPO-style runs over curated data from learn / self-play / curation.
+**AERL** is the training backend for the **model path** in [pipelines.md](../pipelines.md): SFT and GRPO-style runs over curated data from learn / self-questioning / curation.
 
 **Production path (2026-06):** Real GPU training on the AReaL host uses **CLI + db_bridge remote shell**, not HTTP. Set `ORCHESTRATOR_TRAIN_BACKEND=cli`. See [cli-training-implementation.md](../../project/cli-training-implementation.md) and [db_bridge_remote_shell.md](db_bridge_remote_shell.md).
 
@@ -22,18 +22,18 @@ Operators (repo root): `bash scripts/run-pipeline.sh <sft|grpo> logs/<id>.log`
 
 Default trainer: `TRAINER_BASE_URL` (registry default `http://localhost:8004`).
 
-**Production spec (DRAFT):** [self-tuning-trainer-api-plan.md](../../project/self-tuning-trainer-api-plan.md) — **TrainingClient** (runs, config, loss) and **RestClient** (checkpoints, weights, processes); rollout proxy, `reward.ic.v1`, `agent_snapshot`.
+**Production spec (DRAFT):** [self-tuning-trainer-api-plan.md](../../project/self-tuning-trainer-api-plan.md) — **TrainerClient** (runs, config, loss) and **RestClient** (checkpoints, weights, processes); rollout proxy, `reward.ic.v1`, `agent_snapshot`.
 
 | Client | Endpoints | Repo module (M4) |
 |--------|-----------|------------------|
-| **TrainingClient** | `POST/GET /v1/training/runs`, metrics, pipelines, rollout/reward validate | `services/adapters/training_client.py` |
+| **TrainerClient** | `POST/GET /v1/training/runs`, metrics, pipelines, rollout/reward validate | `services/adapters/trainer_client.py` |
 | **RestClient** | `GET /v1/checkpoints`, `/v1/models`, `/v1/processes` | `services/adapters/trainer_rest_client.py` |
 
 Coaching facade maps `POST /training/runs` → adapter → `POST /v1/training/runs` (`ORCHESTRATOR_TRAIN_BACKEND=aerl`).
 
 Local mock: `mock-services/mock_aerl.py` on `:8004` (`MOCK_AERL_URL` / `TRAINER_BASE_URL`).
 
-**Loop wiring (M4.3):** `mock-http` mode sets `ORCHESTRATOR_TRAIN_BACKEND=aerl` and `build_loop_client()` composes `TrainingClient` + `RestClient` from `LoopConfig.aerl_url`. See `modes/self-coaching/loop_env.py`.
+**Loop wiring (M4.3):** `mock-http` mode sets `ORCHESTRATOR_TRAIN_BACKEND=aerl` and `build_loop_client()` composes `TrainerClient` + `RestClient` from `LoopConfig.aerl_url`. See `modes/self-coaching/loop_env.py`.
 
 ## CLI production path (db_bridge)
 

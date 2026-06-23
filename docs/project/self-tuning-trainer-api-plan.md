@@ -40,7 +40,7 @@ The mock treats training as a **short async job** with synthetic `val_loss` and 
 5. **Adapter parity** — loop and orchestrator keep calling `train()`; mode/env selects mock vs AERL backend (same pattern as AgentEvals M1 and self-learning M2).
 6. **Mock extension** — deterministic production-shaped routes in CI; **R5** mock-module gate unchanged.
 7. **Mapping discipline** — terminal run → `candidate_model_id`, `manifest`, `registry_version_id` for local `AgentRegistry` (M4 uses local registry; M5 optional for remote).
-8. **Two typed clients** — **TrainingClient** (job + loss) and **RestClient** (checkpoints + weights + side processes); see §3.2.
+8. **Two typed clients** — **TrainerClient** (job + loss) and **RestClient** (checkpoints + weights + side processes); see §3.2.
 
 ---
 
@@ -57,7 +57,7 @@ The mock treats training as a **short async job** with synthetic `val_loss` and 
 | **ST-R7** | **Rewards are data, not magic.** Datasets declare `reward_schema_version`; trainer validates before queueing. |
 | **ST-R8** | **Snapshot is optional but typed.** When present, `agent_snapshot` records lineage; adapter copies into `training_run_manifest.json`. |
 | **ST-R9** | **Local registry for M4.** Trainer may register checkpoints remotely, but **activation** stays in the loop via local `AgentRegistry` unless M5 applies. |
-| **ST-R10** | **Two clients, one service.** **TrainingClient** owns the *job lifecycle* (run id, algorithm, data, config, loss). **RestClient** owns *durable artifacts* (checkpoints, weights, side processes). Same `TRAINER_BASE_URL`; different path prefixes and repo modules. |
+| **ST-R10** | **Two clients, one service.** **TrainerClient** owns the *job lifecycle* (run id, algorithm, data, config, loss). **RestClient** owns *durable artifacts* (checkpoints, weights, side processes). Same `TRAINER_BASE_URL`; different path prefixes and repo modules. |
 
 ---
 
@@ -81,14 +81,14 @@ The mock treats training as a **short async job** with synthetic `val_loss` and 
                                   v
                     +---------------------------+
                     |  Train adapter            |
-                    |  TrainingClient + mapping |
+                    |  TrainerClient + mapping |
                     +-------------+-------------+
                                   |
           +-----------------------+-----------------------+
           |                       |                       |
           v                       v                       v
 +-------------------+  +-------------------+  +-------------------+
-| TrainingClient    |  | TrainingClient    |  | RestClient        |
+| TrainerClient    |  | TrainerClient    |  | RestClient        |
 | POST/GET          |  | POST /v1/pipelines|  | GET checkpoints,  |
 | /v1/training/runs |  | /{id}/run (argv)  |  | models, processes |
 +-------------------+  +-------------------+  +-------------------+
@@ -132,14 +132,14 @@ Production integrations expose **one trainer HTTP service** but **two typed clie
 
 | Client | Responsibility | Primary paths | Repo module (M4) |
 |--------|----------------|---------------|------------------|
-| **TrainingClient** | Training **job** lifecycle: create, poll, cancel, metrics | `/v1/training/…`, `/v1/pipelines/…`, `/v1/rollout/…`, `/v1/rewards/…` | `services/adapters/training_client.py` |
+| **TrainerClient** | Training **job** lifecycle: create, poll, cancel, metrics | `/v1/training/…`, `/v1/pipelines/…`, `/v1/rollout/…`, `/v1/rewards/…` | `services/adapters/trainer_client.py` |
 | **RestClient** | **Durable artifacts** after or beside training: checkpoints, model weights, export/merge processes | `/v1/checkpoints/…`, `/v1/models/…`, `/v1/processes/…` | `services/adapters/trainer_rest_client.py` |
 
-**TrainingClient** answers: *what run is this, what algorithm, what data, what config, what loss?*  
+**TrainerClient** answers: *what run is this, what algorithm, what data, what config, what loss?*  
 **RestClient** answers: *what checkpoints exist, where are the weights, what side jobs ran?*
 
 ```text
-TrainingClient                          RestClient
+TrainerClient                          RestClient
 ────────────────────────────────        ────────────────────────────────
 training_run_id  (id)                   checkpoint_id
 base_model                               parent base_model / merged_from[]
@@ -150,7 +150,7 @@ metrics / loss_curve                     related processes (export, merge)
 status, phase, progress                  served endpoint (if deployed)
 ```
 
-**Loop / orchestrator path:** `AERLTrainAdapter` uses **TrainingClient only** until `status=succeeded`, then optionally **RestClient** `GET /v1/checkpoints?training_run_id=…` to resolve `candidate_model_id` and weight URIs for eval and manifest.
+**Loop / orchestrator path:** `AERLTrainAdapter` uses **TrainerClient only** until `status=succeeded`, then optionally **RestClient** `GET /v1/checkpoints?training_run_id=…` to resolve `candidate_model_id` and weight URIs for eval and manifest.
 
 **Operator / coach path:** may use RestClient directly to list historical checkpoints, diff weights, or poll an export process without starting a new training run.
 
@@ -166,10 +166,10 @@ status, phase, progress                  served endpoint (if deployed)
 
 | Part | Client | Sections |
 |------|--------|----------|
-| **A** | TrainingClient | §4.0–§4.12 — runs, pipelines, rollout, rewards, health |
+| **A** | TrainerClient | §4.0–§4.12 — runs, pipelines, rollout, rewards, health |
 | **B** | RestClient | §4.13–§4.16 — checkpoints, models, processes |
 
-### 4.0 Common request fields (TrainingClient)
+### 4.0 Common request fields (TrainerClient)
 
 Shared by `POST /v1/training/runs`:
 
@@ -302,7 +302,7 @@ Shared by `POST /v1/training/runs`:
 | 422 | `proxy_unreachable` | `dry_run` or preflight cannot reach `rollout.llm_proxy` |
 | 503 | `queue_full` | Backpressure; retry after `Retry-After` |
 
-### 4.2 `GET /v1/training/runs/{run_id}` — poll run status (TrainingClient)
+### 4.2 `GET /v1/training/runs/{run_id}` — poll run status (TrainerClient)
 
 Returns a **`TrainingRunRecord`** (§4.2.1). Alias: `training_run_id` == `id`.
 
@@ -426,7 +426,7 @@ Returns a **`TrainingRunRecord`** (§4.2.1). Alias: `training_run_id` == `id`.
 |------|------|------|
 | 404 | `run_not_found` | Unknown or evicted `run_id` (retention: `trainer.run_ttl_hours`, default **168**) |
 
-#### 4.2.1 `TrainingRunRecord` — TrainingClient report schema
+#### 4.2.1 `TrainingRunRecord` — TrainerClient report schema
 
 Canonical object returned by `GET /v1/training/runs/{id}` and embedded in list responses.
 
@@ -487,7 +487,7 @@ Immutable copy of effective config after server defaults merged.
 
 #### 4.2.5 `GET /v1/training/runs/{run_id}/metrics` — loss & reward series
 
-TrainingClient endpoint for **time series** too large to inline on every poll.
+TrainerClient endpoint for **time series** too large to inline on every poll.
 
 **Query params:** `series` (comma-separated, default `train_loss,val_loss`), `downsample` (max points, default 500).
 
@@ -618,7 +618,7 @@ Training runs may set `"rollout": {"config_ref": "hermes-tool-use-v1"}` and over
 
 ### 4.6 Reward interchange schema
 
-Rewards flow from **self-play**, **self-evaluation**, and human curation into JSONL datasets. The trainer validates records before queueing.
+Rewards flow from **self-questioning**, **self-evaluation**, and human curation into JSONL datasets. The trainer validates records before queueing.
 
 #### 4.6.1 Schema version
 
@@ -1003,7 +1003,7 @@ Returns **202** + `process_id` for poll via RestClient.
 
 ## 6. Output contract — production API → loop `train()` result
 
-Production **TrainingClient** returns `TrainingRunRecord` (§4.2.1) — **not** the thin coaching shape. **RestClient** supplies checkpoint/weight detail. The **adapter** normalizes both into the loop contract:
+Production **TrainerClient** returns `TrainingRunRecord` (§4.2.1) — **not** the thin coaching shape. **RestClient** supplies checkpoint/weight detail. The **adapter** normalizes both into the loop contract:
 
 ```python
 # loop_driver.run_t_path (unchanged)
@@ -1011,7 +1011,7 @@ train_result = client.train(pipeline=pipeline, dataset=str(dataset_path), base_m
 trained_model = str(train_result.get("candidate") or train_result.get("candidate_model_id"))
 ```
 
-### 6.1 TrainingClient result shape (source of truth)
+### 6.1 TrainerClient result shape (source of truth)
 
 | Field | When present | Meaning |
 |-------|--------------|---------|
@@ -1113,14 +1113,14 @@ trained_model = str(train_result.get("candidate") or train_result.get("candidate
 
 | Client class | Module | Methods (representative) |
 |--------------|--------|--------------------------|
-| **`TrainingClient`** | `services/adapters/training_client.py` | `create_run`, `get_run`, `wait_for_run`, `cancel_run`, `list_runs`, `get_metrics`, `validate_rollout`, `validate_rewards`, `run_pipeline_argv`, `list_pipelines`, `health` |
+| **`TrainerClient`** | `services/adapters/trainer_client.py` | `create_run`, `get_run`, `wait_for_run`, `cancel_run`, `list_runs`, `get_metrics`, `validate_rollout`, `validate_rewards`, `run_pipeline_argv`, `list_pipelines`, `health` |
 | **`RestClient`** | `services/adapters/trainer_rest_client.py` | `list_checkpoints`, `get_checkpoint`, `list_models`, `get_model`, `list_processes`, `get_process`, `create_process` (optional) |
 
-**Migration note:** Today's `AERLClient` in `aerl_client.py` is a **TrainingClient** subset. M4 splits or re-exports:
+**Migration note:** Today's `AERLClient` in `aerl_client.py` is a **TrainerClient** subset. M4 splits or re-exports:
 
 ```python
-# training_client.py — job lifecycle
-class TrainingClient:
+# trainer_client.py — job lifecycle
+class TrainerClient:
     def get_run(self, training_run_id: str) -> TrainingRunRecord: ...
     def get_metrics(self, training_run_id: str, *, series: list[str] | None = None) -> dict: ...
 
@@ -1131,16 +1131,16 @@ class RestClient:
     def get_weights(self, checkpoint_id: str) -> WeightsManifest: ...  # shortcut to .weights
 ```
 
-Both clients share `TRAINER_BASE_URL` + `TRAINER_API_KEY`. `train_adapter.py` composes **TrainingClient** (required) + **RestClient** (on success).
+Both clients share `TRAINER_BASE_URL` + `TRAINER_API_KEY`. `train_adapter.py` composes **TrainerClient** (required) + **RestClient** (on success).
 
 ### 7.2 Other modules
 
 | Module | Responsibility |
 |--------|----------------|
-| `services/adapters/train_adapter.py` | `train()` → TrainingClient + RestClient → mapping |
+| `services/adapters/train_adapter.py` | `train()` → TrainerClient + RestClient → mapping |
 | `services/adapters/train_mapping.py` | `TrainingRunRecord` + `Checkpoint` → `train()` dict + manifest |
-| `services/adapters/aerl_client.py` | **Deprecated alias** → thin wrapper over `TrainingClient` (M4.2) |
-| `docs/integration/mapping.md` | § Self-tuning TrainingClient + RestClient fields |
+| `services/adapters/aerl_client.py` | **Deprecated alias** → thin wrapper over `TrainerClient` (M4.2) |
+| `docs/integration/mapping.md` | § Self-tuning TrainerClient + RestClient fields |
 | `docs/integration/api-snapshots/aerl-openapi.json` | Export from production trainer (both path groups) |
 
 ### 7.3 `train()` behavior by mode
@@ -1148,15 +1148,15 @@ Both clients share `TRAINER_BASE_URL` + `TRAINER_API_KEY`. `train_adapter.py` co
 | `ORCHESTRATOR_TRAIN_BACKEND` | Backend | Behavior |
 |------------------------------|---------|----------|
 | `mock` (default) | In-process `mock_aerl` | Today's deterministic engine |
-| `aerl` | Production trainer §4.1–4.3 | TrainingClient async create + poll; RestClient on success |
+| `aerl` | Production trainer §4.1–4.3 | TrainerClient async create + poll; RestClient on success |
 
 **T-path adapter flow (`ORCHESTRATOR_TRAIN_BACKEND=aerl`):**
 
 ```text
 train(pipeline, dataset, base_model)
-  → TrainingClient.create_run({ pipeline_id, base_model, dataset_refs,
+  → TrainerClient.create_run({ pipeline_id, base_model, dataset_refs,
        agent_snapshot, rollout?, reward_spec?, wait })
-  → TrainingClient.wait_for_run(training_run_id) until terminal
+  → TrainerClient.wait_for_run(training_run_id) until terminal
   → if succeeded and primary_checkpoint_id:
        RestClient.get_checkpoint(primary_checkpoint_id)  # weights URIs for manifest
   → train_mapping → training_run_manifest.json + { candidate, metrics, trainer, training_data }
@@ -1192,7 +1192,7 @@ Extend `mock-services/mock_aerl.py` to **mirror production routes** (determinist
 
 **Design note (Tinker comparison):** Tinker exposes algorithm primitives (`forward_backward`, `sample`); this repo keeps a **job-level** trainer API. The mock adopts Tinker *concepts* only — phased lifecycle, co-located rollout accounting, checkpoint-first URIs — not Tinker SDK shapes. Checkpoint URIs use **`mock://run-id/weights/name`**, not `tinker://`.
 
-### 8.1 Slice 1 — TrainingClient core (M4.1-T01–T04)
+### 8.1 Slice 1 — TrainerClient core (M4.1-T01–T04)
 
 | Endpoint | Mock behavior |
 |----------|---------------|
@@ -1298,7 +1298,7 @@ When a training run follows a learning job:
 |------|-------------|------|
 | **M4.0** | This spec approved; OpenAPI draft + `aerl-openapi.json` placeholder | Review sign-off |
 | **M4.1** | Mock production routes — Slice 1 + 2 (§8); pass checks §8.4 | **done** — regression + extended tests green |
-| **M4.2** | `training_client.py` + `trainer_rest_client.py` + `train_mapping.py` | Replay test from fixture |
+| **M4.2** | `trainer_client.py` + `trainer_rest_client.py` + `train_mapping.py` | Replay test from fixture |
 | **M4.3** | `loop_env.py` env wiring; GRPO rollout config | T-path test with mock HTTP |
 | **M4.4** | Staging smoke: real trainer + proxy validate | `full_loop_live` T-path rows pass |
 | **M4.5** | R5 mock-module regression | Golden unchanged |
@@ -1331,7 +1331,7 @@ When a training run follows a learning job:
 
 ### 11.2 M4.1 — Mock trainer (production-shaped HTTP, sliced)
 
-**Slice 1 — TrainingClient core**
+**Slice 1 — TrainerClient core**
 
 | ID | Task | Slice | Done |
 |----|------|-------|------|
@@ -1353,9 +1353,9 @@ When a training run follows a learning job:
 
 | ID | Task | Done |
 |----|------|------|
-| M4.2-T01 | `training_client.py` + `trainer_rest_client.py` + `trainer_http.py` | [x] |
+| M4.2-T01 | `trainer_client.py` + `trainer_rest_client.py` + `trainer_http.py` | [x] |
 | M4.2-T02 | `train_mapping.py` + `AERLTrainAdapter` RestClient checkpoint resolve | [x] |
-| M4.2-T03 | `aerl_client.py` deprecated alias over `TrainingClient` | [x] |
+| M4.2-T03 | `aerl_client.py` deprecated alias over `TrainerClient` | [x] |
 | M4.2-T04 | `tests/test_train_adapter.py` fixture replay + HTTP integration | [x] |
 | M4.2-T05 | `loop_env.py` train env defaults (`LOOP_TRAIN_*`, `AERL_*`) | [x] |
 
@@ -1365,7 +1365,7 @@ When a training run follows a learning job:
 |----|------|------|
 | M4.3-T01 | `mock-http` promotes `ORCHESTRATOR_TRAIN_BACKEND=aerl` when AERL URL configured | [x] |
 | M4.3-T02 | `LoopConfig.from_env` infers `train_backend=aerl` for mock-http + live | [x] |
-| M4.3-T03 | `build_loop_client` wires `TrainingClient` + `RestClient` from `config.aerl_url` | [x] |
+| M4.3-T03 | `build_loop_client` wires `TrainerClient` + `RestClient` from `config.aerl_url` | [x] |
 | M4.3-T04 | `tests/test_loop_t_path.py::test_t_path_trains_via_aerl_http_backend` | [x] |
 ### 11.5 M4.5 — R5 mock-module regression
 
@@ -1466,9 +1466,9 @@ When a training run follows a learning job:
 | Date | Change |
 |------|--------|
 | 2026-06-15 | Initial DRAFT: production trainer API (runs, rollout/LLM proxy, reward.ic.v1, agent_snapshot); M4 task list |
-| 2026-06-15 | §3.2 TrainingClient vs RestClient; `TrainingRunRecord`; checkpoint/model/process APIs (§4.13–4.16) |
-| 2026-06-16 | §8 sliced M4.1 (TrainingClient core + RestClient minimal); §8.4 pass checks; §12 test matrix |
-| 2026-06-16 | M4.2: `training_client.py`, `trainer_rest_client.py`, `train_mapping.py`, adapter RestClient path |
+| 2026-06-15 | §3.2 TrainerClient vs RestClient; `TrainingRunRecord`; checkpoint/model/process APIs (§4.13–4.16) |
+| 2026-06-16 | §8 sliced M4.1 (TrainerClient core + RestClient minimal); §8.4 pass checks; §12 test matrix |
+| 2026-06-16 | M4.2: `trainer_client.py`, `trainer_rest_client.py`, `train_mapping.py`, adapter RestClient path |
 | 2026-06-16 | M4.3: mock-http aerl wiring, `build_loop_client` adapter, T-path HTTP integration test |
 | 2026-06-16 | M4.0 frozen: §14 decisions, Coaching OpenAPI TrainingRequest, `aerl-openapi.json`; M4.5 R5 green |
 

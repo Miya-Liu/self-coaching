@@ -18,7 +18,7 @@ Loop execution modes (who triggers): [self_coaching_mode.md](self_coaching_mode.
 | Stage | Path | T2 HTTP |
 |-------|------|---------|
 | self-learning | `modes/self-coaching/self-learning/` | `POST /learning/events` |
-| self-play | `modes/self-coaching/self-play/` | `POST /self-play/generate` |
+| self-questioning | `modes/self-coaching/self-questioning/` | `POST /self-questioning/generate` |
 | self-evaluation | `modes/self-coaching/self-evaluation/` | `POST /eval/runs` |
 | self-tuning | `modes/self-coaching/self-tuning/` | `POST /training/runs` |
 

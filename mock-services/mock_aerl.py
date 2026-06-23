@@ -1,6 +1,11 @@
+# ⚠️ ON-HOLD: AERL services not yet deployed
+# This module depends on the AERL training platform which is not available
+# in the current deployment. Kept for future integration when AERL is live.
+# Status: ON-HOLD — do not remove, do not invest further until AERL deploys.
+
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Mock AERL trainer — production-shaped TrainingClient + RestClient shims.
+"""Mock AERL trainer — production-shaped TrainerClient + RestClient shims.
 
 Implements self-tuning-trainer-api-plan.md §8 (sliced M4.1):
   Slice 1 — job lifecycle, validation, phased runs, metrics

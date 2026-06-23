@@ -1,3 +1,8 @@
+# ⚠️ ON-HOLD: AERL services not yet deployed
+# This module depends on the AERL training platform which is not available
+# in the current deployment. Kept for future integration when AERL is live.
+# Status: ON-HOLD — do not remove, do not invest further until AERL deploys.
+
 #!/usr/bin/env bash
 # Extended smoke: production-shaped mock AERL routes (M4.1 Slice 1–2).
 set -euo pipefail
@@ -60,11 +65,13 @@ done
 test "${STATUS}" = "succeeded"
 
 curl -fsS "http://127.0.0.1:${PORT}/v1/training/runs/${RUN_ID}/metrics" | grep -q 'train_loss'
-curl -fsS "http://127.0.0.1:${PORT}/v1/checkpoints?training_run_id=${RUN_ID}" | grep -q 'mock://'
+curl -fsS "http://127.0.0.1:${PORT}/v1/checkpoints?training_run_id=${RUN_ID}" | grep -q '"status": "available"'
 
 CKPT_ID="$(curl -fsS "http://127.0.0.1:${PORT}/v1/training/runs/${RUN_ID}" \
   | python -c "import json,sys; print(json.load(sys.stdin)['primary_checkpoint_id'])")"
-curl -fsS "http://127.0.0.1:${PORT}/v1/checkpoints/${CKPT_ID}" | grep -q '"adapter_only": true'
+CKPT_DETAIL="$(curl -fsS "http://127.0.0.1:${PORT}/v1/checkpoints/${CKPT_ID}")"
+echo "${CKPT_DETAIL}" | grep -q 'mock://'
+echo "${CKPT_DETAIL}" | grep -q '"adapter_only": true'
 
 test -f "${DATA_DIR}/.self-coaching/manifests/training_run_manifest.json"
 

@@ -1,3 +1,8 @@
+# ⚠️ ON-HOLD: AERL services not yet deployed
+# This module depends on the AERL training platform which is not available
+# in the current deployment. Kept for future integration when AERL is live.
+# Status: ON-HOLD — do not remove, do not invest further until AERL deploys.
+
 #!/usr/bin/env bash
 # Smoke test mock AERL (in-process + HTTP argv endpoint).
 set -euo pipefail

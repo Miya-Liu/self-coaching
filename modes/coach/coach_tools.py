@@ -9,7 +9,7 @@ This enables fine-grained actions beyond the 5 action labels:
   - Inspect loop state in detail
   - Write a memory/learning entry
   - Create an eval case
-  - Target specific capabilities in self-play
+  - Target specific capabilities in self-questioning
   - Read recent failures
 
 The tools operate on the supervised agent's coaching_root (not the coach's own state).

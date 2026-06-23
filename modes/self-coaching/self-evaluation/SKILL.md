@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [self-coaching, evaluation, eval-service, regression, promotion-gates, agent-evals]
-    related_skills: [self-coaching, self-learning, self-play, self-tuning, weights-and-biases, dspy]
+    related_skills: [self-coaching, self-learning, self-questioning, self-tuning, weights-and-biases, dspy]
 ---
 
 # Self-Coaching: Evaluation Pipeline
@@ -17,14 +17,14 @@ metadata:
 
 A self-coaching loop is only safe if candidates are evaluated against fixed regression suites, capability suites, and safety gates before promotion.
 
-This skill defines the evaluation contract. The pack ships a deterministic stdlib-only mock service harness under **`mock-services/`** relative to the skill install root (`SKILL_ROOT`; see umbrella `SKILL.md` → Installation paths). In a Hermes install that is `$HOME/.hermes/skills/self-coaching/mock-services/` (bundled by `bash scripts/install-skill-pack.sh --hermes`). In a repo clone it is `<repo>/mock-services/`. See `mock-services/README.md` for CLI/HTTP contracts and the `run-all` smoke test. Until a project-specific runner exists, scaffold the smallest local runner that executes JSONL cases, records outputs, scores deterministic checks, emits a JSON report, and routes failures back into self-learning or self-play.
+This skill defines the evaluation contract. The pack ships a deterministic stdlib-only mock service harness under **`mock-services/`** relative to the skill install root (`SKILL_ROOT`; see umbrella `SKILL.md` → Installation paths). In a Hermes install that is `$HOME/.hermes/skills/self-coaching/mock-services/` (bundled by `bash scripts/install-skill-pack.sh --hermes`). In a repo clone it is `<repo>/mock-services/`. See `mock-services/README.md` for CLI/HTTP contracts and the `run-all` smoke test. Until a project-specific runner exists, scaffold the smallest local runner that executes JSONL cases, records outputs, scores deterministic checks, emits a JSON report, and routes failures back into self-learning or self-questioning.
 
 ## When to Use
 
 Use this skill when:
 
 - a candidate model, prompt, skill, tool, pipeline, or config needs validation;
-- eval failures should trigger self-learning or self-play;
+- eval failures should trigger self-learning or self-questioning;
 - you need a service/API contract for agent evaluations;
 - you need pass/fail thresholds for deployment;
 - a training run finished and must be compared with the baseline before promotion.
@@ -41,7 +41,7 @@ The eval runner or service should support:
 - machine-readable JSON report;
 - human-readable summary;
 - regression, safety, cost, and latency gates;
-- failure export for self-learning and self-play.
+- failure export for self-learning and self-questioning.
 
 ## Recommended Project Layout
 
@@ -51,7 +51,7 @@ If no project layout exists, use:
 .self-coaching/
   cases/
     eval_cases.jsonl
-    self_play_candidates.jsonl
+    self_questioning_candidates.jsonl
   curated/
     train.jsonl
     validation.jsonl
@@ -137,13 +137,13 @@ Capability values drive per-capability scores in `report.json` and the route hin
 
 | Capability | Report score key | Typical failure route |
 |---|---|---|
-| `tool_use` | `tool_use` | `self-learning` (forgot procedure) or `self-play` (weak coverage) |
+| `tool_use` | `tool_use` | `self-learning` (forgot procedure) or `self-questioning` (weak coverage) |
 | `tool_verification` | `tool_verification` | `self-learning` (skipped verification step) |
 | `safety` | `safety` | `block-and-add-regression` |
 | `reasoning` | `reasoning` | `self-tuning` (repeated capability gap) or `human-review` (bad rubric) |
 | `formatting` | `formatting` | `human-review` |
 
-Self-play or mock pipelines may emit richer case objects (`deterministic_checks`, `rubric`, etc.). When authoring cases by hand or bootstrapping a new runner, use this schema so cases stay comparable across sessions and agents.
+Self-questioning or mock pipelines may emit richer case objects (`deterministic_checks`, `rubric`, etc.). When authoring cases by hand or bootstrapping a new runner, use this schema so cases stay comparable across sessions and agents.
 
 ## Runner CLI Contract
 
@@ -223,18 +223,18 @@ Do not promote on aggregate score alone. Inspect per-capability regressions and 
 
 ## Failure Routing
 
-For each top failure, assign a route from this controlled vocabulary. Reports MUST use these exact string values so downstream tools (`self-learning`, `self-play`, `self-tuning`) can consume them:
+For each top failure, assign a route from this controlled vocabulary. Reports MUST use these exact string values so downstream tools (`self-learning`, `self-questioning`, `self-tuning`) can consume them:
 
 | Failure type | Route value | Action |
 |---|---|---|
 | Forgot known procedure/convention | `self-learning` | Append to LEARNINGS.md, patch skill |
 | Skipped post-tool verification (`tool_verification` cases) | `self-learning` | Patch skill; add fixed regression case |
-| Missing or weak eval coverage | `self-play` | Generate adversarial cases |
+| Missing or weak eval coverage | `self-questioning` | Generate adversarial cases |
 | Repeated model capability failure | `self-tuning` | Add to training data candidate pool |
 | Ambiguous task or unstable judge | `human-review` | Human rewrites case or rubric |
 | Safety or privacy failure | `block-and-add-regression` | Block promotion; add to fixed regression suite |
 
-Load the matching submodule skill when executing a route (`self-learning`, `self-play`, or `self-tuning`). For `human-review` and `block-and-add-regression`, write a dated postmortem under `postmortems/` and append a fixed case to `eval_cases.jsonl`.
+Load the matching submodule skill when executing a route (`self-learning`, `self-questioning`, or `self-tuning`). For `human-review` and `block-and-add-regression`, write a dated postmortem under `postmortems/` and append a fixed case to `eval_cases.jsonl`.
 
 Append concise failure summaries to `experience/ERROR.md` or `experience/LEARNINGS.md` when the finding is reusable. Do not paste full eval logs into experience files.
 
@@ -257,7 +257,7 @@ Record the resulting `eval_run_id` in the training manifest and `experience/EXPE
 
 1. **Evaluating on training data.** Keep fixed eval families separate from training and validation.
 2. **Using only LLM judges.** Prefer deterministic checks and use judges with rubrics plus spot checks.
-3. **Skipping failure routing.** Every top failure should use a controlled route value (`self-learning`, `self-play`, `self-tuning`, `human-review`, or `block-and-add-regression`).
+3. **Skipping failure routing.** Every top failure should use a controlled route value (`self-learning`, `self-questioning`, `self-tuning`, `human-review`, or `block-and-add-regression`).
 4. **Ignoring costs.** A candidate that is slightly better but much slower or costlier may not be promotable.
 5. **No rollback target.** A pass without `rollback_target` still is not operationally safe.
 6. **Skipping stub smoke tests.** Debug the runner with a deterministic stub before spending API credits on a real candidate.

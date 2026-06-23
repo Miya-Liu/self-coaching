@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Self-play backend via the Self-Questioning Pipeline Service (success signal only)."""
+"""Self-questioning backend via the Self-Questioning Pipeline Service (success signal only)."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from .pipeline_mapping import (
 from .pipeline_service_client import PipelineServiceClient
 
 
-class SelfPlayPipelineEngine:
+class SelfQuestioningPipelineEngine:
     """Submit pipeline jobs and return proceed / hold signals for the coaching loop.
 
     Data produced by the pipeline stays in the remote store (Supabase). This adapter
@@ -59,7 +59,7 @@ class SelfPlayPipelineEngine:
         capability: str = "tool_use",
         n: int = 3,
     ) -> dict[str, Any]:
-        """C07: trigger batch self-play pipeline; return success / failure only."""
+        """C07: trigger batch self-questioning pipeline; return success / failure only."""
         body = build_batch_request(n=n, capability=capability)
         job_id: str | None = None
         try:
@@ -89,7 +89,7 @@ class SelfPlayPipelineEngine:
         mode: str = "adversarial",  # noqa: ARG002
         n_variants: int = 2,
     ) -> dict[str, Any]:
-        """C06: trigger sparse self-play pipeline; return success / failure only."""
+        """C06: trigger sparse self-questioning pipeline; return success / failure only."""
         body = build_suite_request(n_variants=n_variants)
         job_id: str | None = None
         try:
@@ -106,21 +106,21 @@ class SelfPlayPipelineEngine:
             return map_pipeline_error(exc, job_id=job_id, mode="suite")
 
 
-def build_self_play_pipeline_engine(
+def build_self_questioning_pipeline_engine(
     base_url: str | None = None,
     *,
     client: PipelineServiceClient | None = None,
-) -> SelfPlayPipelineEngine:
+) -> SelfQuestioningPipelineEngine:
     """Factory used by loop_env (Sprint 2) and tests."""
     if client is not None:
-        return SelfPlayPipelineEngine(client)
+        return SelfQuestioningPipelineEngine(client)
     if base_url:
-        return SelfPlayPipelineEngine(PipelineServiceClient(base_url))
-    return SelfPlayPipelineEngine()
+        return SelfQuestioningPipelineEngine(PipelineServiceClient(base_url))
+    return SelfQuestioningPipelineEngine()
 
 
 __all__ = [
-    "SelfPlayPipelineEngine",
-    "build_self_play_pipeline_engine",
+    "SelfQuestioningPipelineEngine",
+    "build_self_questioning_pipeline_engine",
     "pipeline_job_succeeded",
 ]

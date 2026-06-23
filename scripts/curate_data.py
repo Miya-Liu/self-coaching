@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Curate self-play trajectories into train/dev/holdout JSONL splits (M3 stub).
+"""Curate self-questioning trajectories into train/dev/holdout JSONL splits (M3 stub).
 
 Reads trajectory or candidate records from JSONL, filters privacy-checked rows,
 deduplicates by case_id, and writes split files under a coaching root.

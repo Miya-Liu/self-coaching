@@ -1,5 +1,5 @@
 # mode: coach — see docs/design/coach_mode.md
-# uses same submodules via evolution engine (self-learning, self-play, self-evaluation, self-tuning)
+# uses same submodules via evolution engine (self-learning, self-questioning, self-evaluation, self-tuning)
 
 # agents:
 #   - id: example-agent

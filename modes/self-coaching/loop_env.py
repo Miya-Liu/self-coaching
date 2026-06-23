@@ -13,7 +13,7 @@ VALID_MODES = frozenset({"mock-module", "mock-http", "live"})
 
 MOCK_URL_KEYS = (
     "MOCK_SELF_LEARNING_URL",
-    "MOCK_SELF_PLAY_URL",
+    "MOCK_SELF_QUESTIONING_URL",
     "MOCK_AERL_URL",
     "MOCK_AGENTEVALS_URL",
     "AGENTEVALS_BASE_URL",
@@ -31,7 +31,7 @@ LOOP_DEFAULTS: dict[str, str] = {
     "ORCHESTRATOR_EVAL_BACKEND": "mock",
     "ORCHESTRATOR_TRAIN_BACKEND": "mock",
     "ORCHESTRATOR_LEARN_BACKEND": "mock",
-    "ORCHESTRATOR_SELFPLAY_BACKEND": "mock",
+    "ORCHESTRATOR_SELF_QUESTIONING_BACKEND": "mock",
     "ORCHESTRATOR_TRANSPORT": "module",
     "AGENTEVALS_SUITE_ID": "tool-use-canary",
     "AGENTEVALS_SUITE_ID_HOLDOUT": "tool-use-holdout",
@@ -49,7 +49,7 @@ class ServiceProfile:
     agent_id: str
     eval_backend: str
     train_backend: str
-    selfplay_backend: str
+    self_questioning_backend: str
     auto_start_mock_stack: bool
     service_urls: dict[str, str]
 
@@ -117,7 +117,7 @@ def apply_service_mode(mode: str) -> None:
         os.environ["ORCHESTRATOR_EVAL_BACKEND"] = "mock"
         os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = "mock"
         os.environ["ORCHESTRATOR_LEARN_BACKEND"] = "mock"
-        os.environ["ORCHESTRATOR_SELFPLAY_BACKEND"] = "mock"
+        os.environ["ORCHESTRATOR_SELF_QUESTIONING_BACKEND"] = "mock"
         os.environ["ORCHESTRATOR_TRANSPORT"] = "module"
         return
 
@@ -127,11 +127,11 @@ def apply_service_mode(mode: str) -> None:
         os.environ.setdefault("ORCHESTRATOR_TRANSPORT", "module")
         ae_port = os.environ.get("MOCK_AGENTEVALS_PORT", "38180")
         learning_port = os.environ.get("MOCK_SELF_LEARNING_PORT", "38766")
-        self_play_port = os.environ.get("MOCK_SELF_PLAY_PORT", "38767")
+        self_questioning_port = os.environ.get("MOCK_SELF_QUESTIONING_PORT", "38767")
         aerl_port = os.environ.get("MOCK_AERL_PORT", "38004")
         os.environ.setdefault("MOCK_AGENTEVALS_URL", f"http://127.0.0.1:{ae_port}")
         os.environ.setdefault("MOCK_SELF_LEARNING_URL", f"http://127.0.0.1:{learning_port}")
-        os.environ.setdefault("MOCK_SELF_PLAY_URL", f"http://127.0.0.1:{self_play_port}")
+        os.environ.setdefault("MOCK_SELF_QUESTIONING_URL", f"http://127.0.0.1:{self_questioning_port}")
         os.environ.setdefault("MOCK_AERL_URL", f"http://127.0.0.1:{aerl_port}")
         os.environ.setdefault("TRAINER_BASE_URL", f"http://127.0.0.1:{aerl_port}")
         if os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock") == "mock":
@@ -154,8 +154,8 @@ def apply_service_mode(mode: str) -> None:
             if cli_train_env_configured():
                 os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = "cli"
     pipeline_url = os.environ.get("PIPELINE_SERVICE_URL") or os.environ.get("SELF_QUESTIONING_URL")
-    if os.environ.get("ORCHESTRATOR_SELFPLAY_BACKEND", "mock") == "mock" and pipeline_url:
-        os.environ["ORCHESTRATOR_SELFPLAY_BACKEND"] = "pipeline"
+    if os.environ.get("ORCHESTRATOR_SELF_QUESTIONING_BACKEND", "mock") == "mock" and pipeline_url:
+        os.environ["ORCHESTRATOR_SELF_QUESTIONING_BACKEND"] = "pipeline"
     os.environ.setdefault("LOOP_HOLDOUT_TIMEOUT_S", "300")
 
 
@@ -179,7 +179,7 @@ def service_profile(mode: str | None = None) -> ServiceProfile:
         agent_id=os.environ.get("LOOP_AGENT_ID", "demo-agent"),
         eval_backend=os.environ.get("ORCHESTRATOR_EVAL_BACKEND", "mock"),
         train_backend=os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock"),
-        selfplay_backend=os.environ.get("ORCHESTRATOR_SELFPLAY_BACKEND", "mock"),
+        self_questioning_backend=os.environ.get("ORCHESTRATOR_SELF_QUESTIONING_BACKEND", "mock"),
         auto_start_mock_stack=should_auto_start_mock_stack(resolved),
         service_urls=urls,
     )
@@ -191,7 +191,7 @@ def format_service_profile(profile: ServiceProfile) -> str:
         f"agent_id: {profile.agent_id}",
         f"eval_backend: {profile.eval_backend}",
         f"train_backend: {profile.train_backend}",
-        f"selfplay_backend: {profile.selfplay_backend}",
+        f"self_questioning_backend: {profile.self_questioning_backend}",
     ]
     if profile.mode == "mock-http":
         lines.append(f"auto_start_mock_stack: {profile.auto_start_mock_stack}")
@@ -251,45 +251,45 @@ def _build_train_adapter(config: Any) -> Any | None:
         return None
     from services.adapters.train_adapter import AERLTrainAdapter
     from services.adapters.trainer_rest_client import RestClient
-    from services.adapters.training_client import TrainingClient
+    from services.adapters.trainer_client import TrainerClient
 
     base_url = getattr(config, "aerl_url", None)
     poll_interval_s = float(os.environ.get("AERL_POLL_INTERVAL_S", "2"))
     poll_timeout_s = float(os.environ.get("AERL_TIMEOUT_S", "3600"))
     if base_url:
-        training = TrainingClient(
+        training = TrainerClient(
             base_url,
             poll_interval_s=poll_interval_s,
             poll_timeout_s=poll_timeout_s,
         )
         rest = RestClient(base_url)
-        return AERLTrainAdapter(training_client=training, rest_client=rest)
+        return AERLTrainAdapter(trainer_client=training, rest_client=rest)
     return AERLTrainAdapter()
 
 
-def build_self_play_engine(coaching_root: str | Path, config: Any | None = None) -> Any | None:
-    """Build self-play engine from LoopConfig (pipeline or mock)."""
+def build_self_questioning_engine(coaching_root: str | Path, config: Any | None = None) -> Any | None:
+    """Build self-questioning engine from LoopConfig (pipeline or mock)."""
     try:
         from .loop_config import LoopConfig
-        from .self_play_factory import build_self_play_engine as _build
+        from .self_questioning_factory import build_self_questioning_engine as _build
     except ImportError:
         from loop_config import LoopConfig
-        from self_play_factory import build_self_play_engine as _build
+        from self_questioning_factory import build_self_questioning_engine as _build
 
     cfg = config if config is not None else LoopConfig.from_env()
     return _build(cfg, coaching_root)
 
 
-def _build_self_play_client_adapter(config: Any, coaching_root: Path) -> Any | None:
-    if str(getattr(config, "selfplay_backend", "mock")).lower() != "pipeline":
+def _build_self_questioning_client_adapter(config: Any, coaching_root: Path) -> Any | None:
+    if str(getattr(config, "self_questioning_backend", "mock")).lower() != "pipeline":
         return None
     if str(_repo_root()) not in sys.path:
         sys.path.insert(0, str(_repo_root()))
-    from services.adapters.self_play_client_adapter import PipelineSelfPlayClientAdapter
-    from services.adapters.selfplay_pipeline_adapter import build_self_play_pipeline_engine
+    from services.adapters.self_questioning_client_adapter import PipelineSelfQuestioningClientAdapter
+    from services.adapters.self_questioning_pipeline_adapter import build_self_questioning_pipeline_engine
 
-    engine = build_self_play_pipeline_engine(getattr(config, "pipeline_service_url", None))
-    return PipelineSelfPlayClientAdapter(engine, coaching_root)
+    engine = build_self_questioning_pipeline_engine(getattr(config, "pipeline_service_url", None))
+    return PipelineSelfQuestioningClientAdapter(engine, coaching_root)
 
 
 def build_loop_client(coaching_root: str | Path, config: Any | None = None) -> Any:
@@ -330,13 +330,13 @@ def build_loop_client(coaching_root: str | Path, config: Any | None = None) -> A
     from services.adapters import build_composite_client  # noqa: E402
 
     train_adapter = _build_train_adapter(config)
-    self_play_adapter = _build_self_play_client_adapter(config, root)
+    self_questioning_adapter = _build_self_questioning_client_adapter(config, root)
     return build_composite_client(
         inner,
         eval_backend=config.eval_backend,
         train_backend=config.train_backend,
         learn_backend=config.learn_backend,
-        selfplay_backend=config.selfplay_backend,
+        self_questioning_backend=config.self_questioning_backend,
         train_adapter=train_adapter,
-        self_play_adapter=self_play_adapter,
+        self_questioning_adapter=self_questioning_adapter,
     )

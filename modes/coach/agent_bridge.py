@@ -33,7 +33,7 @@ You are the coach for supervised agent {agent_id}.
 
 An inbound post arrived on the coach clock service. Review it and decide how to \
 run the self-evolution loop (same gates as self-coaching: hold, self-learning, \
-self-play, self-tuning, or a full autonomous tick).
+self-questioning, self-tuning, or a full autonomous tick).
 
 Post:
 {post_json}

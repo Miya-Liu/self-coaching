@@ -125,11 +125,11 @@ def write_golden(report: dict[str, Any], path: Path = GOLDEN) -> Path:
 def preflight(*, probe_cli: bool = False) -> dict[str, bool]:
     """Check connectivity to configured real services before a full tick."""
     results: dict[str, bool] = {}
-    selfplay = _backend("ORCHESTRATOR_SELFPLAY_BACKEND")
+    sq_backend = _backend("ORCHESTRATOR_SELF_QUESTIONING_BACKEND")
     train = _backend("ORCHESTRATOR_TRAIN_BACKEND")
     eval_backend = _backend("ORCHESTRATOR_EVAL_BACKEND")
 
-    if selfplay == "pipeline":
+    if sq_backend == "pipeline":
         pipeline_url = os.environ.get("PIPELINE_SERVICE_URL", "http://10.110.158.146:8001")
         print(f"  [preflight] Pipeline Service: {pipeline_url}")
         try:
@@ -149,10 +149,10 @@ def preflight(*, probe_cli: bool = False) -> dict[str, bool]:
 
         if results.get("pipeline_health"):
             try:
-                from services.adapters.selfplay_pipeline_adapter import build_self_play_pipeline_engine
+                from services.adapters.self_questioning_pipeline_adapter import build_self_questioning_pipeline_engine
 
                 os.environ["PIPELINE_DRY_RUN"] = "1"
-                engine = build_self_play_pipeline_engine(pipeline_url)
+                engine = build_self_questioning_pipeline_engine(pipeline_url)
                 batch = engine.generate_batch(coaching_root=ROOT, n=1)
                 results["pipeline_dry_run"] = batch.get("proceed", False)
                 print(f"    dry_run batch: proceed={batch.get('proceed')} job_id={batch.get('job_id')}")
@@ -229,7 +229,7 @@ def preflight(*, probe_cli: bool = False) -> dict[str, bool]:
 
 def _preflight_required_ok(results: dict[str, bool], *, probe_cli: bool) -> bool:
     checks: list[bool] = []
-    if _backend("ORCHESTRATOR_SELFPLAY_BACKEND") == "pipeline":
+    if _backend("ORCHESTRATOR_SELF_QUESTIONING_BACKEND") == "pipeline":
         checks.extend([results.get("pipeline_health", False), results.get("pipeline_dry_run", False)])
     if _backend("ORCHESTRATOR_TRAIN_BACKEND") == "cli":
         checks.append(results.get("supabase_reachable", False))
@@ -262,20 +262,20 @@ def assert_tick_artifacts(
     errors: list[str] = []
     e_path = artifacts.get("e_path_last") or {}
     t_path = artifacts.get("t_path_last") or {}
-    sparse = e_path.get("sparse_self_play") or {}
+    sparse = e_path.get("sparse_self_questioning") or {}
     batch_fill = t_path.get("batch_fill") or {}
     training = artifacts.get("training") or t_path.get("train_result") or {}
     candidate_eval = artifacts.get("candidate_eval") or {}
 
-    if _backend("ORCHESTRATOR_SELFPLAY_BACKEND") == "pipeline":
+    if _backend("ORCHESTRATOR_SELF_QUESTIONING_BACKEND") == "pipeline":
         if not (sparse.get("suite_id") or sparse.get("job_id")):
             errors.append("C06: missing sparse suite_id or pipeline job_id")
         if sparse.get("pipeline_service") and not sparse.get("proceed"):
-            errors.append("C06: pipeline sparse self-play proceed=false")
+            errors.append("C06: pipeline sparse self-questioning proceed=false")
         if not (batch_fill.get("suite_id") or batch_fill.get("job_id")):
             errors.append("C07: missing batch suite_id or pipeline job_id")
         if batch_fill.get("pipeline_service") and not batch_fill.get("proceed"):
-            errors.append("C07: pipeline batch self-play proceed=false")
+            errors.append("C07: pipeline batch self-questioning proceed=false")
         for label, payload in (("C06", sparse), ("C07", batch_fill)):
             if payload.get("pipeline_service") and payload.get("job_id"):
                 stages = payload.get("stage_results") or {}
@@ -299,7 +299,7 @@ def assert_tick_artifacts(
         if run_detail and str(run_detail.get("status", "")).lower() not in {"", "succeeded"}:
             errors.append(f"AgentEvals: candidate run status={run_detail.get('status')!r}")
 
-    if not t_path.get("promoted"):
+    if not t_path.get("promoted") and not dry_run:
         errors.append("T-path: promoted=false")
 
     return errors
@@ -315,15 +315,16 @@ def run_clock_tick(
     from clock import load_scenario, run_tick
 
     saved_train_backend: str | None = None
-    saved_supabase_url: str | None = None
+    saved_supabase: dict[str, str | None] = {}
     if dry_run:
         os.environ["PIPELINE_DRY_RUN"] = "1"
         if _backend("ORCHESTRATOR_TRAIN_BACKEND") == "cli":
             saved_train_backend = os.environ.get("ORCHESTRATOR_TRAIN_BACKEND")
             os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = "mock"
-            # Temporarily hide Supabase creds so LoopConfig live-mode auto-detection
-            # doesn't override mock→cli via cli_train_env_configured().
-            saved_supabase_url = os.environ.pop("SUPABASE_URL", None)
+            # Hide all db_bridge creds so LoopConfig live-mode auto-detection
+            # does not upgrade train mock→cli via cli_train_env_configured().
+            for key in ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "BRIDGE_USER_ID"):
+                saved_supabase[key] = os.environ.pop(key, None)
 
     if not keep_state and ROOT.exists():
         shutil.rmtree(ROOT)
@@ -333,11 +334,21 @@ def run_clock_tick(
     print(f"  [tick] scenario={scenario.get('name')} agent={scenario.get('agent_id')}")
     print(
         "  [tick] backends:"
-        f" eval={os.environ.get('ORCHESTRATOR_EVAL_BACKEND')}"
-        f" learn={os.environ.get('ORCHESTRATOR_LEARN_BACKEND')}"
-        f" selfplay={os.environ.get('ORCHESTRATOR_SELFPLAY_BACKEND')}"
+        f" eval={os.environ.get('ORCHESTRATOR_EVAL_BACKEND')},"
+        f" learn={os.environ.get('ORCHESTRATOR_LEARN_BACKEND')},"
+        f" self_questioning={os.environ.get('ORCHESTRATOR_SELF_QUESTIONING_BACKEND')},"
         f" train={os.environ.get('ORCHESTRATOR_TRAIN_BACKEND')}"
     )
+    if _backend("ORCHESTRATOR_SELF_QUESTIONING_BACKEND") == "pipeline":
+        poll_timeout = float(os.environ.get("PIPELINE_POLL_TIMEOUT_S", "3600"))
+        print(f"  [tick] pipeline poll timeout: {poll_timeout}s")
+        if not dry_run and poll_timeout < 600:
+            print(
+                f"  WARNING: PIPELINE_POLL_TIMEOUT_S={poll_timeout}s is likely too short for "
+                f"real batch jobs. The .example recommends 3600s. Set PIPELINE_POLL_TIMEOUT_S=3600 "
+                f"in your env file or pass --dry-run for a faster integrated check.",
+                file=sys.stderr,
+            )
     if dry_run:
         print("  [tick] dry_run=1 (pipeline dry_run; train uses mock when cli configured)")
 
@@ -348,15 +359,16 @@ def run_clock_tick(
         os.environ.pop("PIPELINE_DRY_RUN", None)
         if saved_train_backend is not None:
             os.environ["ORCHESTRATOR_TRAIN_BACKEND"] = saved_train_backend
-        if saved_supabase_url is not None:
-            os.environ["SUPABASE_URL"] = saved_supabase_url
+        for key, value in saved_supabase.items():
+            if value is not None:
+                os.environ[key] = value
     elapsed = time.time() - t0
 
     print(f"  [tick] completed in {elapsed:.1f}s")
     print(f"    generation: {summary.get('generation_before')} → {summary.get('generation_after')}")
-    print(f"    sparse self-play (C06): {summary.get('sparse_self_play_suite_id')}")
-    print(f"    batch self-play (C07): {summary.get('batch_self_play_suite_id')}")
-    print(f"    batch proceed: {summary.get('batch_self_play_proceed')}")
+    print(f"    sparse self-questioning (C06): {summary.get('sparse_self_questioning_suite_id')}")
+    print(f"    batch self-questioning (C07): {summary.get('batch_self_questioning_suite_id')}")
+    print(f"    batch proceed: {summary.get('batch_self_questioning_proceed')}")
     print(f"    T-path promoted: {summary.get('t_path_promoted')}")
 
     return summary
@@ -440,7 +452,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  mode: {mode}")
     print(f"  eval: {os.environ.get('ORCHESTRATOR_EVAL_BACKEND')}")
     print(f"  learn: {os.environ.get('ORCHESTRATOR_LEARN_BACKEND')}")
-    print(f"  selfplay: {os.environ.get('ORCHESTRATOR_SELFPLAY_BACKEND')}")
+    print(f"  self_questioning: {os.environ.get('ORCHESTRATOR_SELF_QUESTIONING_BACKEND')}")
     print(f"  train: {os.environ.get('ORCHESTRATOR_TRAIN_BACKEND')}")
     print(f"  scenario: {args.scenario}")
     print(f"  coaching_root: {ROOT}")
@@ -517,9 +529,9 @@ def main(argv: list[str] | None = None) -> int:
     tick = results.get("tick", {})
     checks: list[str] = []
     if tick:
-        checks.append(f"C06={tick.get('sparse_self_play_suite_id') or 'MISSING'}")
-        checks.append(f"C07={tick.get('batch_self_play_suite_id') or 'MISSING'}")
-        checks.append(f"proceed={tick.get('batch_self_play_proceed')}")
+        checks.append(f"C06={tick.get('sparse_self_questioning_suite_id') or 'MISSING'}")
+        checks.append(f"C07={tick.get('batch_self_questioning_suite_id') or 'MISSING'}")
+        checks.append(f"proceed={tick.get('batch_self_questioning_proceed')}")
         checks.append(f"promoted={tick.get('t_path_promoted')}")
     print(f"evolution_loop_clock_smoke: {status} ({', '.join(checks) if checks else 'preflight only'})")
 

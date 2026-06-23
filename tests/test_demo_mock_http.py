@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 """M2.4 / P5 smoke: run the full loop demo with LOOP_SERVICE_MODE=mock-http.
 
-This test starts 4 mock HTTP services (AgentEvals, Self-Learning, Self-Play,
+This test starts 4 mock HTTP services (AgentEvals, Self-Learning, Self-Questioning,
 AERL), runs the demo loop against them, and asserts the completeness matrix
 passes — proving the split-stack HTTP path works end-to-end.
 """

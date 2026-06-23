@@ -67,7 +67,7 @@ def test_with_http_overrides_env_file_mode(tmp_path: Path, monkeypatch: pytest.M
 
 def test_mock_module_clears_service_urls(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("LOOP_SERVICE_MODE", "mock-module")
-    monkeypatch.setenv("MOCK_SELF_PLAY_URL", "http://127.0.0.1:8767")
+    monkeypatch.setenv("MOCK_SELF_QUESTIONING_URL", "http://127.0.0.1:8767")
     monkeypatch.setenv("AGENTEVALS_BASE_URL", "http://127.0.0.1:8080")
     profile = configure_demo_env(with_http=False)
     assert profile.mode == "mock-module"

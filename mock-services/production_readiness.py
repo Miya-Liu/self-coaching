@@ -53,7 +53,7 @@ def _artifact_paths(root: Path) -> list[Path]:
         root / "experience" / "ERROR.md",
         root / "experience" / "LEARNINGS.md",
         base / "events" / "learning_events.jsonl",
-        base / "cases" / "self_play_candidates.jsonl",
+        base / "cases" / "self_questioning_candidates.jsonl",
         base / "cases" / "eval_cases.jsonl",
         base / "curated" / "train.jsonl",
         base / "curated" / "validation.jsonl",
@@ -68,7 +68,7 @@ def check_artifact_contract(root: Path) -> Check:
     holdout = root / ".self-coaching" / "curated" / "holdout.jsonl"
     extra: list[str] = []
     if validation.is_file() and validation.stat().st_size == 0:
-        extra.append("validation.jsonl is empty (need self_play n>=5)")
+        extra.append("validation.jsonl is empty (need self_questioning n>=5)")
     if holdout.is_file() and holdout.stat().st_size == 0:
         extra.append("holdout.jsonl is empty")
     problems = missing + extra
@@ -135,10 +135,10 @@ def run_pipeline_checks(root: Path) -> list[Check]:
         )
     )
 
-    play = msc.self_play(root, capability="tool_use", n=5)
+    play = msc.self_questioning(root, capability="tool_use", n=5)
     checks.append(
         Check(
-            "phase_self_play_generated_cases",
+            "phase_self_questioning_generated_cases",
             int(play.get("count", 0)) >= 5 and bool(play.get("suite_id")),
             str({k: play.get(k) for k in ("status", "count", "suite_id")}),
         )

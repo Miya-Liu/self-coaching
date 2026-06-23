@@ -15,7 +15,7 @@ try:
         batch_size_threshold,
     )
     from .loop_store import LoopStore, read_jsonl
-    from .self_play_factory import run_batch_self_play
+    from .self_questioning_factory import run_batch_self_questioning
     from .state import LoopState
 except ImportError:
     from _paths import _SC_ROOT  # noqa: F401
@@ -26,7 +26,7 @@ except ImportError:
         batch_size_threshold,
     )
     from loop_store import LoopStore, read_jsonl
-    from self_play_factory import run_batch_self_play
+    from self_questioning_factory import run_batch_self_questioning
     from state import LoopState
 
 
@@ -39,20 +39,20 @@ def fill_buffer_batch(
     generation: int,
     n: int,
     capability: str = "tool_use",
-    self_play_engine: Any | None = None,
+    self_questioning_engine: Any | None = None,
     config: LoopConfig | None = None,
 ) -> dict[str, Any]:
-    """C07: top up tuning buffer B via batch self-play."""
+    """C07: top up tuning buffer B via batch self-questioning."""
     if n <= 0:
         return {"status": "skipped", "count": 0}
 
     version_id = str(registry.get_agent(agent_id)["active_version_id"])
-    result = run_batch_self_play(
+    result = run_batch_self_questioning(
         coaching_root=coaching_root,
         capability=capability,
         n=n,
         config=config,
-        engine=self_play_engine,
+        engine=self_questioning_engine,
     )
 
     staging = coaching_root / ".self-coaching" / "curated" / "staging.jsonl"
@@ -95,7 +95,7 @@ def run_t_path(
     beta: int | None = None,
     pipeline: str = "sft",
     candidate_model_id: str | None = None,
-    self_play_engine: Any | None = None,
+    self_questioning_engine: Any | None = None,
     agentevals_engine: Any | None = None,
     config: LoopConfig | None = None,
 ) -> dict[str, Any] | None:
@@ -114,7 +114,7 @@ def run_t_path(
             agent_id=agent_id,
             generation=state.generation,
             n=batch_size - len(active_rows),
-            self_play_engine=self_play_engine,
+            self_questioning_engine=self_questioning_engine,
             config=config,
         )
         if batch_fill.get("pipeline_service") and not batch_fill.get("proceed"):
@@ -123,7 +123,7 @@ def run_t_path(
             held = {
                 "promoted": False,
                 "held": True,
-                "gate_reasons": ["batch_self_play_failed"],
+                "gate_reasons": ["batch_self_questioning_failed"],
                 "batch_fill": batch_fill,
                 "run_dir": str(run_dir),
             }

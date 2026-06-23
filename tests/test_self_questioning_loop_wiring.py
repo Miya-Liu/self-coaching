@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Tests for pipeline self-play loop wiring (Sprint 2)."""
+"""Tests for pipeline self-questioning loop wiring (Sprint 2)."""
 
 from __future__ import annotations
 
@@ -18,8 +18,8 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from loop_config import LoopConfig  # noqa: E402
-from loop_env import build_loop_client, build_self_play_engine  # noqa: E402
-from self_play_factory import build_self_play_engine as factory_build  # noqa: E402
+from loop_env import build_loop_client, build_self_questioning_engine  # noqa: E402
+from self_questioning_factory import build_self_questioning_engine as factory_build  # noqa: E402
 
 
 _ENV_PREFIXES = ("LOOP_", "MOCK_", "ORCHESTRATOR_", "AGENTEVALS_", "TRAINER_", "PIPELINE_", "AGENT_")
@@ -40,22 +40,22 @@ def test_loop_config_infers_pipeline_backend_in_live_mode(monkeypatch: pytest.Mo
     monkeypatch.setenv("LOOP_SERVICE_MODE", "live")
     monkeypatch.setenv("PIPELINE_SERVICE_URL", "http://pipeline.example:8001")
     config = LoopConfig.from_env()
-    assert config.selfplay_backend == "pipeline"
+    assert config.self_questioning_backend == "pipeline"
     assert config.pipeline_service_url == "http://pipeline.example:8001"
 
 
-def test_build_self_play_engine_pipeline(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("ORCHESTRATOR_SELFPLAY_BACKEND", "pipeline")
+def test_build_self_questioning_engine_pipeline(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("ORCHESTRATOR_SELF_QUESTIONING_BACKEND", "pipeline")
     monkeypatch.setenv("PIPELINE_SERVICE_URL", "http://pipeline.example:8001")
     config = LoopConfig.from_env()
     engine = factory_build(config, Path("/tmp/coach"))
-    from services.adapters.selfplay_pipeline_adapter import SelfPlayPipelineEngine  # noqa: E402
+    from services.adapters.self_questioning_pipeline_adapter import SelfQuestioningPipelineEngine  # noqa: E402
 
-    assert isinstance(engine, SelfPlayPipelineEngine)
+    assert isinstance(engine, SelfQuestioningPipelineEngine)
 
 
-def test_build_loop_client_wraps_pipeline_self_play(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("ORCHESTRATOR_SELFPLAY_BACKEND", "pipeline")
+def test_build_loop_client_wraps_pipeline_self_questioning(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("ORCHESTRATOR_SELF_QUESTIONING_BACKEND", "pipeline")
     monkeypatch.setenv("PIPELINE_SERVICE_URL", "http://127.0.0.1:59999")
     monkeypatch.setenv("ORCHESTRATOR_TRANSPORT", "module")
 
@@ -63,7 +63,7 @@ def test_build_loop_client_wraps_pipeline_self_play(tmp_path: Path, monkeypatch:
     from services.adapters.composite_client import CompositeClient  # noqa: E402
 
     assert isinstance(client, CompositeClient)
-    assert client._self_play is not None
+    assert client._self_questioning is not None
 
     mock_engine = MagicMock()
     mock_engine.generate_batch.return_value = {
@@ -74,7 +74,7 @@ def test_build_loop_client_wraps_pipeline_self_play(tmp_path: Path, monkeypatch:
         "job_id": "job-x",
         "stage_results": {"1": True, "2": True, "3": True},
     }
-    client._self_play._engine = mock_engine
-    result = client.self_play(n=2)
+    client._self_questioning._engine = mock_engine
+    result = client.self_questioning(n=2)
     assert result["proceed"] is True
     mock_engine.generate_batch.assert_called_once()

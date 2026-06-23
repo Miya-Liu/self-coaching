@@ -23,7 +23,7 @@ from state import LoopStateStore  # noqa: E402
 
 def test_run_scenario_full_loop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AGENT_ID", "demo-agent")
-    monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
+    monkeypatch.delenv("MOCK_SELF_QUESTIONING_URL", raising=False)
     monkeypatch.delenv("MOCK_SELF_LEARNING_URL", raising=False)
     monkeypatch.delenv("MOCK_AERL_URL", raising=False)
     monkeypatch.delenv("TRAINER_BASE_URL", raising=False)

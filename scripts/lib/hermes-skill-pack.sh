@@ -2,7 +2,7 @@
 # Shared Hermes skill-pack install/update helpers.
 # Sourced by install-skill-pack.sh and update-skill-pack.sh (do not execute directly).
 
-HERMES_SUBMODULES=(self-learning self-play self-evaluation self-tuning)
+HERMES_SUBMODULES=(self-learning self-questioning self-evaluation self-tuning)
 HERMES_ASSET_KINDS=(references templates scripts)
 
 copy_tree_excluding() {
@@ -227,12 +227,12 @@ print_hermes_install_success() {
   echo "==> Installed 5 skills (nested under self-coaching/):"
   echo "    - self-coaching/SKILL.md (umbrella)"
   echo "    - self-coaching/self-learning/"
-  echo "    - self-coaching/self-play/"
+  echo "    - self-coaching/self-questioning/"
   echo "    - self-coaching/self-evaluation/"
   echo "    - self-coaching/self-tuning/"
   echo "==> Mock harness: ${target}/self-coaching/mock-services/ (see mock-services/README.md)"
   echo "==> Update later: bash scripts/update-skill-pack.sh --hermes [--dry-run]"
-  echo "==> Verify: hermes skill list | grep -E '^(self-coaching|self-learning|self-play|self-evaluation|self-tuning)$'"
+  echo "==> Verify: hermes skill list | grep -E '^(self-coaching|self-learning|self-questioning|self-evaluation|self-tuning)$'"
   if [[ "${with_mock}" == "1" ]]; then
     echo "==> Demo:    python -m self_coaching.demo  (requires pip install -e . from repo clone)"
   else

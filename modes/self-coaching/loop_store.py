@@ -184,7 +184,7 @@ class LoopStore:
         generation: int,
         version_id: str,
     ) -> str:
-        task_id = str(traj.get("case_id") or traj.get("id") or "self-play")
+        task_id = str(traj.get("case_id") or traj.get("id") or "self-questioning")
         score = float((traj.get("critique") or {}).get("score", 0.9))
         _trajectory_id, trajectory_ref = self.save_trajectory(task_id, traj)
         self.append_buffer(

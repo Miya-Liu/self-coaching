@@ -85,7 +85,7 @@ Reusable, stable lessons only. Schema:
 - observation:
 - reusable_lesson:
 - evidence:
-- next_artifact: skill_patch | eval_case | self_play_task | training_manifest | none
+- next_artifact: skill_patch | eval_case | self_questioning_task | training_manifest | none
 
 EOF
         ;;

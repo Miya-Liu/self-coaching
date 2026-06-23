@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Smoke test mock self-play (in-process).
+# Smoke test mock self-questioning (in-process).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DATA_DIR="${ROOT}/mock-services/ci-mock-self-play"
+DATA_DIR="${ROOT}/mock-services/ci-mock-self-questioning"
 rm -rf "${DATA_DIR}"
 mkdir -p "${DATA_DIR}"
 
 python "${ROOT}/mock-services/mock_agentevals.py" init --data-dir "${DATA_DIR}" --agent-id smoke-agent
 
-python "${ROOT}/mock-services/mock_self_play.py" generate-suite \
+python "${ROOT}/mock-services/mock_self_questioning.py" generate-suite \
   --data-dir "${DATA_DIR}" \
   --agent-id smoke-agent \
   --query "Create config.yaml and prove validation" \
@@ -19,5 +19,5 @@ python "${ROOT}/mock-services/mock_self_play.py" generate-suite \
 test -f "${DATA_DIR}/.self-coaching/curated/train.jsonl"
 test -f "${DATA_DIR}/.self-coaching/curated/validation.jsonl"
 test -f "${DATA_DIR}/.self-coaching/curated/holdout.jsonl"
-test -f "${DATA_DIR}/.self-coaching/cases/self_play_candidates.jsonl"
-echo "mock-self-play-smoke: OK"
+test -f "${DATA_DIR}/.self-coaching/cases/self_questioning_candidates.jsonl"
+echo "mock-self-questioning-smoke: OK"

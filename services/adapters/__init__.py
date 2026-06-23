@@ -15,9 +15,9 @@ from .holdout_engine import (
 from .learn_adapter import SelfLearningAdapter
 from .pipeline_http import PipelineHTTPError
 from .pipeline_service_client import PipelineServiceClient
-from .selfplay_pipeline_adapter import (
-    SelfPlayPipelineEngine,
-    build_self_play_pipeline_engine,
+from .self_questioning_pipeline_adapter import (
+    SelfQuestioningPipelineEngine,
+    build_self_questioning_pipeline_engine,
     pipeline_job_succeeded,
 )
 from .self_learning_client import SelfLearningClient, SelfLearningError
@@ -29,7 +29,7 @@ from .cli_train_errors import (
     TransportError,
 )
 from .trainer_rest_client import RestClient
-from .training_client import TrainingClient, TrainerHTTPError
+from .trainer_client import TrainerClient, TrainerHTTPError
 
 __all__ = [
     "AERLClient",
@@ -44,8 +44,8 @@ __all__ = [
     "CompositeClient",
     "PipelineHTTPError",
     "PipelineServiceClient",
-    "SelfPlayPipelineEngine",
-    "build_self_play_pipeline_engine",
+    "SelfQuestioningPipelineEngine",
+    "build_self_questioning_pipeline_engine",
     "pipeline_job_succeeded",
     "RestClient",
     "SelfLearningAdapter",
@@ -55,7 +55,7 @@ __all__ = [
     "TrainerCLIError",
     "TrainerTimeoutError",
     "TransportError",
-    "TrainingClient",
+    "TrainerClient",
     "build_composite_client",
     "build_holdout_engine",
     "collect_holdout_metrics",

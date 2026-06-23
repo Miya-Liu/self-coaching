@@ -163,7 +163,7 @@ required_files=(
   "modes/self-coaching/self-tuning/pipelines/sft/run.sh"
   "modes/self-coaching/self-tuning/pipelines/grpo/run.sh"
   "modes/self-coaching/self-learning/SKILL.md"
-  "modes/self-coaching/self-play/SKILL.md"
+  "modes/self-coaching/self-questioning/SKILL.md"
   "modes/self-coaching/self-evaluation/SKILL.md"
   "modes/self-coaching/self-tuning/SKILL.md"
   "modes/coach/README.md"

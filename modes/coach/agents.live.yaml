@@ -1,5 +1,5 @@
 # Coach clock registry — live evolution loop verification
-# Backend: pipeline self-play + cli self-tuning (db_bridge/AReaL)
+# Backend: pipeline self-questioning + cli self-tuning (db_bridge/AReaL)
 #
 # Usage:
 #   python -m modes.coach.service serve --registry modes/coach/agents.live.yaml

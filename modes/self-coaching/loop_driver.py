@@ -36,7 +36,7 @@ try:
         LoopClient,
         LoopConfig,
         TaskScore,
-        _self_play_base_url,
+        _self_questioning_base_url,
         batch_size_threshold,
         holdout_suite_id,
         loop_agent_id,
@@ -57,7 +57,7 @@ except ImportError:
         LoopClient,
         LoopConfig,
         TaskScore,
-        _self_play_base_url,
+        _self_questioning_base_url,
         batch_size_threshold,
         holdout_suite_id,
         loop_agent_id,
@@ -149,7 +149,7 @@ def run_tasks(
     enable_e_path: bool = True,
     enable_t_path: bool = False,
     candidate_model_id: str | None = None,
-    self_play_engine: Any | None = None,
+    self_questioning_engine: Any | None = None,
     agentevals_engine: Any | None = None,
     trajectory_fn: Any | None = None,
 ) -> tuple[list[TaskScore], LoopState]:
@@ -224,7 +224,7 @@ def run_tasks(
                 coaching_root=root,
                 agent_id=agent,
                 sigma_play=play_limit,
-                self_play_engine=self_play_engine,
+                self_questioning_engine=self_questioning_engine,
                 config=cfg,
             )
             state.buffer_count = len(loop_store.active_buffer_rows())
@@ -240,7 +240,7 @@ def run_tasks(
                 agent_id=agent,
                 beta=batch,
                 candidate_model_id=candidate_model_id,
-                self_play_engine=self_play_engine,
+                self_questioning_engine=self_questioning_engine,
                 agentevals_engine=agentevals_engine,
                 config=cfg,
             )

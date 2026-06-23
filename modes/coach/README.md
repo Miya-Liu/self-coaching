@@ -4,7 +4,7 @@
 
 **Local demo (no external services):** `bash scripts/mock-coach-demo.sh` — uses `agents.demo.yaml`.
 
-**Autonomous clock (one evolution tick):** `python modes/coach/clock.py run --root <coaching-root>` — E-path → sparse/batch self-play → T-path; smoke: `python scripts/clock_loop_smoke.py`.
+**Autonomous clock (one evolution tick):** `python modes/coach/clock.py run --root <coaching-root>` — E-path → sparse/batch self-questioning → T-path; smoke: `python scripts/clock_loop_smoke.py`.
 
 **Coach clock service (24×7):** after registering agents, accept inbound posts over HTTP or WebSocket; each post triggers agent clock setup → evolution tick:
 
@@ -35,7 +35,7 @@ python modes/coach/service.py serve --registry modes/coach/agents.clock.yaml
 
 The coach agent receives the loop state (generation, Σ, buffer B) plus the inbound post and returns a `ClockPlan` JSON: `{"action": "hold"|"learn"|"play"|"tune"|"full_tick", "reason": "...", "scenario_overrides": {}}`. On transport failure or unparseable output the bridge **fails safe to `hold`**. Every decision is audited under `{coaching_root}/.self-coaching/coach/audit/{agent_id}/`.
 
-> **Phase 1.5 + 2 shipped:** `learn`/`play`/`tune` are distinct partial routes (E-path / C07 self-play / T-path). When `coach_clock.subject_chat_url` is set, the loop drives that live agent for real trajectories (`SubjectTaskSource`); when unset it uses fixture task streams (CI-safe). This enables both **cross-coaching** (subject ≠ coach) and **self-coaching** (subject = coach).
+> **Phase 1.5 + 2 shipped:** `learn`/`play`/`tune` are distinct partial routes (E-path / C07 self-questioning / T-path). When `coach_clock.subject_chat_url` is set, the loop drives that live agent for real trajectories (`SubjectTaskSource`); when unset it uses fixture task streams (CI-safe). This enables both **cross-coaching** (subject ≠ coach) and **self-coaching** (subject = coach).
 >
 > **Operational notes:**
 > - `subject_chat_url` may be a bare base (`http://host:8000` → `/chat/completions` appended) or a full endpoint (`http://host:8000/chat` → used as-is). The legacy `agent_chat_url` alias still parses.
@@ -50,7 +50,7 @@ curl -s -X POST http://127.0.0.1:8768/coach/post \
   -d '{"agent_id":"clock-demo-agent","event":"session_complete","payload":{"action":"full_tick"}}'
 ```
 
-Coach mode runs the shared **evolution engine** (`services/orchestrator/`) to supervise **external agents**. It does **not** duplicate submodules — it invokes the same **self-learning**, **self-play**, **self-evaluation**, and **self-tuning** pipelines via `SelfCoachingClient` and adapters.
+Coach mode runs the shared **evolution engine** (`services/orchestrator/`) to supervise **external agents**. It does **not** duplicate submodules — it invokes the same **self-learning**, **self-questioning**, **self-evaluation**, and **self-tuning** pipelines via `SelfCoachingClient` and adapters.
 
 | Component | Purpose | Repo path |
 |-----------|---------|-----------|

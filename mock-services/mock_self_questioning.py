@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Mock self-play service — generate cases from failures, register AgentEvals suites, curate splits.
+"""Mock self-questioning service — generate cases from failures, register AgentEvals suites, curate splits.
 
 Phase 2 mock platform. Shares --data-dir with registry and AgentEvals mocks.
 
 CLI:
-  python mock_self_play.py serve --data-dir ./demo-stack --port 8767
-  python mock_self_play.py generate-suite --data-dir ./demo-stack --query "..." --score 0.4
+  python mock_self_questioning.py serve --data-dir ./demo-stack --port 8767
+  python mock_self_questioning.py generate-suite --data-dir ./demo-stack --query "..." --score 0.4
 """
 from __future__ import annotations
 
@@ -63,8 +63,8 @@ def _load_curate_module():
     return mod
 
 
-class MockSelfPlayEngine:
-    """Generate self-play cases, register suites in mock AgentEvals, run curation."""
+class MockSelfQuestioningEngine:
+    """Generate self-questioning cases, register suites in mock AgentEvals, run curation."""
 
     def __init__(self, data_dir: str | Path):
         self.data_dir = Path(data_dir).resolve()
@@ -73,7 +73,7 @@ class MockSelfPlayEngine:
     def _paths(self, root: Path) -> dict[str, Path]:
         base = root / ".self-coaching"
         return {
-            "candidates": base / "cases" / "self_play_candidates.jsonl",
+            "candidates": base / "cases" / "self_questioning_candidates.jsonl",
             "eval_cases": base / "cases" / "eval_cases.jsonl",
             "staging": base / "curated" / "staging.jsonl",
             "curated": base / "curated",
@@ -110,7 +110,7 @@ class MockSelfPlayEngine:
             "kind": kind,
             "source_benchmark": source_benchmark,
             "source_run_id": source_run_id,
-            "description": f"Mock self-play suite ({len(cases)} tasks)",
+            "description": f"Mock self-questioning suite ({len(cases)} tasks)",
         }
         url = self._agentevals_url()
         if url:
@@ -134,7 +134,7 @@ class MockSelfPlayEngine:
         eval_score: float,
         capability: list[str] | str,
         mode: str = "adversarial",
-        provenance: str = "mock_self_play",
+        provenance: str = "mock_self_questioning",
         index: int = 1,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         if isinstance(capability, str):
@@ -161,7 +161,7 @@ class MockSelfPlayEngine:
         use_for = ["holdout"] if mode == "holdout_extension" else (["eval", "train"] if not low_score else ["eval"])
         case = {
             "id": case_id,
-            "source": "mock_self_play",
+            "source": "mock_self_questioning",
             "capability": list(capability) + (["verification"] if "verification" not in capability else []),
             "user_request": user_request,
             "context": "Mock environment with file and validation tools.",
@@ -193,7 +193,7 @@ class MockSelfPlayEngine:
         traj = {
             "id": stable_id("traj", case_id),
             "case_id": case_id,
-            "source": "mock_self_play_solver",
+            "source": "mock_self_questioning_solver",
             "messages": messages if messages else [
                 {"role": "user", "content": user_request},
                 {"role": "assistant", "content": assistant or "Created the file."},
@@ -297,7 +297,7 @@ class MockSelfPlayEngine:
         capability: str = "tool_use",
         n: int = 3,
     ) -> dict[str, Any]:
-        """Legacy batch generate (Coaching API /self-play/generate compatibility)."""
+        """Legacy batch generate (Coaching API /self-questioning/generate compatibility)."""
         root = Path(coaching_root or self.data_dir).resolve()
         self._ensure_layout(root)
         p = self._paths(root)
@@ -361,7 +361,7 @@ class MockSelfPlayEngine:
         }
 
 
-def self_play_via_http(
+def self_questioning_via_http(
     base_url: str,
     *,
     coaching_root: Path,
@@ -373,7 +373,7 @@ def self_play_via_http(
         ensure_ascii=False,
     ).encode("utf-8")
     req = urllib.request.Request(
-        f"{base_url.rstrip('/')}/self-play/generate",
+        f"{base_url.rstrip('/')}/self-questioning/generate",
         data=body,
         headers={"Content-Type": "application/json", "Accept": "application/json"},
         method="POST",
@@ -386,7 +386,7 @@ def self_play_via_http(
 def generate_suite_via_http(base_url: str, body: dict[str, Any]) -> dict[str, Any]:
     payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
-        f"{base_url.rstrip('/')}/self-play/generate-suite",
+        f"{base_url.rstrip('/')}/self-questioning/generate-suite",
         data=payload,
         headers={"Content-Type": "application/json", "Accept": "application/json"},
         method="POST",
@@ -396,11 +396,11 @@ def generate_suite_via_http(base_url: str, body: dict[str, Any]) -> dict[str, An
         return json.loads(resp.read().decode("utf-8"))
 
 
-class _SelfPlayHandler(http.server.BaseHTTPRequestHandler):
-    server_version = "MockSelfPlay/" + VERSION
+class _SelfQuestioningHandler(http.server.BaseHTTPRequestHandler):
+    server_version = "MockSelfQuestioning/" + VERSION
 
     @property
-    def engine(self) -> MockSelfPlayEngine:
+    def engine(self) -> MockSelfQuestioningEngine:
         return self.server.engine  # type: ignore[attr-defined]
 
     def _json(self, code: int, obj: object) -> None:
@@ -429,7 +429,7 @@ class _SelfPlayHandler(http.server.BaseHTTPRequestHandler):
         data = self._body()
         coaching_root = Path(data["coaching_root"]) if data.get("coaching_root") else None
         try:
-            if path == "/self-play/generate-suite":
+            if path == "/self-questioning/generate-suite":
                 result = self.engine.generate_suite(
                     coaching_root=coaching_root,
                     user_query=str(data.get("user_query", data.get("query", ""))),
@@ -444,7 +444,7 @@ class _SelfPlayHandler(http.server.BaseHTTPRequestHandler):
                 )
                 self._json(200, result)
                 return
-            if path == "/self-play/generate":
+            if path == "/self-questioning/generate":
                 result = self.engine.generate_batch(
                     coaching_root=coaching_root,
                     capability=str(data.get("capability", "tool_use")),
@@ -458,24 +458,24 @@ class _SelfPlayHandler(http.server.BaseHTTPRequestHandler):
         self._json(404, {"error": "not found"})
 
     def log_message(self, fmt: str, *args: object) -> None:
-        sys.stderr.write("[mock-self-play] " + fmt % args + "\n")
+        sys.stderr.write("[mock-self-questioning] " + fmt % args + "\n")
 
 
 def serve(data_dir: Path, port: int, host: str = "127.0.0.1") -> None:
-    engine = MockSelfPlayEngine(data_dir)
-    server = http.server.ThreadingHTTPServer((host, port), _SelfPlayHandler)
+    engine = MockSelfQuestioningEngine(data_dir)
+    server = http.server.ThreadingHTTPServer((host, port), _SelfQuestioningHandler)
     server.engine = engine  # type: ignore[attr-defined]
     print(json.dumps({"status": "serving", "url": f"http://{host}:{port}", "data_dir": str(data_dir)}, indent=2))
     server.serve_forever()
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Mock self-play service")
+    parser = argparse.ArgumentParser(description="Mock self-questioning service")
     parser.add_argument("--version", action="version", version=VERSION)
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     def add_data(p: argparse.ArgumentParser) -> None:
-        p.add_argument("--data-dir", default="./mock-self-play-data")
+        p.add_argument("--data-dir", default="./mock-self-questioning-data")
 
     p_suite = sub.add_parser("generate-suite")
     add_data(p_suite)
@@ -495,7 +495,7 @@ def main(argv: list[str] | None = None) -> int:
     p_serve.add_argument("--port", type=int, default=8767)
 
     args = parser.parse_args(argv)
-    engine = MockSelfPlayEngine(args.data_dir)
+    engine = MockSelfQuestioningEngine(args.data_dir)
     if args.cmd == "generate-suite":
         result = engine.generate_suite(
             user_query=args.query,

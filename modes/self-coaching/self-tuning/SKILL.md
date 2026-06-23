@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [self-coaching, sft, rl, grpo, lora, model-training, aerl, cli-train, db-bridge, self-tuning]
-    related_skills: [self-coaching, self-play, self-evaluation, self-learning, huggingface-hub, weights-and-biases]
+    related_skills: [self-coaching, self-questioning, self-evaluation, self-learning, huggingface-hub, weights-and-biases]
 required_environment_variables:
   - name: ORCHESTRATOR_TRAIN_BACKEND
     required_for: loop-train
@@ -81,12 +81,12 @@ This skill also includes legacy **pipeline shell helpers** under `self-tuning/pi
 
 The loop does **not** train on every tick. Training runs on the **T-path** when:
 
-1. **C07** (self-play batch) has filled buffer `B` to size `β` (`LOOP_BATCH_SIZE`), and
+1. **C07** (self-questioning batch) has filled buffer `B` to size `β` (`LOOP_BATCH_SIZE`), and
 2. Orchestrator policy allows the T-path tick.
 
 | ID | Step | Trigger | Module call | Next step |
 |----|------|---------|-------------|-----------|
-| **C07** | Buffer fill | `\|B\| < β` while idle | `generate_batch` (self-play) | — |
+| **C07** | Buffer fill | `\|B\| < β` while idle | `generate_batch` (self-questioning) | — |
 | **T-train** | Train | `\|B\| ≥ β` | `client.train(pipeline, dataset, base_model)` | Holdout gate |
 | **T-gate** | Holdout | After train | AgentEvals holdout on prod vs candidate | Promote or reject |
 | **T-consume** | Buffer | On promote | Mark buffer rows consumed | — |
@@ -96,7 +96,7 @@ Code path: `modes/self-coaching/t_path.py` → `client.train()` → adapter (`CL
 Factory resolution (`modes/self-coaching/loop_env.py` → `build_loop_client()`):
 
 1. `ORCHESTRATOR_TRAIN_BACKEND=cli` → `CLITrainAdapter` (Supabase remote shell)
-2. `ORCHESTRATOR_TRAIN_BACKEND=aerl` → `AERLTrainAdapter` (HTTP `TrainingClient`)
+2. `ORCHESTRATOR_TRAIN_BACKEND=aerl` → `AERLTrainAdapter` (HTTP `TrainerClient`)
 3. `mock` (default) → inner `ModuleClient.train()` / `mock_aerl`
 
 In `LOOP_SERVICE_MODE=live`, backend auto-infers when unset:
@@ -152,8 +152,8 @@ Loop artifacts after T-path: `.self-coaching/loop/runs/t_path/training.json`, `t
 
 | Situation | Action |
 |-----------|--------|
-| `\|B\| < β` | **Do not train** — wait for C07 self-play or lower `LOOP_BATCH_SIZE` in test |
-| C07 `proceed: false` | **Hold** — train skipped (`held: true`); fix self-play first |
+| `\|B\| < β` | **Do not train** — wait for C07 self-questioning or lower `LOOP_BATCH_SIZE` in test |
+| C07 `proceed: false` | **Hold** — train skipped (`held: true`); fix self-questioning first |
 | `train()` → `status: trained` | Continue → holdout eval on `candidate_version_id` |
 | Holdout gate **promote** | `registry.activate`; buffer consumed |
 | Holdout gate **reject** | Buffer preserved; record `gate_reasons` in `t_path_last.json` |
@@ -167,7 +167,7 @@ Copy env template and merge Supabase credentials:
 
 ```bash
 cp scenarios/demo.cli-train.env.example scenarios/demo.cli-train.env
-# Merge SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, BRIDGE_USER_ID from services/LoRA/db_bridge/.env
+# Merge SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, BRIDGE_USER_ID from services/lora/db_bridge/.env
 ```
 
 | Variable | Role |
@@ -194,7 +194,7 @@ python scripts/cli_train_smoke.py --env-file scenarios/demo.cli-train.env --prob
 python scripts/cli_train_smoke.py --env-file scenarios/demo.cli-train.env --pipeline grpo
 
 # Raw transport round-trip
-cd services/LoRA/db_bridge
+cd services/lora/db_bridge
 uv run python scripts/send_command.py "hostname" --timeout 30
 
 # Opt-in integration tests
@@ -282,10 +282,10 @@ $SKILL_ROOT/
 scripts/cli_train_smoke.py       # CLI adapter smoke (production path)
 scripts/mock_self_coaching_demo.py   # full loop on mocks (R5)
 services/adapters/cli_train_adapter.py
-services/LoRA/db_bridge/           # remote shell runner (AReaL host)
+services/lora/db_bridge/           # remote shell runner (AReaL host)
 ```
 
-Copy `self-tuning/services/example.env` → `.env` only for **HTTP aerl** mode. CLI credentials live in `services/LoRA/db_bridge/.env` or `scenarios/demo.cli-train.env`. Never commit secrets.
+Copy `self-tuning/services/example.env` → `.env` only for **HTTP aerl** mode. CLI credentials live in `services/lora/db_bridge/.env` or `scenarios/demo.cli-train.env`. Never commit secrets.
 
 ## Preflight and Environment
 
@@ -342,7 +342,7 @@ Expected: `completeness: PASS` (C01–C18). This uses `ORCHESTRATOR_TRAIN_BACKEN
 
 ## SFT / GRPO procedure (data + gates)
 
-1. Collect curated demonstrations (self-play buffer, manual curation).
+1. Collect curated demonstrations (self-questioning buffer, manual curation).
 2. Redact secrets; verify license/consent.
 3. Convert to target chat/tool-call format.
 4. Split by task family, not random transcript chunks.
@@ -408,7 +408,7 @@ Record eval report path in the training manifest. Promote only if target metrics
 ## Self-coaching loop position
 
 ```text
-mine failures → hypothesize → self-play (C07) → buffer B → train (T-path) → holdout gate → promote/rollback → archive
+mine failures → hypothesize → self-questioning (C07) → buffer B → train (T-path) → holdout gate → promote/rollback → archive
 ```
 
 Prefer cheap improvements first. Training should be gated by evidence and eval, not by data volume alone.
@@ -424,7 +424,7 @@ Prefer cheap improvements first. Training should be gated by evidence and eval, 
 7. **Pasting full logs.** Use `stdout_tail` summary; full logs on remote `training_<run_id>.log`.
 8. **Leaking secrets.** Keep Supabase keys out of chat, memory, and git.
 9. **No rollback.** Record baseline model/config before training.
-10. **Training when C07 `proceed: false`.** Fix self-play before expecting buffer fill.
+10. **Training when C07 `proceed: false`.** Fix self-questioning before expecting buffer fill.
 
 ## Verification Checklist
 

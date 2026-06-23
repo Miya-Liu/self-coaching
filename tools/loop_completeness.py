@@ -133,10 +133,10 @@ def _t_path_outcome(scenario: dict[str, Any]) -> str:
     return str(t_path.get("outcome") or "skip")
 
 
-def _expect_sparse_self_play(scenario: dict[str, Any]) -> bool:
+def _expect_sparse_self_questioning(scenario: dict[str, Any]) -> bool:
     e_path = scenario.get("e_path") or {}
-    if "expect_sparse_self_play" in e_path:
-        return bool(e_path["expect_sparse_self_play"])
+    if "expect_sparse_self_questioning" in e_path:
+        return bool(e_path["expect_sparse_self_questioning"])
     return False
 
 
@@ -149,7 +149,7 @@ def _expect_t_path(scenario: dict[str, Any]) -> bool:
     return bool(loop_cfg.get("enable_t_path"))
 
 
-def _expect_batch_self_play(ctx: AuditContext) -> bool:
+def _expect_batch_self_questioning(ctx: AuditContext) -> bool:
     if not _expect_t_path(ctx.scenario):
         return False
     batch_fill = (ctx.t_path_last or {}).get("batch_fill") or {}
@@ -160,7 +160,7 @@ def _expect_batch_self_play(ctx: AuditContext) -> bool:
     )
 
 
-def _sparse_self_play_ok(sparse: dict[str, Any]) -> tuple[bool, str]:
+def _sparse_self_questioning_ok(sparse: dict[str, Any]) -> tuple[bool, str]:
     """Pass when mock suite_id exists or pipeline sparse job succeeded (proceed + job_id)."""
     suite_id = sparse.get("suite_id")
     if suite_id:
@@ -170,7 +170,7 @@ def _sparse_self_play_ok(sparse: dict[str, Any]) -> tuple[bool, str]:
         return True, f"pipeline job_id={job_id} proceed={sparse.get('proceed')}"
     if job_id:
         return True, f"job_id={job_id}"
-    return False, "missing sparse self-play suite_id or pipeline job_id"
+    return False, "missing sparse self-questioning suite_id or pipeline job_id"
 
 
 def check_c01(ctx: AuditContext) -> MatrixRow:
@@ -218,10 +218,10 @@ def check_c05(ctx: AuditContext) -> MatrixRow:
 
 
 def check_c06(ctx: AuditContext) -> MatrixRow:
-    if not _expect_sparse_self_play(ctx.scenario):
+    if not _expect_sparse_self_questioning(ctx.scenario):
         return _row("C06", invocation=None, evidence="not required for scenario")
-    sparse = (ctx.e_path_last or {}).get("sparse_self_play") or {}
-    ok, evidence = _sparse_self_play_ok(sparse)
+    sparse = (ctx.e_path_last or {}).get("sparse_self_questioning") or {}
+    ok, evidence = _sparse_self_questioning_ok(sparse)
     return _row(
         "C06",
         invocation="pass" if ok else "fail",
@@ -230,8 +230,8 @@ def check_c06(ctx: AuditContext) -> MatrixRow:
 
 
 def check_c07(ctx: AuditContext) -> MatrixRow:
-    if not _expect_batch_self_play(ctx):
-        return _row("C07", invocation=None, evidence="batch self-play not required")
+    if not _expect_batch_self_questioning(ctx):
+        return _row("C07", invocation=None, evidence="batch self-questioning not required")
     batch_fill = (ctx.t_path_last or {}).get("batch_fill") or {}
     suite_id = batch_fill.get("suite_id")
     job_id = batch_fill.get("job_id")
@@ -361,11 +361,11 @@ def check_c14(ctx: AuditContext) -> MatrixRow:
 
 
 def check_c15(ctx: AuditContext) -> MatrixRow:
-    self_play_ran = _expect_sparse_self_play(ctx.scenario) or _expect_batch_self_play(ctx)
+    self_questioning_ran = _expect_sparse_self_questioning(ctx.scenario) or _expect_batch_self_questioning(ctx)
     validation = ctx.curated / "validation.jsonl"
     holdout = ctx.curated / "holdout.jsonl"
-    if not self_play_ran:
-        return _row("C15", invocation=None, evidence="self-play not required")
+    if not self_questioning_ran:
+        return _row("C15", invocation=None, evidence="self-questioning not required")
     ok = validation.is_file() and holdout.is_file() and validation.stat().st_size > 0 and holdout.stat().st_size > 0
     return _row(
         "C15",

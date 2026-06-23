@@ -153,12 +153,12 @@ def _wait_for_health(url: str, label: str) -> None:
 def _start_http_stack(demo_dir: Path, agent_id: str) -> list[subprocess.Popen[bytes]]:
     ae_port = os.environ.get("MOCK_AGENTEVALS_PORT", "38180")
     learning_port = os.environ.get("MOCK_SELF_LEARNING_PORT", "38766")
-    self_play_port = os.environ.get("MOCK_SELF_PLAY_PORT", "38767")
+    self_questioning_port = os.environ.get("MOCK_SELF_QUESTIONING_PORT", "38767")
     aerl_port = os.environ.get("MOCK_AERL_PORT", "38004")
 
     agentevals_url = os.environ.get("MOCK_AGENTEVALS_URL", f"http://127.0.0.1:{ae_port}")
     learning_url = os.environ.get("MOCK_SELF_LEARNING_URL", f"http://127.0.0.1:{learning_port}")
-    self_play_url = os.environ.get("MOCK_SELF_PLAY_URL", f"http://127.0.0.1:{self_play_port}")
+    self_questioning_url = os.environ.get("MOCK_SELF_QUESTIONING_URL", f"http://127.0.0.1:{self_questioning_port}")
     aerl_url = os.environ.get("MOCK_AERL_URL", os.environ.get("TRAINER_BASE_URL", f"http://127.0.0.1:{aerl_port}"))
 
     _run(
@@ -178,8 +178,8 @@ def _start_http_stack(demo_dir: Path, agent_id: str) -> list[subprocess.Popen[by
         (MOCK_SERVICES / "mock_agentevals.py", ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", ae_port], {}),
         (MOCK_SERVICES / "mock_self_learning.py", ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", learning_port], {}),
         (
-            MOCK_SERVICES / "mock_self_play.py",
-            ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", self_play_port],
+            MOCK_SERVICES / "mock_self_questioning.py",
+            ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", self_questioning_port],
             {"MOCK_AGENTEVALS_URL": agentevals_url},
         ),
         (MOCK_SERVICES / "mock_aerl.py", ["serve", "--data-dir", str(demo_dir), "--host", "127.0.0.1", "--port", aerl_port], {}),
@@ -197,11 +197,11 @@ def _start_http_stack(demo_dir: Path, agent_id: str) -> list[subprocess.Popen[by
 
     _wait_for_health(agentevals_url, "AgentEvals")
     _wait_for_health(learning_url, "Self-Learning")
-    _wait_for_health(self_play_url, "Self-Play")
+    _wait_for_health(self_questioning_url, "Self-Questioning")
     _wait_for_health(aerl_url, "AERL")
 
     os.environ["MOCK_SELF_LEARNING_URL"] = learning_url
-    os.environ["MOCK_SELF_PLAY_URL"] = self_play_url
+    os.environ["MOCK_SELF_QUESTIONING_URL"] = self_questioning_url
     os.environ["MOCK_AERL_URL"] = aerl_url
     os.environ["TRAINER_BASE_URL"] = aerl_url
     return procs

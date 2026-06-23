@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Sparse failure-conditioned self-play (C06) tests."""
+"""Sparse failure-conditioned self-questioning (C06) tests."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from client import ModuleClient  # noqa: E402
 from loop_driver import run_e_path  # noqa: E402
 from loop_store import LoopStore, SupportEntry, read_jsonl  # noqa: E402
 from mock_agent_registry import AgentRegistry  # noqa: E402
-from mock_self_play import MockSelfPlayEngine  # noqa: E402
+from mock_self_questioning import MockSelfQuestioningEngine  # noqa: E402
 from state import LoopStateStore  # noqa: E402
 
 SPARSE_FIXTURE = MOCK_SERVICES / "fixtures" / "task_stream" / "sparse_play_v1.jsonl"
@@ -28,10 +28,10 @@ SPARSE_FIXTURE = MOCK_SERVICES / "fixtures" / "task_stream" / "sparse_play_v1.js
 
 def test_generate_suite_runs_before_learn_and_grows_sigma(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AGENT_ID", "demo-agent")
-    monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
+    monkeypatch.delenv("MOCK_SELF_QUESTIONING_URL", raising=False)
 
     root = tmp_path / "sparse-play"
-    engine = MockSelfPlayEngine(root)
+    engine = MockSelfQuestioningEngine(root)
     registry = AgentRegistry(root)
     registry.ensure_agent("demo-agent")
 
@@ -82,7 +82,7 @@ def test_generate_suite_runs_before_learn_and_grows_sigma(tmp_path: Path, monkey
         coaching_root=root,
         agent_id="demo-agent",
         sigma_play=3,
-        self_play_engine=engine,
+        self_questioning_engine=engine,
     )
 
     assert call_order == ["generate_suite", "learn"]

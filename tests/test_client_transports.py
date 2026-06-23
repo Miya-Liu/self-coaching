@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 """End-to-end smoke tests for the unified client across all 3 transports.
 
-Each test exercises the full contract surface (health/learn/self_play/evaluate/
+Each test exercises the full contract surface (health/learn/self_questioning/evaluate/
 eval_report/train/run_all) through one transport, then asserts return-shape
 invariants from the OpenAPI contract.
 """
@@ -44,7 +44,7 @@ def _assert_contract_responses(c, root: Path) -> None:
     assert "id" in learn and "timestamp" in learn
     assert learn["event"]
 
-    play = c.self_play(capability="tool_use", n=2)
+    play = c.self_questioning(capability="tool_use", n=2)
     assert play["status"] == "generated"
     assert play["count"] == len(play["case_ids"]) == 2
 

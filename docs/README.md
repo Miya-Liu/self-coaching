@@ -29,6 +29,7 @@ Pick one path — you do not need to read everything.
 | Doc | Topic |
 |-----|--------|
 | [design/architecture.md](design/architecture.md) | Gates, components, two deploy modes |
+| [design/overall.md](design/overall.md) | Full system diagram (loop + backends + data stores) |
 | [design/self_coaching_mode.md](design/self_coaching_mode.md) | Host self-evolution · loop execution modes |
 | [design/coach_mode.md](design/coach_mode.md) | Supervise external agents |
 | [design/pipelines.md](design/pipelines.md) | Evolution engine stages |

@@ -65,11 +65,11 @@ def main() -> int:
 
     scenario = load_scenario(SCENARIO)
     summary = run_tick(ROOT, scenario)
-    if not summary.get("sparse_self_play_suite_id"):
-        print("clock_loop_smoke: FAIL missing sparse self-play suite (C06)", file=sys.stderr)
+    if not summary.get("sparse_self_questioning_suite_id"):
+        print("clock_loop_smoke: FAIL missing sparse self-questioning suite (C06)", file=sys.stderr)
         return 1
-    if not summary.get("batch_self_play_suite_id"):
-        print("clock_loop_smoke: FAIL missing batch self-play suite (C07)", file=sys.stderr)
+    if not summary.get("batch_self_questioning_suite_id"):
+        print("clock_loop_smoke: FAIL missing batch self-questioning suite (C07)", file=sys.stderr)
         return 1
     if not summary.get("t_path_promoted"):
         print("clock_loop_smoke: FAIL T-path did not promote", file=sys.stderr)
@@ -92,8 +92,8 @@ def main() -> int:
 
     print(
         "clock_loop_smoke: PASS "
-        f"(C06={summary['sparse_self_play_suite_id']} "
-        f"C07={summary['batch_self_play_suite_id']} "
+        f"(C06={summary['sparse_self_questioning_suite_id']} "
+        f"C07={summary['batch_self_questioning_suite_id']} "
         f"promoted={summary['t_path_promoted']})"
     )
     return 0

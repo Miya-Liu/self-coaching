@@ -1,4 +1,4 @@
-> **Implementation tracker (sprints, tasks, status):** [self-play-pipeline-implementation.md](self-play-pipeline-implementation.md)
+> **Implementation tracker (sprints, tasks, status):** [self-questioning-pipeline-implementation.md](self-questioning-pipeline-implementation.md)
 
 ## 分析：Pipeline Service API 与当前仓库的对应关系
 
@@ -8,14 +8,14 @@
 
 | 层 | 组件 | 当前状态 |
 |----|------|----------|
-| **SelfCoachingClient** | 统一接口 (`client.py`) | `learn()`, `self_play()`, `evaluate()`, `train()`, `run_all()` |
-| **Mock self-play** | `mock-services/mock_self_play.py` | 从失败轨迹生成对抗性评测用例，注册为 AgentEvals suite |
+| **SelfCoachingClient** | 统一接口 (`client.py`) | `learn()`, `self_questioning()`, `evaluate()`, `train()`, `run_all()` |
+| **Mock self-questioning** | `mock-services/mock_self_questioning.py` | 从失败轨迹生成对抗性评测用例，注册为 AgentEvals suite |
 | **Coach scheduler** | `modes/coach/scheduler.py` | 定时 tick → `handle_post_body` → 路由(learn/play/tune/full_tick) |
-| **Backend 切换** | env-driven in `LoopConfig` | `ORCHESTRATOR_EVAL_BACKEND`, `ORCHESTRATOR_TRAIN_BACKEND`，但 **self-play 没有独立的 backend flag** |
+| **Backend 切换** | env-driven in `LoopConfig` | `ORCHESTRATOR_EVAL_BACKEND`, `ORCHESTRATOR_TRAIN_BACKEND`，但 **self-questioning 没有独立的 backend flag** |
 
 ### Pipeline Service API 与 Mock Self-Play 的语义差异
 
-| 维度 | Mock Self-Play (`/self-play/generate`) | Real Pipeline Service (`/api/pipeline/submit`) |
+| 维度 | Mock Self-Play (`/self-questioning/generate`) | Real Pipeline Service (`/api/pipeline/submit`) |
 |------|---------------------------------------|-----------------------------------------------|
 | **输入** | `{capability, n, coaching_root}` | `{start_stage, train_eval_flag, generate_tasks_limit, n, num_explore_threads, ...}` |
 | **执行** | 同步、in-process 生成用例 | 异步 3 阶段：DB消息→任务 → Agent探索 → JSONL导入 |
@@ -125,7 +125,7 @@ class TestPipelineServiceSmoke:
 
 ---
 
-## 迁移方案：在 Pipeline Service 之上构建 self-play skill
+## 迁移方案：在 Pipeline Service 之上构建 self-questioning skill
 
 ### 架构图
 
@@ -133,10 +133,10 @@ class TestPipelineServiceSmoke:
 Coach Scheduler tick
        │
        ▼
-SelfCoachingClient.self_play()
+SelfCoachingClient.self_questioning()
        │
-       ├─ ORCHESTRATOR_SELFPLAY_BACKEND=mock      → MockSelfPlayEngine (现有)
-       └─ ORCHESTRATOR_SELFPLAY_BACKEND=pipeline  → PipelineServiceAdapter (新建)
+       ├─ ORCHESTRATOR_SELF_QUESTIONING_BACKEND=mock      → MockSelfQuestioningEngine (现有)
+       └─ ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline  → PipelineServiceAdapter (新建)
                                                         │
                                                         ▼
                                                POST /api/pipeline/submit
@@ -149,7 +149,7 @@ SelfCoachingClient.self_play()
 **Step 1: 新建 `services/adapters/pipeline_service_client.py`**
 
 ```python
-"""Pipeline Service HTTP adapter — wraps the Self-Questioning pipeline as a self-play backend."""
+"""Pipeline Service HTTP adapter — wraps the Self-Questioning pipeline as a self-questioning backend."""
 
 class PipelineServiceClient:
     def __init__(self, base_url: str, *, timeout_s=30, poll_interval_s=5, poll_timeout_s=3600): ...
@@ -161,21 +161,21 @@ class PipelineServiceClient:
     def run_sync(self, request: PipelineRequest, timeout=600) -> PipelineTaskInfo: ...
 ```
 
-遵循 `TrainingClient` 同样的模式（poll + timeout + error raise）。
+遵循 `TrainerClient` 同样的模式（poll + timeout + error raise）。
 
-**Step 2: 构建转换层 `services/adapters/selfplay_pipeline_adapter.py`**
+**Step 2: 构建转换层 `services/adapters/self_questioning_pipeline_adapter.py`**
 
-将 `SelfCoachingClient.self_play()` 的语义映射到 Pipeline Service：
+将 `SelfCoachingClient.self_questioning()` 的语义映射到 Pipeline Service：
 
 ```python
 class SelfPlayPipelineAdapter:
-    """Adapts the SelfCoachingClient.self_play() interface to the real Pipeline Service."""
+    """Adapts the SelfCoachingClient.self_questioning() interface to the real Pipeline Service."""
 
     def __init__(self, client: PipelineServiceClient, *, default_train_eval_flag="eval"):
         self._client = client
         self._default_flag = default_train_eval_flag
 
-    def self_play(self, *, capability="tool_use", n=3, coaching_root=None) -> dict:
+    def self_questioning(self, *, capability="tool_use", n=3, coaching_root=None) -> dict:
         """Submit a pipeline job, wait, return results in mock-compatible format."""
         request = {
             "start_stage": 1,           # full pipeline
@@ -204,26 +204,26 @@ class SelfPlayPipelineAdapter:
 在 `LoopConfig` 中添加：
 ```python
 # 新字段
-selfplay_backend: str = "mock"      # mock | pipeline
+self_questioning_backend: str = "mock"      # mock | pipeline
 pipeline_service_url: str | None = None
 ```
 
 在 `from_env()` 中读取：
 ```python
-selfplay_be = os.environ.get("ORCHESTRATOR_SELFPLAY_BACKEND", "mock").lower()
+selfplay_be = os.environ.get("ORCHESTRATOR_SELF_QUESTIONING_BACKEND", "mock").lower()
 pipeline_url = os.environ.get("PIPELINE_SERVICE_URL") or os.environ.get("SELF_QUESTIONING_URL")
 ```
 
-在 `build_loop_client()` 中，当 `selfplay_backend == "pipeline"` 时注入 adapter。
+在 `build_loop_client()` 中，当 `self_questioning_backend == "pipeline"` 时注入 adapter。
 
 **Step 4: Coach Clock 集成**
 
-在 `trigger.py` 的 self-play 路由分支中，通过 composite client 调用 `self_play()`。由于 adapter 内部处理了异步 poll，对 caller 来说依然是阻塞调用，无需改动 scheduler 逻辑。
+在 `trigger.py` 的 self-questioning 路由分支中，通过 composite client 调用 `self_questioning()`。由于 adapter 内部处理了异步 poll，对 caller 来说依然是阻塞调用，无需改动 scheduler 逻辑。
 
 **Step 5: 环境变量示例**
 
 ```env
-ORCHESTRATOR_SELFPLAY_BACKEND=pipeline
+ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline
 PIPELINE_SERVICE_URL=http://10.110.158.146:8001
 PIPELINE_POLL_INTERVAL_S=5
 PIPELINE_POLL_TIMEOUT_S=3600
@@ -233,10 +233,10 @@ PIPELINE_POLL_TIMEOUT_S=3600
 
 | 问题 | 建议 |
 |------|------|
-| Pipeline Service 的输出是导入到 Supabase，不是返回 case_ids | adapter 的 `self_play()` 返回 job 元数据即可；实际数据已在 DB 中，后续 eval 直接从 DB 读取 |
+| Pipeline Service 的输出是导入到 Supabase，不是返回 case_ids | adapter 的 `self_questioning()` 返回 job 元数据即可；实际数据已在 DB 中，后续 eval 直接从 DB 读取 |
 | 异步 job 可能跑很久（5–30 分钟） | `poll_timeout_s` 配合 scheduler 的 per-agent lock 可防止重复提交 |
 | `dry_run` 模式可用于 CI 测试 | 在 CI 里用 `dry_run=True` 跑连通性，不消耗 GPU/LLM 配额 |
-| Mock 路径保留 | `ORCHESTRATOR_SELFPLAY_BACKEND=mock` 仍走 MockSelfPlayEngine，保障本地开发和 CI |
+| Mock 路径保留 | `ORCHESTRATOR_SELF_QUESTIONING_BACKEND=mock` 仍走 MockSelfQuestioningEngine，保障本地开发和 CI |
 | stage 粒度控制 | adapter 可暴露 `start_stage` 参数给高级调用方，用于 partial re-run |
 
 ---

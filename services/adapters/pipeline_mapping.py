@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Map loop self-play semantics to Pipeline Service requests and responses."""
+"""Map loop self-questioning semantics to Pipeline Service requests and responses."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def build_batch_request(
     train_eval_flag: str | None = None,
     dry_run: bool | None = None,
 ) -> dict[str, Any]:
-    """C07 batch self-play → full pipeline run."""
+    """C07 batch self-questioning → full pipeline run."""
     flag = train_eval_flag or os.environ.get("PIPELINE_BATCH_TRAIN_EVAL_FLAG", "train")
     explore = _explore_n(n)
     body: dict[str, Any] = {
@@ -43,7 +43,7 @@ def build_suite_request(
     train_eval_flag: str | None = None,
     dry_run: bool | None = None,
 ) -> dict[str, Any]:
-    """C06 sparse self-play → pipeline run sized to sigma / variant count."""
+    """C06 sparse self-questioning → pipeline run sized to sigma / variant count."""
     flag = train_eval_flag or os.environ.get("PIPELINE_TRAIN_EVAL_FLAG", "eval")
     limit = max(1, n_variants)
     explore = _explore_n(limit)
@@ -63,7 +63,7 @@ def build_suite_request(
 
 
 def pipeline_job_succeeded(result: dict[str, Any]) -> bool:
-    """Whether the loop should treat self-play as complete and move on."""
+    """Whether the loop should treat self-questioning as complete and move on."""
     if not result.get("pipeline_service"):
         return str(result.get("status", "")).lower() in {"generated", "registered"}
     return bool(result.get("proceed"))

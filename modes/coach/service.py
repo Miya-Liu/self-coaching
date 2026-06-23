@@ -48,7 +48,8 @@ def build_coach_bridge() -> Any:
             timeout_s=float(os.environ.get("COACH_AGENT_TIMEOUT_S", "60")),
             path=os.environ.get("COACH_AGENT_PATH", "/chat/completions"),
         )
-        return AgentCoachBridge(transport)
+        tools_enabled = os.environ.get("COACH_TOOLS_ENABLED", "").strip().lower() in ("1", "true", "yes")
+        return AgentCoachBridge(transport, tools_enabled=tools_enabled)
     raise SystemExit(f"unknown COACH_BRIDGE={kind!r} (expected 'mock' or 'agent')")
 
 

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Proceed gating when pipeline self-play fails."""
+"""Proceed gating when pipeline self-questioning fails."""
 
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ def test_e_path_holds_when_pipeline_sparse_fails(tmp_path: Path, monkeypatch: py
     engine = MagicMock()
     engine.generate_suite.return_value = _pipeline_fail_result()
 
-    config = LoopConfig(selfplay_backend="pipeline")
+    config = LoopConfig(self_questioning_backend="pipeline")
     client = MagicMock()
 
     result = run_e_path(
@@ -72,13 +72,13 @@ def test_e_path_holds_when_pipeline_sparse_fails(tmp_path: Path, monkeypatch: py
         loop_store=loop_store,
         coaching_root=root,
         agent_id="demo-agent",
-        self_play_engine=engine,
+        self_questioning_engine=engine,
         config=config,
     )
 
     assert result is not None
     assert result["status"] == "held"
-    assert result["reason"] == "sparse_self_play_failed"
+    assert result["reason"] == "sparse_self_questioning_failed"
     client.learn.assert_not_called()
 
 
@@ -92,7 +92,7 @@ def test_t_path_holds_when_pipeline_batch_fails(tmp_path: Path):
 
     engine = MagicMock()
     engine.generate_batch.return_value = _pipeline_fail_result()
-    config = LoopConfig(selfplay_backend="pipeline", batch_size=4)
+    config = LoopConfig(self_questioning_backend="pipeline", batch_size=4)
     client = MagicMock()
 
     result = run_t_path(
@@ -103,13 +103,13 @@ def test_t_path_holds_when_pipeline_batch_fails(tmp_path: Path):
         coaching_root=root,
         agent_id="demo-agent",
         beta=4,
-        self_play_engine=engine,
+        self_questioning_engine=engine,
         config=config,
     )
 
     assert result is not None
     assert result.get("held") is True
-    assert "batch_self_play_failed" in result.get("gate_reasons", [])
+    assert "batch_self_questioning_failed" in result.get("gate_reasons", [])
     client.train.assert_not_called()
 
 
@@ -134,7 +134,7 @@ def test_t_path_trains_when_pipeline_batch_proceeds_without_local_buffer(tmp_pat
 
     engine = MagicMock()
     engine.generate_batch.return_value = _pipeline_ok_result()
-    config = LoopConfig(selfplay_backend="pipeline", batch_size=4)
+    config = LoopConfig(self_questioning_backend="pipeline", batch_size=4)
     client = MagicMock()
     client.train.return_value = {"status": "trained", "candidate": "remote-candidate", "run_id": "train-1"}
 
@@ -146,7 +146,7 @@ def test_t_path_trains_when_pipeline_batch_proceeds_without_local_buffer(tmp_pat
         coaching_root=root,
         agent_id="demo-agent",
         beta=4,
-        self_play_engine=engine,
+        self_questioning_engine=engine,
         config=config,
     )
 

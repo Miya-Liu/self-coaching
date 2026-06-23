@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 DEFAULT_SCRIPT = "customized_areal/tpfc/scripts/train_tpfc_tree_search.py"
 DEFAULT_CONFIG = (
-    "customized_areal/tpfc/configs/config_tpfc_Qwen3-5L-9B_tree_search_self_play.yaml"
+    "customized_areal/tpfc/configs/config_tpfc_Qwen3-5L-9B_tree_search_self_questioning.yaml"
 )
 DEFAULT_CWD = "/dfs/share-groups/letrain/zhoujie/AReaL-main"
 DEFAULT_TMUX_PREFIX = "train-"
@@ -82,10 +82,11 @@ def build_train_command_spec(
 ) -> TrainCommandSpec:
     """Build the remote shell command for a training run."""
     resolved_run_id = run_id or new_run_id()
+    override = os.environ.get("CLI_TRAIN_COMMAND", "").strip()
     script = resolve_train_script()
     config_path = resolve_config_path(pipeline=pipeline, base_model=base_model)
     log_file = log_file_name(resolved_run_id)
-    command = (
+    command = override or (
         f"uv run {script} --config {config_path} "
         f"2>&1 | tee {log_file}"
     )

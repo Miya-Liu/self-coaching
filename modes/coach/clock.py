@@ -3,7 +3,7 @@
 """Coach-mode autonomous clock — one evolution tick (E → P → T).
 
 Models LOOP_EXECUTION_MODE=autonomous for supervised agents: observe failures,
-self-evolve with sparse self-play, fill the tuning buffer, then self-tune when idle.
+self-evolve with sparse self-questioning, fill the tuning buffer, then self-tune when idle.
 
 Usage:
   python modes/coach/clock.py run \\
@@ -32,7 +32,7 @@ for _entry in (str(_MOCK_SERVICES), str(REPO_ROOT), str(_SC_ROOT), str(_SC_ROOT 
         _sys.path.insert(0, _entry)
 
 from self_coaching.loop_driver import run_tasks, run_t_path
-from self_coaching.loop_env import build_loop_client, build_self_play_engine
+from self_coaching.loop_env import build_loop_client, build_self_questioning_engine
 from self_coaching.loop_store import LoopStore
 from self_coaching.state import LoopStateStore
 from mock_agent_registry import AgentRegistry
@@ -130,12 +130,12 @@ def _run_tick_inner(
 ) -> dict[str, Any]:
     """Inner tick logic (separated so run_tick can do env save/restore)."""
     loop_client = client or build_loop_client(root, config=config)
-    self_play_engine = build_self_play_engine(root, config=config)
+    self_questioning_engine = build_self_questioning_engine(root, config=config)
     registry = AgentRegistry(root)
     registry.ensure_agent(agent_id)
     generation_before = LoopStateStore(root).load().generation
 
-    # Phase 1 — observe failures → self-evolution (sparse self-play + learn)
+    # Phase 1 — observe failures → self-evolution (sparse self-questioning + learn)
     run_tasks(
         root,
         config=config,
@@ -144,11 +144,11 @@ def _run_tick_inner(
         enable_t_path=False,
         client=loop_client,
         agent_id=agent_id,
-        self_play_engine=self_play_engine,
+        self_questioning_engine=self_questioning_engine,
         trajectory_fn=trajectory_fn,
     )
 
-    # Phase 2 — partial buffer fill (forces C07 batch self-play on T-path)
+    # Phase 2 — partial buffer fill (forces C07 batch self-questioning on T-path)
     run_tasks(
         root,
         config=config,
@@ -157,7 +157,7 @@ def _run_tick_inner(
         enable_t_path=False,
         client=loop_client,
         agent_id=agent_id,
-        self_play_engine=self_play_engine,
+        self_questioning_engine=self_questioning_engine,
         trajectory_fn=trajectory_fn,
     )
 
@@ -171,7 +171,7 @@ def _run_tick_inner(
         )
         registry.activate(agent_id, bad["version_id"])
 
-    # Phase 4 — idle window → batch self-play fill + self-tuning
+    # Phase 4 — idle window → batch self-questioning fill + self-tuning
     loop_store = LoopStore(root)
     state = LoopStateStore(root).load()
     t_result = run_t_path(
@@ -182,7 +182,7 @@ def _run_tick_inner(
         coaching_root=root,
         agent_id=agent_id,
         beta=config.batch_size,
-        self_play_engine=self_play_engine,
+        self_questioning_engine=self_questioning_engine,
         config=config,
     )
     if t_result is None:
@@ -209,11 +209,11 @@ def _run_tick_inner(
         "tasks_processed": final_state.tasks_processed,
         "version_count": len(versions),
         "active_version_id": active["active_version_id"],
-        "sparse_self_play_suite_id": (e_path_last.get("sparse_self_play") or {}).get("suite_id")
-        or (e_path_last.get("sparse_self_play") or {}).get("job_id"),
-        "batch_self_play_suite_id": (t_result.get("batch_fill") or {}).get("suite_id")
+        "sparse_self_questioning_suite_id": (e_path_last.get("sparse_self_questioning") or {}).get("suite_id")
+        or (e_path_last.get("sparse_self_questioning") or {}).get("job_id"),
+        "batch_self_questioning_suite_id": (t_result.get("batch_fill") or {}).get("suite_id")
         or (t_result.get("batch_fill") or {}).get("job_id"),
-        "batch_self_play_proceed": (t_result.get("batch_fill") or {}).get("proceed"),
+        "batch_self_questioning_proceed": (t_result.get("batch_fill") or {}).get("proceed"),
         "t_path_promoted": bool(t_result.get("promoted")),
         "coaching_root": str(root),
     }
@@ -233,8 +233,8 @@ def write_summary(root: Path, summary: dict[str, Any], t_result: dict[str, Any])
         f"- **Execution mode:** {summary.get('execution_mode')}",
         f"- **Agent:** {summary.get('agent_id')}",
         f"- **Generation:** {summary.get('generation_before')} → {summary.get('generation_after')}",
-        f"- **Sparse self-play suite:** {summary.get('sparse_self_play_suite_id')}",
-        f"- **Batch self-play suite:** {summary.get('batch_self_play_suite_id')}",
+        f"- **Sparse self-questioning suite:** {summary.get('sparse_self_questioning_suite_id')}",
+        f"- **Batch self-questioning suite:** {summary.get('batch_self_questioning_suite_id')}",
         f"- **T-path promoted:** {summary.get('t_path_promoted')}",
         "",
         "## Holdout gate",
@@ -257,8 +257,8 @@ def cmd_run(args: argparse.Namespace) -> int:
             "clock: "
             f"scenario={summary['scenario']} "
             f"generation={summary['generation_before']}→{summary['generation_after']} "
-            f"C06={summary['sparse_self_play_suite_id']} "
-            f"C07={summary['batch_self_play_suite_id']} "
+            f"C06={summary['sparse_self_questioning_suite_id']} "
+            f"C07={summary['batch_self_questioning_suite_id']} "
             f"promoted={summary['t_path_promoted']}"
         )
     return 0

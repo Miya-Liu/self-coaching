@@ -5,7 +5,7 @@
 **Status:** Sprints 0–3 complete (2026-06-16) — trigger + status/results; dataset handoff deferred (CT-D01+)  
 **Scope (narrow):** **Trigger the tuning pipeline on the AReaL GPU host and collect terminal status + bounded logs.** Success = adapter returns `{ status, run_id, cmd_id, terminal_status, stdout_tail, … }` after the remote command finishes. Registry promotion, holdout gate, and loop-buffer dataset handoff are **out of scope** until a later phase.
 
-**Related:** [progress.md](progress.md) · [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) (HTTP mock path; CI only) · [self-play-pipeline-implementation.md](self-play-pipeline-implementation.md) (independent M3 track)
+**Related:** [progress.md](progress.md) · [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) (HTTP mock path; CI only) · [self-questioning-pipeline-implementation.md](self-questioning-pipeline-implementation.md) (independent M3 track)
 
 ---
 
@@ -54,7 +54,7 @@ uv run customized_areal/tpfc/scripts/train_tpfc_tree_search.py \
 
 **Working directory:** `CLI_TRAIN_CWD` (default `/dfs/share-groups/letrain/zhoujie/AReaL-main`)
 
-**Config selection:** env map `(pipeline, base_model) → config path` — v1 uses one known YAML (self-play tree search). The `dataset` argument from the loop is **ignored** until CT-D01.
+**Config selection:** env map `(pipeline, base_model) → config path` — v1 uses one known YAML (self-questioning tree search). The `dataset` argument from the loop is **ignored** until CT-D01.
 
 **Success marker (AReaL host — optional but recommended):**
 
@@ -114,7 +114,7 @@ Coach / loop_driver / smoke script
         │       → inner ModuleClient.train() / mock_aerl
         │
         ├─ ORCHESTRATOR_TRAIN_BACKEND=aerl
-        │       → AERLTrainAdapter → HTTP TrainingClient
+        │       → AERLTrainAdapter → HTTP TrainerClient
         │
         └─ ORCHESTRATOR_TRAIN_BACKEND=cli
                 → CLITrainAdapter (services/adapters/)
@@ -125,7 +125,7 @@ Coach / loop_driver / smoke script
                 ← run_shell_runner on AReaL host (already deployed)
 ```
 
-**Transport:** Supabase PostgREST — same pattern as `services/LoRA/db_bridge/scripts/send_command.py`.
+**Transport:** Supabase PostgREST — same pattern as `services/lora/db_bridge/scripts/send_command.py`.
 
 ---
 
@@ -135,7 +135,7 @@ Coach / loop_driver / smoke script
 # Backend switch
 ORCHESTRATOR_TRAIN_BACKEND=cli
 
-# Shared Supabase (coaching host — services/LoRA/db_bridge/.env)
+# Shared Supabase (coaching host — services/lora/db_bridge/.env)
 SUPABASE_URL=http://82.157.184.89:54321
 SUPABASE_SERVICE_ROLE_KEY=...
 BRIDGE_USER_ID=...
@@ -148,7 +148,7 @@ CLI_TRAIN_TMUX_PREFIX=train-
 
 # Fixed remote config (v1 — override per deployment)
 CLI_TRAIN_SCRIPT=customized_areal/tpfc/scripts/train_tpfc_tree_search.py
-CLI_TRAIN_CONFIG=customized_areal/tpfc/configs/config_tpfc_Qwen3-5L-9B_tree_search_self_play.yaml
+CLI_TRAIN_CONFIG=customized_areal/tpfc/configs/config_tpfc_Qwen3-5L-9B_tree_search_self_questioning.yaml
 
 # Reuse AERL poll budget naming for long jobs
 AERL_TIMEOUT_S=3600
@@ -285,7 +285,7 @@ Calendar assumes ~3–4 working days per sprint. Adjust dates when each sprint s
 | `modes/self-coaching/loop_config.py` | 2 | Backend enum docs |
 | `services/adapters/composite_client.py` | 2 | `cli` in `use_train` |
 | `scenarios/demo.cli-train.env.example` | 2 | Env template |
-| `services/LoRA/db_bridge/scripts/send_command.py` | 0 | Reference impl / optional refactor |
+| `services/lora/db_bridge/scripts/send_command.py` | 0 | Reference impl / optional refactor |
 
 ---
 
@@ -296,7 +296,7 @@ Calendar assumes ~3–4 working days per sprint. Adjust dates when each sprint s
 | Mock regression (R5) | `bash tests/test_mock_self_coaching_demo.sh` | none | **required** |
 | Transport unit | `pytest tests/test_cli_train_transport.py` | none | required (Sprint 0+) |
 | Adapter unit | `pytest tests/test_cli_train_adapter.py` | none | required (Sprint 1+) |
-| db_bridge feasibility | `pytest services/LoRA/db_bridge/tests/test_model_tuning_feasibility.py` | none | optional |
+| db_bridge feasibility | `pytest services/lora/db_bridge/tests/test_model_tuning_feasibility.py` | none | optional |
 | Connectivity probe | `uv run python scripts/probe_connectivity.py` | live | manual |
 | Send command | `uv run python scripts/send_command.py "hostname"` | live | manual |
 | CLI train smoke | `python scripts/cli_train_smoke.py --env-file scenarios/demo.cli-train.env` | live | manual |

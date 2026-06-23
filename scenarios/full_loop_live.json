@@ -7,7 +7,7 @@
     "t_path": "mock-services/fixtures/task_stream/t_path_v1.jsonl"
   },
   "e_path": {
-    "expect_sparse_self_play": false,
+    "expect_sparse_self_questioning": false,
     "min_generation_bump": 1
   },
   "t_path": {

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Unit tests for SelfPlayPipelineEngine (fake client, no live network)."""
+"""Unit tests for SelfQuestioningPipelineEngine (fake client, no live network)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from services.adapters.pipeline_http import PipelineHTTPError  # noqa: E402
 from services.adapters.pipeline_mapping import pipeline_job_succeeded  # noqa: E402
-from services.adapters.selfplay_pipeline_adapter import SelfPlayPipelineEngine  # noqa: E402
+from services.adapters.self_questioning_pipeline_adapter import SelfQuestioningPipelineEngine  # noqa: E402
 
 
 def _success_job(job_id: str = "job-ok") -> dict:
@@ -31,7 +31,7 @@ def test_generate_batch_success_proceeds():
     client.submit.return_value = {"job_id": "job-batch-1", "status": "pending"}
     client.wait_for_job.return_value = _success_job("job-batch-1")
 
-    engine = SelfPlayPipelineEngine(client)
+    engine = SelfQuestioningPipelineEngine(client)
     result = engine.generate_batch(coaching_root=Path("/tmp/coach"), capability="tool_use", n=4)
 
     assert result["status"] == "generated"
@@ -54,7 +54,7 @@ def test_generate_batch_failure_holds_loop():
         body={"job_id": "job-fail", "status": "failed", "error": "stage 2 timeout"},
     )
 
-    engine = SelfPlayPipelineEngine(client)
+    engine = SelfQuestioningPipelineEngine(client)
     result = engine.generate_batch(n=2)
 
     assert result["status"] == "error"
@@ -68,7 +68,7 @@ def test_generate_suite_success_registered():
     client.submit.return_value = {"job_id": "job-suite", "status": "pending"}
     client.wait_for_job.return_value = _success_job("job-suite")
 
-    engine = SelfPlayPipelineEngine(client)
+    engine = SelfQuestioningPipelineEngine(client)
     result = engine.generate_suite(n_variants=3, user_query="failed task")
 
     assert result["status"] == "registered"
@@ -89,7 +89,7 @@ def test_partial_stage_failure_maps_to_error():
         "error": None,
     }
 
-    engine = SelfPlayPipelineEngine(client)
+    engine = SelfQuestioningPipelineEngine(client)
     result = engine.generate_batch(n=1)
 
     assert result["status"] == "error"
@@ -100,7 +100,7 @@ def test_sync_mode_uses_run_sync(monkeypatch: pytest.MonkeyPatch):
     client = MagicMock()
     client.run_sync.return_value = _success_job("sync-job")
 
-    engine = SelfPlayPipelineEngine(client, use_sync=True)
+    engine = SelfQuestioningPipelineEngine(client, use_sync=True)
     result = engine.generate_batch(n=1)
 
     assert result["proceed"] is True

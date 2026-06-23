@@ -63,11 +63,11 @@ Operational mapping for `AERLTrainAdapter` / `train_mapping.py`. **Spec:** [self
 
 | Loop need | Trainer endpoint | Client |
 |-----------|------------------|--------|
-| Start train | `POST /v1/training/runs` | `TrainingClient.create_run` |
-| Poll run | `GET /v1/training/runs/{id}` | `TrainingClient.get_run` / `wait_for_run` |
+| Start train | `POST /v1/training/runs` | `TrainerClient.create_run` |
+| Poll run | `GET /v1/training/runs/{id}` | `TrainerClient.get_run` / `wait_for_run` |
 | Resolve weights | `GET /v1/checkpoints/{id}` | `RestClient.get_checkpoint` |
-| Preflight rewards | `POST /v1/rewards/validate` | `TrainingClient.validate_rewards` |
-| Preflight rollout | `POST /v1/rollout/configs/validate` | `TrainingClient.validate_rollout` |
+| Preflight rewards | `POST /v1/rewards/validate` | `TrainerClient.validate_rewards` |
+| Preflight rollout | `POST /v1/rollout/configs/validate` | `TrainerClient.validate_rollout` |
 
 ### `TrainingRunRecord` + `Checkpoint` → normalized `train()`
 

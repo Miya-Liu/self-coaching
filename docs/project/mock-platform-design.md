@@ -12,13 +12,13 @@ Related: [roadmap.md](roadmap.md), [integration-plan.md](integration-plan.md), [
 
 ## Problem
 
-`mock_self_coaching.py` bundles learn, self-play, eval, and train in one process (`:8765`). That suffices for T1 smoke tests but does not match the integration spine:
+`mock_self_coaching.py` bundles learn, self-questioning, eval, and train in one process (`:8765`). That suffices for T1 smoke tests but does not match the integration spine:
 
 ```text
 Orchestrator -> CompositeClient
                  +-- evaluate     -> AgentEvals      (:8080)
                  +-- learn        -> Self-learning   (:8766)
-                 +-- self_play    -> Self-play       (:8767)
+                 +-- self_questioning    -> Self-Questioning       (:8767)
                  +-- train        -> AERL            (:8004)
 ```
 
@@ -38,7 +38,7 @@ Coach mode and `ORCHESTRATOR_EVAL_BACKEND=agentevals` need a **separate AgentEva
      +----------------------------+----------------------------+
      |                            |                            |
 +----v----------+   +------------v-----------+   +-------------v---------+
-| Mock          |   | Mock Self-Learning     |   | Mock Self-Play        |
+| Mock          |   | Mock Self-Learning     |   | Mock Self-Questioning |
 | AgentEvals    |   | :8766                  |   | :8767                 |
 | :8080         |   +------------------------+   +----------------------+
 +----------------+
@@ -145,24 +145,24 @@ Draft versions are created for memory/skill_patch/training_candidate; activation
 
 ---
 
-## Phase 2 — Self-play → suite registration ✓
+## Phase 2 — Self-questioning → suite registration ✓
 
 | Deliverable | Path |
 |-------------|------|
-| Self-play mock | `mock-services/mock_self_play.py` |
-| Failure-conditioned suite | `POST /self-play/generate-suite` → `MockSelfPlayEngine.generate_suite()` |
-| Batch buffer fill | `POST /self-play/generate` → `MockSelfPlayEngine.generate_batch()` |
+| Self-questioning mock | `mock-services/mock_self_questioning.py` |
+| Failure-conditioned suite | `POST /self-questioning/generate-suite` → `MockSelfQuestioningEngine.generate_suite()` |
+| Batch buffer fill | `POST /self-questioning/generate` → `MockSelfQuestioningEngine.generate_batch()` |
 | Suite registration | Both paths → AgentEvals `POST /api/suites` + `curate_data.py` |
 | Curation | `scripts/curate_data.py` wired in engine + orchestrator `curation.json` |
-| Facade | `mock_self_coaching.self_play()` → **`generate_batch` only** (T-path / C07); E-path uses `generate-suite` directly |
-| Smoke | `scripts/mock-self-play-smoke.sh` |
+| Facade | `mock_self_coaching.self_questioning()` → **`generate_batch` only** (T-path / C07); E-path uses `generate-suite` directly |
+| Smoke | `scripts/mock-self-questioning-smoke.sh` |
 
 **Two endpoints, two jobs** (used by [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md) §3.3 vs §3.4):
 
 | Endpoint | Engine method | When | Key request params |
 |----------|---------------|------|-------------------|
-| `POST /self-play/generate-suite` | `generate_suite()` | E-path sparse augment (C06): `0 < \|Σ\| ≤ σ_play` | `user_query`, `trajectory`, `eval_score`, `mode` (default `adversarial`), `n_variants` |
-| `POST /self-play/generate` | `generate_batch()` | T-path buffer top-up (C07): idle and `\|B\| < β` | `capability`, `n` (= `β - \|B\|`) |
+| `POST /self-questioning/generate-suite` | `generate_suite()` | E-path sparse augment (C06): `0 < \|Σ\| ≤ σ_play` | `user_query`, `trajectory`, `eval_score`, `mode` (default `adversarial`), `n_variants` |
+| `POST /self-questioning/generate` | `generate_batch()` | T-path buffer top-up (C07): idle and `\|B\| < β` | `capability`, `n` (= `β - \|B\|`) |
 
 `generate-suite` is a **mock extension** (failure-conditioned variants + suite register). `generate` matches the Coaching API contract in `openapi.yaml`. They are **not** one endpoint with a `mode` switch.
 
@@ -192,7 +192,7 @@ Production AERL may live in an external repo; this mock ships in-repo for CI and
 | Coach demo | `scripts/mock-coach-demo.sh` |
 | Demo registry | `modes/coach/agents.demo.yaml` |
 | Two agents | `agent-promote` (registry activate) / `agent-reject` (draft left inactive) |
-| Full stack | AgentEvals + Self-Learning + Self-Play + AERL (+ Coaching API health) |
+| Full stack | AgentEvals + Self-Learning + Self-Questioning + AERL (+ Coaching API health) |
 | Orchestrator | `record-eval` → `check-drop` → `run` (model path via env) |
 | CI | `integration-mock-stack` job in `.github/workflows/ci.yml` |
 

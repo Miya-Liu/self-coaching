@@ -7,7 +7,7 @@ Spawns `python mock_self_coaching.py serve` in a subprocess, waits for
 Endpoints (from mock-services/README.md):
   GET  /health
   POST /learning/events       {"event", "source", "capability"}
-  POST /self-play/generate    {"capability", "n"}
+  POST /self-questioning/generate    {"capability", "n"}
   POST /eval/runs             {"candidate", "baseline"}
   GET  /eval/runs/{run_id}/report
   POST /training/runs         {"pipeline"}
@@ -62,16 +62,16 @@ def test_learning_events_post(mock_server):
     assert events_path.is_file()
 
 
-def test_self_play_generate_post(mock_server):
+def test_self_questioning_generate_post(mock_server):
     port, _ = mock_server
-    data = _post(port, "/self-play/generate", {"capability": "tool_use", "n": 3})
+    data = _post(port, "/self-questioning/generate", {"capability": "tool_use", "n": 3})
     assert data["status"] == "generated"
     assert data["count"] == 3
 
 
 def test_eval_runs_post_and_report_get(mock_server):
     port, _ = mock_server
-    _post(port, "/self-play/generate", {"capability": "tool_use", "n": 4})
+    _post(port, "/self-questioning/generate", {"capability": "tool_use", "n": 4})
     eval_result = _post(port, "/eval/runs", {"candidate": "cand-x", "baseline": "base-x"})
     assert eval_result["status"] in ("passed", "failed")
     run_id = eval_result["run_id"]
@@ -91,7 +91,7 @@ def test_eval_report_missing_returns_404(mock_server):
 
 def test_training_runs_post(mock_server):
     port, _ = mock_server
-    _post(port, "/self-play/generate", {"capability": "tool_use", "n": 3})
+    _post(port, "/self-questioning/generate", {"capability": "tool_use", "n": 3})
     data = _post(port, "/training/runs", {"pipeline": "sft"})
     assert data["status"] == "trained"
     assert "candidate" in data

@@ -63,7 +63,7 @@ jobs:
           python -m py_compile mock-services/mock_agent_registry.py
           python -m py_compile mock-services/mock_agentevals.py
           python -m py_compile mock-services/mock_self_learning.py
-          python -m py_compile mock-services/mock_self_play.py
+          python -m py_compile mock-services/mock_self_questioning.py
           python -m py_compile mock-services/mock_aerl.py
           python -m py_compile mock-services/plugin_mock.py
           python -m py_compile mock-services/self_coaching_loop.py
@@ -71,17 +71,17 @@ jobs:
           python -m py_compile tools/loop_completeness.py
           python -m py_compile services/adapters/aerl_client.py
           python -m py_compile services/adapters/train_adapter.py
-          python -m py_compile services/adapters/training_client.py
+          python -m py_compile services/adapters/trainer_client.py
           python -m py_compile services/adapters/trainer_rest_client.py
           python -m py_compile services/adapters/train_mapping.py
           python -m py_compile services/adapters/pipeline_http.py
           python -m py_compile services/adapters/pipeline_service_client.py
           python -m py_compile services/adapters/pipeline_mapping.py
-          python -m py_compile services/adapters/selfplay_pipeline_adapter.py
-          python -m py_compile services/adapters/self_play_client_adapter.py
-          python -m py_compile modes/self-coaching/self_play_factory.py
+          python -m py_compile services/adapters/self_questioning_pipeline_adapter.py
+          python -m py_compile services/adapters/self_questioning_client_adapter.py
+          python -m py_compile modes/self-coaching/self_questioning_factory.py
           python -m py_compile modes/self-coaching/subject_source.py
-          python -m py_compile scripts/pipeline_self_play_smoke.py
+          python -m py_compile scripts/pipeline_self_questioning_smoke.py
 
       - name: Mock AgentEvals Phase 0 smoke
         run: bash scripts/mock-agentevals-smoke.sh
@@ -89,8 +89,8 @@ jobs:
       - name: Mock self-learning Phase 1 smoke
         run: bash scripts/mock-self-learning-smoke.sh
 
-      - name: Mock self-play Phase 2 smoke
-        run: bash scripts/mock-self-play-smoke.sh
+      - name: Mock self-questioning Phase 2 smoke
+        run: bash scripts/mock-self-questioning-smoke.sh
 
       - name: Mock AERL Phase 3 smoke
         run: bash scripts/mock-aerl-smoke.sh
@@ -213,7 +213,7 @@ jobs:
           for f in \
             mock-services/ci-smoke-run/experience/EXPERIMENT_LOG.md \
             mock-services/ci-smoke-run/.self-coaching/events/learning_events.jsonl \
-            mock-services/ci-smoke-run/.self-coaching/cases/self_play_candidates.jsonl \
+            mock-services/ci-smoke-run/.self-coaching/cases/self_questioning_candidates.jsonl \
             mock-services/ci-smoke-run/.self-coaching/cases/eval_cases.jsonl \
             mock-services/ci-smoke-run/.self-coaching/curated/train.jsonl \
             mock-services/ci-smoke-run/.self-coaching/curated/validation.jsonl \

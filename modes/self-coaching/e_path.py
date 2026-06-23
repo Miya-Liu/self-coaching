@@ -11,13 +11,13 @@ try:
     from ._paths import _SC_ROOT  # noqa: F401 — triggers sys.path setup
     from .loop_config import LoopClient, LoopConfig, sigma_play_threshold
     from .loop_store import LoopStore, SupportEntry, read_jsonl
-    from .self_play_factory import run_suite_self_play
+    from .self_questioning_factory import run_suite_self_questioning
     from .state import LoopState, LoopStateStore
 except ImportError:
     from _paths import _SC_ROOT  # noqa: F401
     from loop_config import LoopClient, LoopConfig, sigma_play_threshold
     from loop_store import LoopStore, SupportEntry, read_jsonl
-    from self_play_factory import run_suite_self_play
+    from self_questioning_factory import run_suite_self_questioning
     from state import LoopState, LoopStateStore
 
 
@@ -42,10 +42,10 @@ def augment_sigma_sparse(
     version_id: str,
     generation: int,
     sigma_play: int,
-    self_play_engine: Any | None = None,
+    self_questioning_engine: Any | None = None,
     config: LoopConfig | None = None,
 ) -> dict[str, Any] | None:
-    """C06: sparse failure-conditioned self-play augments Sigma before E.learn."""
+    """C06: sparse failure-conditioned self-questioning augments Sigma before E.learn."""
     if not sigma:
         return None
     sigma_size = len(sigma)
@@ -66,11 +66,11 @@ def augment_sigma_sparse(
         "version_id": version_id,
     }
 
-    result = run_suite_self_play(
+    result = run_suite_self_questioning(
         coaching_root=coaching_root,
         body=body,
         config=config,
-        engine=self_play_engine,
+        engine=self_questioning_engine,
     )
 
     staging = coaching_root / ".self-coaching" / "curated" / "staging.jsonl"
@@ -115,10 +115,10 @@ def run_e_path(
     coaching_root: Path,
     agent_id: str,
     sigma_play: int | None = None,
-    self_play_engine: Any | None = None,
+    self_questioning_engine: Any | None = None,
     config: LoopConfig | None = None,
 ) -> dict[str, Any] | None:
-    """E-path: optional sparse self-play, learn, activate draft, bump g, flush stale B."""
+    """E-path: optional sparse self-questioning, learn, activate draft, bump g, flush stale B."""
     if not sigma:
         return None
 
@@ -132,18 +132,18 @@ def run_e_path(
         version_id=bootstrap_version,
         generation=state.generation,
         sigma_play=play_limit,
-        self_play_engine=self_play_engine,
+        self_questioning_engine=self_questioning_engine,
         config=config,
     )
 
     if suite_result and suite_result.get("pipeline_service") and not suite_result.get("proceed"):
         held = {
             "status": "held",
-            "reason": "sparse_self_play_failed",
+            "reason": "sparse_self_questioning_failed",
             "e_path": {
                 "generation": state.generation,
                 "parent_version_id": bootstrap_version,
-                "sparse_self_play": suite_result,
+                "sparse_self_questioning": suite_result,
                 "sigma_size_before_learn": len(sigma),
             },
         }
@@ -171,7 +171,7 @@ def run_e_path(
         "generation": state.generation,
         "parent_version_id": bootstrap_version,
         "activated_version_id": draft_id,
-        "sparse_self_play": suite_result,
+        "sparse_self_questioning": suite_result,
         "sigma_size_before_learn": sigma_size_before_learn,
     }
     audit_path = coaching_root / ".self-coaching" / "loop" / "e_path_last.json"

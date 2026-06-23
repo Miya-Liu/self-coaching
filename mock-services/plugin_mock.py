@@ -8,9 +8,9 @@ from __future__ import annotations
 from pathlib import Path
 
 try:  # package-style import
-    from .mock_self_coaching import init, learn, self_play, evaluate, train, run_all
+    from .mock_self_coaching import init, learn, self_questioning, evaluate, train, run_all
 except ImportError:  # direct path/module import during local smoke tests
-    from mock_self_coaching import init, learn, self_play, evaluate, train, run_all
+    from mock_self_coaching import init, learn, self_questioning, evaluate, train, run_all
 
 
 def run_demo(root: str | Path) -> dict:
@@ -24,5 +24,5 @@ def register() -> dict:
         "name": "mock-self-coaching",
         "version": "0.1.0",
         "interfaces": ["python_module", "cli", "http"],
-        "capabilities": ["learning", "self_play", "evaluation", "training"],
+        "capabilities": ["learning", "self_questioning", "evaluation", "training"],
     }

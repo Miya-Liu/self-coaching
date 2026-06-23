@@ -5,5 +5,5 @@
 - category: process
 - context: run_all
 - observation: Mock seed: agent forgot to verify a file write
-- reusable_lesson: require verification and route weak behavior into self-play/eval.
-- next_artifact: self_play_task
+- reusable_lesson: require verification and route weak behavior into self-questioning/eval.
+- next_artifact: self_questioning_task

@@ -100,7 +100,7 @@ def _require_credentials():
     if not _credentials_present():
         pytest.skip(
             "SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and BRIDGE_USER_ID required "
-            "(set CLI_TRAIN_ENV_FILE or services/LoRA/db_bridge/.env)"
+            "(set CLI_TRAIN_ENV_FILE or services/lora/db_bridge/.env)"
         )
 
 

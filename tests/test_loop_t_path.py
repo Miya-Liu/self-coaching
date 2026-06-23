@@ -42,7 +42,7 @@ def _mock_holdout_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_t_path_trains_and_promotes_when_holdout_passes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AGENT_ID", "demo-agent")
-    monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
+    monkeypatch.delenv("MOCK_SELF_QUESTIONING_URL", raising=False)
     monkeypatch.delenv("MOCK_AERL_URL", raising=False)
     _mock_holdout_env(monkeypatch)
 
@@ -90,7 +90,7 @@ def test_t_path_trains_and_promotes_when_holdout_passes(tmp_path: Path, monkeypa
 
 def test_t_path_rejects_bad_candidate_and_preserves_buffer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AGENT_ID", "demo-agent")
-    monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
+    monkeypatch.delenv("MOCK_SELF_QUESTIONING_URL", raising=False)
     monkeypatch.delenv("MOCK_AERL_URL", raising=False)
     _mock_holdout_env(monkeypatch)
 
@@ -145,7 +145,7 @@ def test_t_path_trains_via_aerl_http_backend(
     monkeypatch.setenv("MOCK_AERL_URL", aerl_url)
     monkeypatch.setenv("AERL_POLL_INTERVAL_S", "0.05")
     monkeypatch.setenv("AERL_TIMEOUT_S", "30")
-    monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
+    monkeypatch.delenv("MOCK_SELF_QUESTIONING_URL", raising=False)
     for key in ("AGENTEVALS_BASE_URL", "MOCK_AGENTEVALS_URL"):
         monkeypatch.delenv(key, raising=False)
 

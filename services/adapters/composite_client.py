@@ -9,7 +9,7 @@ from .agentevals_client import AgentEvalsError
 from .aerl_client import AERLError
 from .eval_adapter import AgentEvalsEvalAdapter
 from .learn_adapter import SelfLearningAdapter
-from .self_play_client_adapter import PipelineSelfPlayClientAdapter
+from .self_questioning_client_adapter import PipelineSelfQuestioningClientAdapter
 from .train_adapter import AERLTrainAdapter
 
 
@@ -31,13 +31,13 @@ class CompositeClient:
         eval_adapter: AgentEvalsEvalAdapter | None = None,
         train_adapter: AERLTrainAdapter | Any | None = None,
         learn_adapter: SelfLearningAdapter | None = None,
-        self_play_adapter: PipelineSelfPlayClientAdapter | None = None,
+        self_questioning_adapter: PipelineSelfQuestioningClientAdapter | None = None,
     ):
         self._inner = inner
         self._eval = eval_adapter
         self._train = train_adapter
         self._learn = learn_adapter
-        self._self_play = self_play_adapter
+        self._self_questioning = self_questioning_adapter
 
     def health(self) -> dict[str, Any]:
         base = self._inner.health()
@@ -71,14 +71,14 @@ class CompositeClient:
                 sl = {"status": "error", "error": str(exc)}
             out["learn_backend"] = "self-learning"
             out["self_learning"] = sl
-        if self._self_play is not None:
+        if self._self_questioning is not None:
             from .pipeline_service_client import PipelineServiceClient
 
             try:
                 sp = PipelineServiceClient().health()
             except Exception as exc:  # noqa: BLE001
                 sp = {"status": "error", "error": str(exc)}
-            out["selfplay_backend"] = "pipeline"
+            out["self_questioning_backend"] = "pipeline"
             out["pipeline_service"] = sp
         return out
 
@@ -87,10 +87,10 @@ class CompositeClient:
             return self._inner.learn(event=event, source=source, capability=capability)
         return self._learn.learn(event=event, source=source, capability=capability)
 
-    def self_play(self, *, capability: str = "tool_use", n: int = 3) -> dict[str, Any]:
-        if self._self_play is None:
-            return self._inner.self_play(capability=capability, n=n)
-        return self._self_play.self_play(capability=capability, n=n)
+    def self_questioning(self, *, capability: str = "tool_use", n: int = 3) -> dict[str, Any]:
+        if self._self_questioning is None:
+            return self._inner.self_questioning(capability=capability, n=n)
+        return self._self_questioning.self_questioning(capability=capability, n=n)
 
     def evaluate(
         self,
@@ -137,18 +137,18 @@ def build_composite_client(
     eval_backend: str = "mock",
     train_backend: str = "mock",
     learn_backend: str = "mock",
-    selfplay_backend: str = "mock",
+    self_questioning_backend: str = "mock",
     eval_adapter: AgentEvalsEvalAdapter | None = None,
     train_adapter: AERLTrainAdapter | Any | None = None,
     learn_adapter: SelfLearningAdapter | None = None,
-    self_play_adapter: PipelineSelfPlayClientAdapter | None = None,
+    self_questioning_adapter: PipelineSelfQuestioningClientAdapter | None = None,
 ) -> Any:  # noqa: ANN401
     """Return inner unchanged when all backends are mock, else CompositeClient."""
     use_eval = eval_backend.lower() == "agentevals"
     use_train = train_backend.lower() in ("aerl", "cli")
     use_learn = learn_backend.lower() in ("self-learning", "http")
-    use_selfplay = selfplay_backend.lower() == "pipeline" and self_play_adapter is not None
-    if not use_eval and not use_train and not use_learn and not use_selfplay:
+    use_self_questioning = self_questioning_backend.lower() == "pipeline" and self_questioning_adapter is not None
+    if not use_eval and not use_train and not use_learn and not use_self_questioning:
         return inner
     return CompositeClient(
         inner,
@@ -157,7 +157,7 @@ def build_composite_client(
         if use_train
         else None,
         learn_adapter=(learn_adapter or SelfLearningAdapter()) if use_learn else None,
-        self_play_adapter=self_play_adapter if use_selfplay else None,
+        self_questioning_adapter=self_questioning_adapter if use_self_questioning else None,
     )
 
 

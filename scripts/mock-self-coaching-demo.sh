@@ -25,16 +25,16 @@ done
 
 AE_PORT="${MOCK_AGENTEVALS_PORT:-38180}"
 LEARNING_PORT="${MOCK_SELF_LEARNING_PORT:-38766}"
-SELF_PLAY_PORT="${MOCK_SELF_PLAY_PORT:-38767}"
+SQ_PORT="${MOCK_SELF_QUESTIONING_PORT:-38767}"
 AERL_PORT="${MOCK_AERL_PORT:-38004}"
 
 AGENTEVALS_URL="http://127.0.0.1:${AE_PORT}"
 LEARNING_URL="http://127.0.0.1:${LEARNING_PORT}"
-SELF_PLAY_URL="http://127.0.0.1:${SELF_PLAY_PORT}"
+SQ_URL="http://127.0.0.1:${SQ_PORT}"
 AERL_URL="http://127.0.0.1:${AERL_PORT}"
 
 cleanup() {
-  for pid in "${PID_AE:-}" "${PID_LEARNING:-}" "${PID_SELF_PLAY:-}" "${PID_AERL:-}"; do
+  for pid in "${PID_AE:-}" "${PID_LEARNING:-}" "${PID_SQ:-}" "${PID_AERL:-}"; do
     kill "${pid}" 2>/dev/null || true
   done
 }
@@ -76,25 +76,25 @@ if [[ "${WITH_HTTP}" -eq 1 ]]; then
   python "${ROOT}/mock-services/mock_self_learning.py" serve \
     --data-dir "${DEMO_DIR}" --host 127.0.0.1 --port "${LEARNING_PORT}" &
   PID_LEARNING=$!
-  MOCK_AGENTEVALS_URL="${AGENTEVALS_URL}" python "${ROOT}/mock-services/mock_self_play.py" serve \
-    --data-dir "${DEMO_DIR}" --host 127.0.0.1 --port "${SELF_PLAY_PORT}" &
-  PID_SELF_PLAY=$!
+  MOCK_AGENTEVALS_URL="${AGENTEVALS_URL}" python "${ROOT}/mock-services/mock_self_questioning.py" serve \
+    --data-dir "${DEMO_DIR}" --host 127.0.0.1 --port "${SQ_PORT}" &
+  PID_SQ=$!
   python "${ROOT}/mock-services/mock_aerl.py" serve \
     --data-dir "${DEMO_DIR}" --host 127.0.0.1 --port "${AERL_PORT}" &
   PID_AERL=$!
 
   wait_for_health "${AGENTEVALS_URL}" "AgentEvals"
   wait_for_health "${LEARNING_URL}" "Self-Learning"
-  wait_for_health "${SELF_PLAY_URL}" "Self-Play"
+  wait_for_health "${SQ_URL}" "Self-Questioning"
   wait_for_health "${AERL_URL}" "AERL"
 
   export MOCK_SELF_LEARNING_URL="${LEARNING_URL}"
-  export MOCK_SELF_PLAY_URL="${SELF_PLAY_URL}"
+  export MOCK_SELF_QUESTIONING_URL="${SQ_URL}"
   export MOCK_AERL_URL="${AERL_URL}"
   export TRAINER_BASE_URL="${AERL_URL}"
 else
   echo "==> Module transport (in-process mocks)"
-  unset MOCK_SELF_LEARNING_URL MOCK_SELF_PLAY_URL MOCK_AERL_URL MOCK_AGENTEVALS_URL AGENTEVALS_BASE_URL
+  unset MOCK_SELF_LEARNING_URL MOCK_SELF_QUESTIONING_URL MOCK_AERL_URL MOCK_AGENTEVALS_URL AGENTEVALS_BASE_URL
 fi
 
 echo "==> Run self-coaching loop (scenarios/full_loop.json)"

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Map TrainingClient + RestClient responses to loop train() contract."""
+"""Map TrainerClient + RestClient responses to loop train() contract."""
 
 from __future__ import annotations
 

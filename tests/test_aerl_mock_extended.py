@@ -1,3 +1,8 @@
+# ⚠️ ON-HOLD: AERL services not yet deployed
+# This module depends on the AERL training platform which is not available
+# in the current deployment. Kept for future integration when AERL is live.
+# Status: ON-HOLD — do not remove, do not invest further until AERL deploys.
+
 # SPDX-License-Identifier: MIT
 """Extended tests for production-shaped mock AERL routes (M4.1 Slice 1–2)."""
 

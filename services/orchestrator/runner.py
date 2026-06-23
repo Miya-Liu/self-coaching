@@ -39,8 +39,8 @@ def _train_backend() -> str:
     return os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock").lower()
 
 
-def _self_play_n() -> int:
-    return int(os.environ.get("ORCHESTRATOR_SELF_PLAY_N", "4"))
+def _self_questioning_n() -> int:
+    return int(os.environ.get("ORCHESTRATOR_SELF_QUESTIONING_N", "4"))
 
 
 def _min_cases_for_model() -> int:
@@ -180,17 +180,17 @@ def run_improvement(
     )
     write_json(run_dir / "current_eval.json", current_metrics.to_dict())
 
-    # Stub collect + curate (M1): seed learning + self-play, reference curated paths.
+    # Stub collect + curate (M1): seed learning + self-questioning, reference curated paths.
     client.learn(
         event=f"Improvement run {improvement_run_id}: performance drop detected",
         source="orchestrator",
         capability=capability,
     )
-    play = client.self_play(capability=capability, n=_self_play_n())
+    play = client.self_questioning(capability=capability, n=_self_questioning_n())
     curation = play.get("curation") if isinstance(play.get("curation"), dict) else None
     curate_info: dict[str, Any] = {
         "status": "ok" if curation else "stub",
-        "self_play": play,
+        "self_questioning": play,
         "train_split": str(coaching_root / ".self-coaching" / "curated" / "train.jsonl"),
         "validation_split": str(coaching_root / ".self-coaching" / "curated" / "validation.jsonl"),
         "holdout_split": str(coaching_root / ".self-coaching" / "curated" / "holdout.jsonl"),
@@ -200,7 +200,7 @@ def run_improvement(
     if play.get("suite_id"):
         curate_info["agentevals_suite_id"] = play["suite_id"]
     else:
-        curate_info["note"] = "M1 stub when self-play returns no curation/suite_id"
+        curate_info["note"] = "M1 stub when self-questioning returns no curation/suite_id"
     write_json(run_dir / "data" / "curation.json", curate_info)
 
     n_cases = int(play.get("count", 0))

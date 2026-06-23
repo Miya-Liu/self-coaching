@@ -581,7 +581,7 @@ Replaces the narrow “wire `MOCK_SELF_LEARNING_URL`” bullet in [mock-to-real-
 | **M2.5** | R5 mock-module regression | Golden unchanged |
 
 **Dependency:** M1 AgentEvals PASS (holdout) — no change.  
-**Parallel:** M3 self-play may proceed; E-path only needs learn + eval for staging smoke.
+**Parallel:** M3 self-questioning may proceed; E-path only needs learn + eval for staging smoke.
 
 **Task lists:** §11 (detailed checklists). Track status in [progress.md](progress.md) § M2 self-learning.
 

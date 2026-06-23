@@ -96,7 +96,7 @@ Use this learning block for `LEARNINGS.md`:
 - observation:
 - reusable_lesson:
 - evidence:
-- next_artifact: skill_patch | eval_case | self_play_task | training_manifest | none
+- next_artifact: skill_patch | eval_case | self_questioning_task | training_manifest | none
 ```
 
 ### Step 2: Inject Prior Experience When Useful
@@ -129,7 +129,7 @@ Use the decision table below. If the correct artifact is outside this skill, han
 | Existing skill missing pitfall/step | Skill patch | Patch immediately and verify load. |
 | Code defect | Fix + regression test | Use TDD/systematic debugging. |
 | Weak behavior to prevent | Eval case | Route to **self-evaluation**. |
-| Need harder variants | Self-play task family | Route to **self-play**. |
+| Need harder variants | Self-questioning task family | Route to **self-questioning**. |
 | Repeated manual operation | Tool/plugin/MCP candidate | Create executable tool only if repeated. |
 | Model capability gap after instruction/tool fixes | Training-data candidate | Route to **self-tuning** after privacy review. |
 
@@ -143,7 +143,7 @@ Use the decision table below. If the correct artifact is outside this skill, han
 6. Save only compact stable facts to memory.
 7. Patch existing skills before creating new ones.
 8. Add tests/evals for behavior that must not regress.
-9. If the lesson is training-worthy, hand it to `self-play/` or `self-tuning/` only after privacy review.
+9. If the lesson is training-worthy, hand it to `self-questioning/` or `self-tuning/` only after privacy review.
 
 ## Common Pitfalls
 

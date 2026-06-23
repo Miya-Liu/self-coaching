@@ -192,6 +192,39 @@ class HttpCoachTransport:
             return raw  # plain-text endpoint
         return parse_chat_response(parsed)
 
+    def complete_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        tools: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Send a multi-turn conversation with optional tool definitions.
+
+        Returns the raw parsed response dict (caller handles tool_calls loop).
+        """
+        url = self.endpoint
+        body: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": self.temperature,
+        }
+        if tools:
+            body["tools"] = tools
+        data = json.dumps(body).encode("utf-8")
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+        try:
+            with self._opener.open(req, timeout=self.timeout_s) as resp:
+                raw = resp.read().decode("utf-8")
+        except Exception as exc:  # noqa: BLE001
+            raise CoachTransportError(f"coach agent request to {url} failed: {exc}") from exc
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {"choices": [{"message": {"content": raw}}]}
+
 
 # ---------------------------------------------------------------------------
 # The bridge
@@ -199,11 +232,26 @@ class HttpCoachTransport:
 
 
 class AgentCoachBridge:
-    """CoachAgentBridge backed by a live coach agent (any CoachTransport)."""
+    """CoachAgentBridge backed by a live coach agent (any CoachTransport).
 
-    def __init__(self, transport: CoachTransport, *, audit_dir: Path | None = None):
+    When ``tools_enabled=True``, the bridge sends tool definitions alongside the
+    prompt and executes any tool_calls the LLM returns before collecting the final
+    ClockPlan. This gives the coach fine-grained actions (inspect state, write
+    memories, create eval cases) beyond the 5 action labels.
+    """
+
+    def __init__(
+        self,
+        transport: CoachTransport,
+        *,
+        audit_dir: Path | None = None,
+        tools_enabled: bool = False,
+        max_tool_rounds: int = 5,
+    ):
         self._transport = transport
         self._audit_dir = audit_dir
+        self._tools_enabled = tools_enabled
+        self._max_tool_rounds = max_tool_rounds
 
     # -- helpers --
 
@@ -259,9 +307,14 @@ class AgentCoachBridge:
         raw = ""
         error: str | None = None
         parsed: dict[str, Any] = {}
+        tool_results: list[dict[str, Any]] = []
+
         try:
-            raw = self._transport.complete(prompt)
-            parsed = extract_json(raw)
+            if self._tools_enabled and hasattr(self._transport, "complete_with_tools"):
+                raw, parsed, tool_results = self._run_with_tools(agent, prompt)
+            else:
+                raw = self._transport.complete(prompt)
+                parsed = extract_json(raw)
         except CoachTransportError as exc:
             error = str(exc)
             LOG.error("coach agent transport failed for %s: %s", agent.id, exc)
@@ -286,8 +339,61 @@ class AgentCoachBridge:
             overrides = {}
 
         plan = ClockPlan(action=action, reason=reason, scenario_overrides=overrides)
-        self._write_audit(agent, post, prompt, raw, plan, error)
+        self._write_audit(agent, post, prompt, raw, plan, error, tool_results=tool_results)
         return plan
+
+    def _run_with_tools(
+        self, agent: SupervisedAgent, prompt: str
+    ) -> tuple[str, dict[str, Any], list[dict[str, Any]]]:
+        """Multi-turn tool-calling loop: send prompt → handle tool_calls → get final answer."""
+        from coach.coach_tools import TOOL_DEFINITIONS, execute_tool
+
+        coaching_root = self._coaching_root(agent)
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": self._transport.system_prompt},
+            {"role": "user", "content": prompt},
+        ]
+        tool_results: list[dict[str, Any]] = []
+
+        for _round in range(self._max_tool_rounds):
+            resp = self._transport.complete_with_tools(messages, tools=TOOL_DEFINITIONS)
+            choices = resp.get("choices") or []
+            if not choices:
+                break
+            msg = choices[0].get("message") or {}
+            tool_calls = msg.get("tool_calls")
+
+            if not tool_calls:
+                # No tool calls → this is the final answer
+                content = msg.get("content") or ""
+                return content, extract_json(content), tool_results
+
+            # Append assistant message (with tool_calls) to conversation
+            messages.append(msg)
+
+            # Execute each tool call and append results
+            for call in tool_calls:
+                fn = call.get("function") or {}
+                tool_name = fn.get("name", "")
+                try:
+                    tool_args = json.loads(fn.get("arguments", "{}"))
+                except json.JSONDecodeError:
+                    tool_args = {}
+                result = execute_tool(tool_name, tool_args, coaching_root=coaching_root)
+                tool_results.append({"tool": tool_name, "args": tool_args, "result": result})
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": call.get("id", ""),
+                    "content": json.dumps(result, ensure_ascii=False),
+                })
+
+        # Exhausted rounds — extract whatever we have
+        last_content = ""
+        for msg in reversed(messages):
+            if msg.get("role") == "assistant" and isinstance(msg.get("content"), str):
+                last_content = msg["content"]
+                break
+        return last_content, extract_json(last_content), tool_results
 
     def format_response(
         self,
@@ -317,20 +423,25 @@ class AgentCoachBridge:
         raw: str,
         plan: ClockPlan,
         error: str | None,
+        *,
+        tool_results: list[dict[str, Any]] | None = None,
     ) -> None:
         try:
             audit = self._audit_path(agent)
             audit.mkdir(parents=True, exist_ok=True)
             (audit / "last_setup_prompt.txt").write_text(prompt, encoding="utf-8")
+            decision_record: dict[str, Any] = {
+                "post_id": post.post_id,
+                "agent_id": agent.id,
+                "raw_response": raw,
+                "plan": plan.to_dict(),
+                "error": error,
+            }
+            if tool_results:
+                decision_record["tool_calls"] = tool_results
             (audit / "last_decision.json").write_text(
                 json.dumps(
-                    {
-                        "post_id": post.post_id,
-                        "agent_id": agent.id,
-                        "raw_response": raw,
-                        "plan": plan.to_dict(),
-                        "error": error,
-                    },
+                    decision_record,
                     ensure_ascii=False,
                     indent=2,
                 ),

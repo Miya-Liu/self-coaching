@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [self-coaching, agent-evolution, evaluation, training, evolution-loop, gated-pipeline]
-    related_skills: [self-learning, self-play, self-evaluation, self-tuning]
+    related_skills: [self-learning, self-questioning, self-evaluation, self-tuning]
 required_commands:
   - name: python3
     minimum_version: "3.10"
@@ -24,7 +24,7 @@ required_environment_variables:
   - name: AGENT_API_TOKEN
     required_for: real-api-mode
     optional: true
-    rationale: "Bearer auth for AgentEvals + self-learning + self-play + AERL. Unset → mock mode."
+    rationale: "Bearer auth for AgentEvals + self-learning + self-questioning + AERL. Unset → mock mode."
   - name: AGENTEVALS_BASE_URL
     required_for: real-api-mode
     optional: true
@@ -33,10 +33,10 @@ required_environment_variables:
     required_for: real-api-mode
     optional: true
     rationale: "Real self-learning service. Unset → ModuleClient mock."
-  - name: SELF_PLAY_BASE_URL
+  - name: SELF_QUESTIONING_BASE_URL
     required_for: real-api-mode
     optional: true
-    rationale: "Real self-play service. Distinct endpoints for generate-suite (sparse) vs generate (batch)."
+    rationale: "Real self-questioning service. Distinct endpoints for generate-suite (sparse) vs generate (batch)."
   - name: AERL_BASE_URL
     required_for: real-api-mode
     optional: true
@@ -55,7 +55,7 @@ Self-coaching is a disciplined improvement loop for autonomous agents. It turns 
 This skill supports three related modes:
 
 1. **Self-learning** — learn from previous experience: bugs resolved, user preferences, tool quirks, environment conventions, workflows, and skill extensions.
-2. **Self-playing** — generate, replay, mutate, and critique challenging requests to create evaluation cases and training trajectories.
+2. **Self-questioning** — generate, replay, mutate, and critique challenging requests to create evaluation cases and training trajectories.
 3. **Self-training** — use curated data to fine-tune or reinforce models via SFT/RL pipelines, with evaluation gates before deployment.
 
 Self-coaching is not uncontrolled self-modification. It is a gated pipeline: observe → diagnose → encode → evaluate → curate → train → deploy only if metrics improve.
@@ -69,8 +69,8 @@ Use this skill when:
 - A bug was hard to resolve and the root cause/procedure should be reusable.
 - A skill was extended, created, patched, or found stale.
 - An evaluation identifies low-performance categories or regressions.
-- The agent needs to generate harder synthetic tasks or adversarial self-play cases.
-- You need a gated loop: learn → self-play → evaluate → train (mock or AERL) → promote with human approval.
+- The agent needs to generate harder synthetic tasks or adversarial self-questioning cases.
+- You need a gated loop: learn → self-questioning → evaluate → train (mock or AERL) → promote with human approval.
 - You need a safe process for turning agent experience into memory, skills, tests, eval datasets, SFT data, or RL preference data.
 
 Do **not** use this skill for:
@@ -100,7 +100,7 @@ installed at `$SKILL_ROOT/mock-services/` by
 
 The runner spins up an isolated demo state at
 `mock-services/demo-loop/`, runs `scenarios/full_loop.json`
-through the E-path (self-learning) and T-path (self-play +
+through the E-path (self-learning) and T-path (self-questioning +
 training + holdout) phases, then audits via
 `tools/loop_completeness.py`.
 
@@ -176,7 +176,7 @@ Requires `pip install -e .` from the repository clone.
 localhost.
 
 **Env vars:** optional `MOCK_AGENTEVALS_PORT`,
-`MOCK_SELF_LEARNING_PORT`, `MOCK_SELF_PLAY_PORT`,
+`MOCK_SELF_LEARNING_PORT`, `MOCK_SELF_QUESTIONING_PORT`,
 `MOCK_AERL_PORT` to override default ports when running
 `--with-http`. None required.
 
@@ -206,7 +206,7 @@ all of M1-M4 for full E+T loop).
 export AGENT_API_TOKEN="<your-token>"
 export AGENTEVALS_BASE_URL="<https://agentevals.example.com>"
 export SELF_LEARNING_BASE_URL="<https://self-learning.example.com>"
-export SELF_PLAY_BASE_URL="<https://self-play.example.com>"
+export SELF_QUESTIONING_BASE_URL="<https://self-questioning.example.com>"
 export AERL_BASE_URL="<https://aerl.example.com>"
 export LOOP_HOLDOUT_TIMEOUT_S=300
 
@@ -217,7 +217,7 @@ python -m self_coaching.demo
 env vars are set. Any unset URL falls back to its mock.)
 
 **External services:** AgentEvals, self-learning,
-self-play, AERL (any subset; unset services fall back
+self-questioning, AERL (any subset; unset services fall back
 to mocks for graceful partial migration).
 
 **Env vars:** see Setup. `AGENT_API_TOKEN` required when
@@ -284,7 +284,7 @@ Classify the signal into one or more durable artifacts:
 | Weak agent behavior | Eval case | Agent forgets to verify file writes. |
 | Repeated manual operation | Tool/plugin/MCP | Add command to query a service instead of manual curl. |
 | Model weakness | Training example | Failed trajectory plus corrected solution. |
-| Ambiguous task pattern | Self-play task family | Generate variations to stress the behavior. |
+| Ambiguous task pattern | Self-questioning task family | Generate variations to stress the behavior. |
 
 If the artifact would be stale in a week, do not save it as memory. Use session search or task notes instead.
 
@@ -379,11 +379,11 @@ Bad memory:
 - "Opened PR #456."
 - "Remember the temporary path from this one run."
 
-## Self-Playing Playbook
+## Self-Questioning Playbook
 
-Self-play creates challenge data. It should be tied to observed weaknesses or target capabilities.
+Self-questioning creates challenge data. It should be tied to observed weaknesses or target capabilities.
 
-### Sources for Self-Play Tasks
+### Sources for Self-Questioning Tasks
 
 - Failed eval cases.
 - User tasks that took many turns or required corrections.
@@ -392,9 +392,9 @@ Self-play creates challenge data. It should be tied to observed weaknesses or ta
 - Areas where tool use was inefficient or unverified.
 - Regression categories from production incidents.
 
-### Self-Play Roles
+### Self-Questioning Roles
 
-A useful self-play setup often separates roles:
+A useful self-questioning setup often separates roles:
 
 1. **Task generator** — creates challenging but realistic tasks.
 2. **Solver agent** — attempts the task under normal constraints.
@@ -417,7 +417,7 @@ For each task family, store:
 - Expected high-quality solution outline.
 - Safety/privacy constraints.
 
-Example self-play prompt skeleton:
+Example self-questioning prompt skeleton:
 
 ```text
 Generate 10 realistic tasks that stress <capability> for an autonomous coding agent.
@@ -432,14 +432,14 @@ Avoid secrets, real credentials, or private data.
 Prefer tasks that require verification, not just explanation.
 ```
 
-### Self-Play Data Schema
+### Self-Questioning Data Schema
 
 Use a structured record format such as JSONL:
 
 ```json
 {
   "id": "tool-verification-001",
-  "source": "self_play",
+  "source": "self_questioning",
   "capability": ["tool_use", "verification"],
   "user_request": "Create a config file and confirm it is valid YAML.",
   "context": "Agent has file and terminal tools.",
@@ -469,7 +469,7 @@ The evaluation service should support:
 - Submitting a candidate agent/model/config.
 - Running fixed regression suites.
 - Running capability-specific benchmark suites.
-- Running self-play generated tasks after curation.
+- Running self-questioning generated tasks after curation.
 - Capturing tool traces and final outputs.
 - Scoring with deterministic checks where possible.
 - Scoring with LLM judges only when rubric-grounded.
@@ -522,7 +522,7 @@ Do not promote a change if:
 
 - Safety/privacy score regresses.
 - Tool-use verification score regresses significantly.
-- The candidate improves self-play tasks but fails fixed regressions.
+- The candidate improves self-questioning tasks but fails fixed regressions.
 - The improvement is only visible to the same judge model used to generate training labels.
 - The dataset has contamination from the eval set.
 
@@ -532,7 +532,7 @@ Use training only after data is curated and evaluation is ready.
 
 ### SFT Pipeline
 
-1. Collect candidate trajectories from real tasks and self-play.
+1. Collect candidate trajectories from real tasks and self-questioning.
 2. Remove secrets, PII, and low-quality examples.
 3. Convert to chat/tool-call format expected by the target trainer.
 4. Split into train/validation/test by task family, not random transcript chunking.
@@ -548,7 +548,7 @@ Use training only after data is curated and evaluation is ready.
 3. Store chosen/rejected pairs or scalar rewards.
 4. Filter out ambiguous or judge-unstable examples.
 5. Train with DPO/ORPO/GRPO/PPO-style scripts depending on infrastructure.
-6. Evaluate on fixed suites and adversarial/self-play suites.
+6. Evaluate on fixed suites and adversarial/self-questioning suites.
 7. Monitor for reward hacking and style overfitting.
 
 ### Autoresearch-Style Loop
@@ -559,7 +559,7 @@ A practical loop, inspired by automated research systems:
 while improvement_budget_remaining:
   1. Mine failures from evals and prior sessions.
   2. Propose hypotheses for why failures occurred.
-  3. Generate self-play tasks targeting those hypotheses.
+  3. Generate self-questioning tasks targeting those hypotheses.
   4. Solve tasks with current agent/model.
   5. Critique and score trajectories.
   6. Curate high-signal examples.
@@ -596,7 +596,7 @@ Prefer cheap improvements first: skills, tests, prompts, and tools often outperf
 
 Recommended labels:
 
-- `source`: real_task, self_play, eval_failure, user_correction, bug_postmortem
+- `source`: real_task, self_questioning, eval_failure, user_correction, bug_postmortem
 - `capability`: planning, coding, debugging, tool_use, memory, skill_use, eval_repair, safety, communication
 - `artifact_target`: memory, skill, test, eval, sft, preference, tool, code
 - `difficulty`: easy, medium, hard, adversarial
@@ -616,7 +616,7 @@ Use the target repository's existing conventions if present. If none exist, star
 .self-coaching/
   cases/
     eval_cases.jsonl              # fixed or candidate eval cases
-    self_play_cases.jsonl         # generated tasks before curation
+    self_questioning_cases.jsonl         # generated tasks before curation
   curated/
     train.jsonl                   # SFT/preference training split
     validation.jsonl              # validation split
@@ -725,7 +725,7 @@ Self-coaching can amplify mistakes if unmanaged. Apply these controls:
 
 3. **Training before evaluating.** A training loop without a stable eval service is just expensive guesswork.
 
-4. **Using self-play data as both train and test.** This causes contamination. Hold out task families and maintain fixed regression suites.
+4. **Using self-questioning data as both train and test.** This causes contamination. Hold out task families and maintain fixed regression suites.
 
 5. **Rewarding style instead of capability.** Make rubrics objective and task-specific. Avoid judges that only prefer fluent answers.
 
@@ -773,7 +773,7 @@ Before ending a self-coaching cycle, verify:
 4. If the bug pattern is general, create an eval case.
 5. Do not save issue numbers, PR numbers, or stale artifacts as memory.
 
-### Turn Eval Failures into Self-Play Data
+### Turn Eval Failures into Self-Questioning Data
 
 1. Cluster failures by capability and root cause.
 2. Generate task variants that stress the failing capability.

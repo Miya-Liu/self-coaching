@@ -33,7 +33,7 @@ One evolution engine, one `SelfCoachingClient`, many adapters.
 | Layer | Repo path | Role |
 |-------|-----------|------|
 | Policy | `modes/self-coaching/SKILL.md` + submodules | How an executor agent should behave |
-| Contract | `mock-services/contracts/openapi.yaml` | T2 HTTP: learn / self-play / eval / train |
+| Contract | `mock-services/contracts/openapi.yaml` | T2 HTTP: learn / self-questioning / eval / train |
 | Client | `mock-services/client.py` | Module, CLI, HTTP transports |
 | Evolution engine | `services/orchestrator/` | T3: [pipelines.md](../design/pipelines.md) loop |
 | Adapters | `services/adapters/` | AgentEvals, production agent API, AERL |
@@ -108,8 +108,9 @@ Phase-0 integration smoke (`mapping.md` confirmed against a live succeeded `RunD
 - [x] Coach clock service (`service.py` HTTP/WS ingress + `clock.py` tick driver)
 - [x] `ClockScheduler` — periodic per-agent ticks with locking and tick event log
 - [x] Per-agent `interval_s` configuration in registry YAML
+- [x] Live coach agent bridge (`agent_bridge_live.py`, `COACH_BRIDGE=agent` env flag)
 - [ ] Per-agent coaching root convention documented and validated
-- [ ] Production agent bridge (replace `MockCoachAgentBridge`)
+- [ ] Production agent bridge hardening (audit logging, retry, fallback-to-hold on timeout)
 - [ ] Scheduler examples (cron/systemd) for multi-agent `record-eval` / `check-drop` / `run`
 - [ ] Optional LLM proxy spike (trajectory capture only; eval remains AgentEvals)
 

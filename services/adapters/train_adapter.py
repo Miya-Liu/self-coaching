@@ -9,27 +9,27 @@ from typing import Any
 from .train_mapping import build_create_run_body, map_train_result, resolve_checkpoint
 from .trainer_http import TrainerHTTPError
 from .trainer_rest_client import RestClient
-from .training_client import TrainingClient
+from .trainer_client import TrainerClient
 
 AERLError = TrainerHTTPError
 
 
 class AERLTrainAdapter:
-    """train() backed by TrainingClient + RestClient (self-tuning-trainer-api-plan §6)."""
+    """train() backed by TrainerClient + RestClient (self-tuning-trainer-api-plan §6)."""
 
     def __init__(
         self,
-        client: TrainingClient | Any | None = None,
+        client: TrainerClient | Any | None = None,
         *,
-        training_client: TrainingClient | None = None,
+        trainer_client: TrainerClient | None = None,
         rest_client: RestClient | None = None,
     ):
-        if training_client is not None:
-            self._training = training_client
+        if trainer_client is not None:
+            self._training = trainer_client
         elif client is not None:
-            self._training = client  # AERLClient or TrainingClient or mock
+            self._training = client  # AERLClient or TrainerClient or mock
         else:
-            self._training = TrainingClient()
+            self._training = TrainerClient()
         base_url = getattr(self._training, "base_url", None)
         api_key = getattr(self._training, "api_key", None)
         timeout_s = getattr(self._training, "timeout_s", 30.0)

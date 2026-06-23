@@ -1,6 +1,6 @@
 # Coaching API integration (T2)
 
-The **Coaching API** is the HTTP contract spine for pipeline stages: learn, self-play, eval, train. It is the primary HTTP front door for **coach mode** and optional remote execution in **self-coaching mode**.
+The **Coaching API** is the HTTP contract spine for pipeline stages: learn, self-questioning, eval, train. It is the primary HTTP front door for **coach mode** and optional remote execution in **self-coaching mode**.
 
 ## Contract
 
@@ -23,7 +23,7 @@ The **Coaching API** is the HTTP contract spine for pipeline stages: learn, self
 | self-learning | GET | `/learn/sessions` | Discover candidate sessions (M2) |
 | self-learning | POST | `/learning/optout` | Per-session learn opt-out (M2) |
 | self-learning | GET | `/learning/health` | Learner readiness (M2) |
-| self-play | POST | `/self-play/generate` | Self-play |
+| self-questioning | POST | `/self-questioning/generate` | Self-play |
 | evaluation | POST | `/eval/runs` | Eval |
 | training | POST | `/training/runs` | Train |
 | pipeline | POST | `/pipeline/run-all` | End-to-end mock |
@@ -50,7 +50,7 @@ Delegate by capability:
 
 - `evaluate` / `eval_report` → AgentEvals when `ORCHESTRATOR_EVAL_BACKEND=agentevals`
 - `train` → AERL when `ORCHESTRATOR_TRAIN_BACKEND=aerl` (`TRAINER_BASE_URL`)
-- `learn` / `self_play` → mock services or remote URLs (`MOCK_SELF_LEARNING_URL`, `MOCK_SELF_PLAY_URL`)
+- `learn` / `self_questioning` → mock services or remote URLs (`MOCK_SELF_LEARNING_URL`, `MOCK_SELF_QUESTIONING_URL`)
 
 One `SelfCoachingClient` interface — see [integrations/README.md](README.md).
 
@@ -69,7 +69,7 @@ Idempotency: `Idempotency-Key` header → `.self-coaching/idempotency/`.
 |------------|----------------------------|-----------------|
 | Deterministic eval | AgentEvals adapter | **M1 PASS** |
 | Sync `POST /learning/events` | Evolve API (`/learning/evolve*`) | **M2.1 mock done** — adapter M2.2–M2.3 |
-| Local self-play | Remote generator | **M3** |
+| Local self-questioning | Remote generator | **M3** |
 | Dry-run train | AERL HTTP (`TRAINER_BASE_URL`) | **M4** |
 
 Deploy guide: [deploy-overview.md#t2--coaching-api](../../guides/deploy-overview.md#t2--coaching-api).

@@ -265,8 +265,8 @@ def test_partial_learn_runs_e_path_only(coaching_root: Path) -> None:
     assert not t_path_last.is_file()
 
 
-def test_partial_play_runs_batch_self_play_only(coaching_root: Path) -> None:
-    """action=play → C07 batch self-play fills buffer; no learn, no train."""
+def test_partial_play_runs_batch_self_questioning_only(coaching_root: Path) -> None:
+    """action=play → C07 batch self-questioning fills buffer; no learn, no train."""
     body = {
         "agent_id": "clock-demo-agent",
         "event": "idle_window",

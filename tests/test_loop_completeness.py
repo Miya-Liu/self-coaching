@@ -104,7 +104,7 @@ def _bootstrap_synthetic_pass_root(root: Path, *, promote: bool = True) -> None:
             {
                 "generation": 1,
                 "sigma_size_before_learn": 3,
-                "sparse_self_play": None,
+                "sparse_self_questioning": None,
             },
             indent=2,
         )
@@ -184,7 +184,7 @@ def test_c18_semantic_fails_when_candidate_regresses_despite_invocation_pass(tmp
 
 def test_sparse_failures_scenario_expects_c06(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AGENT_ID", "demo-agent")
-    monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
+    monkeypatch.delenv("MOCK_SELF_QUESTIONING_URL", raising=False)
     monkeypatch.delenv("MOCK_SELF_LEARNING_URL", raising=False)
 
     root = tmp_path / "sparse"
@@ -210,7 +210,7 @@ def test_sparse_failures_scenario_expects_c06(tmp_path: Path, monkeypatch: pytes
 
 def test_dense_failures_skips_c06(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AGENT_ID", "demo-agent")
-    monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
+    monkeypatch.delenv("MOCK_SELF_QUESTIONING_URL", raising=False)
     monkeypatch.delenv("MOCK_SELF_LEARNING_URL", raising=False)
 
     root = tmp_path / "dense"
@@ -237,7 +237,7 @@ def test_dense_failures_skips_c06(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 def test_e2e_full_loop_completeness_pass(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Exit gate: E-path + T-path on mocks; completeness PASS including C18."""
     monkeypatch.setenv("AGENT_ID", "demo-agent")
-    monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
+    monkeypatch.delenv("MOCK_SELF_QUESTIONING_URL", raising=False)
     monkeypatch.delenv("MOCK_SELF_LEARNING_URL", raising=False)
     monkeypatch.delenv("MOCK_AERL_URL", raising=False)
 
@@ -311,11 +311,11 @@ def test_e2e_full_loop_completeness_pass(tmp_path: Path, monkeypatch: pytest.Mon
 
 
 def test_c06_passes_for_pipeline_job_id(tmp_path: Path):
-    """Pipeline sparse self-play uses job_id + proceed, not AgentEvals suite_id."""
+    """Pipeline sparse self-questioning uses job_id + proceed, not AgentEvals suite_id."""
     scenario = {
         "name": "pipeline_sparse",
         "agent_id": "demo-agent",
-        "e_path": {"expect_sparse_self_play": True},
+        "e_path": {"expect_sparse_self_questioning": True},
     }
     root = tmp_path / "pipeline-c06"
     loop_dir = root / ".self-coaching" / "loop"
@@ -323,7 +323,7 @@ def test_c06_passes_for_pipeline_job_id(tmp_path: Path):
     (loop_dir / "e_path_last.json").write_text(
         json.dumps(
             {
-                "sparse_self_play": {
+                "sparse_self_questioning": {
                     "status": "registered",
                     "pipeline_service": True,
                     "proceed": True,

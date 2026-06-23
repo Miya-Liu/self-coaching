@@ -9,7 +9,7 @@ Overview: [architecture.md](architecture.md). Install: [deploy-skill-pack.md](..
 | Submodule | Load when |
 |-----------|-----------|
 | **self-learning** | Corrections → memory / skills / eval cases |
-| **self-play** | Generate or curate tasks and trajectories |
+| **self-questioning** | Generate or curate tasks and trajectories |
 | **self-evaluation** | Run evals, interpret reports, promotion gates |
 | **self-tuning** | AERL SFT/GRPO after curation |
 
@@ -39,7 +39,7 @@ Same **self-evolution tick** in all three; only **who triggers** and **cadence**
 ```text
 1. Observe   trajectories, Σ, sessions, eval metrics
 2. Gate      σ_min, σ_play, |B| vs β, drop detector
-3. Route     hold | self-learning (E) | self-play (P) | self-tuning (T)
+3. Route     hold | self-learning (E) | self-questioning (P) | self-tuning (T)
 4. Record    generation bump, registry, experience artifacts
 ```
 

@@ -13,18 +13,18 @@ REGISTRY="${ROOT}/modes/coach/agents.demo.json"
 
 AE_PORT="${MOCK_AGENTEVALS_PORT:-18080}"
 LEARNING_PORT="${MOCK_SELF_LEARNING_PORT:-18766}"
-SELF_PLAY_PORT="${MOCK_SELF_PLAY_PORT:-18767}"
+SQ_PORT="${MOCK_SELF_QUESTIONING_PORT:-18767}"
 AERL_PORT="${MOCK_AERL_PORT:-18004}"
 COACHING_PORT="${MOCK_COACHING_PORT:-18765}"
 
 AGENTEVALS_URL="http://127.0.0.1:${AE_PORT}"
 LEARNING_URL="http://127.0.0.1:${LEARNING_PORT}"
-SELF_PLAY_URL="http://127.0.0.1:${SELF_PLAY_PORT}"
+SQ_URL="http://127.0.0.1:${SQ_PORT}"
 AERL_URL="http://127.0.0.1:${AERL_PORT}"
 COACHING_URL="http://127.0.0.1:${COACHING_PORT}"
 
 cleanup() {
-  for pid in "${PID_AE:-}" "${PID_LEARNING:-}" "${PID_SELF_PLAY:-}" "${PID_AERL:-}" "${PID_COACHING:-}"; do
+  for pid in "${PID_AE:-}" "${PID_LEARNING:-}" "${PID_SQ:-}" "${PID_AERL:-}" "${PID_COACHING:-}"; do
     kill "${pid}" 2>/dev/null || true
   done
 }
@@ -63,15 +63,15 @@ python "${ROOT}/mock-services/mock_self_learning.py" serve \
   --data-dir "${DEMO_DIR}" --host 127.0.0.1 --port "${LEARNING_PORT}" &
 PID_LEARNING=$!
 export MOCK_AGENTEVALS_URL="${AGENTEVALS_URL}"
-python "${ROOT}/mock-services/mock_self_play.py" serve \
-  --data-dir "${DEMO_DIR}" --host 127.0.0.1 --port "${SELF_PLAY_PORT}" &
-PID_SELF_PLAY=$!
+python "${ROOT}/mock-services/mock_self_questioning.py" serve \
+  --data-dir "${DEMO_DIR}" --host 127.0.0.1 --port "${SQ_PORT}" &
+PID_SQ=$!
 python "${ROOT}/mock-services/mock_aerl.py" serve \
   --data-dir "${DEMO_DIR}" --host 127.0.0.1 --port "${AERL_PORT}" &
 PID_AERL=$!
 export MOCK_AGENTEVALS_URL="${AGENTEVALS_URL}"
 export MOCK_SELF_LEARNING_URL="${LEARNING_URL}"
-export MOCK_SELF_PLAY_URL="${SELF_PLAY_URL}"
+export MOCK_SELF_QUESTIONING_URL="${SQ_URL}"
 export MOCK_AERL_URL="${AERL_URL}"
 export TRAINER_BASE_URL="${AERL_URL}"
 python "${ROOT}/mock-services/mock_self_coaching.py" serve \
@@ -80,7 +80,7 @@ PID_COACHING=$!
 
 wait_for_health "${AGENTEVALS_URL}" "AgentEvals"
 wait_for_health "${LEARNING_URL}" "Self-Learning"
-wait_for_health "${SELF_PLAY_URL}" "Self-Play"
+wait_for_health "${SQ_URL}" "Self-Questioning"
 wait_for_health "${AERL_URL}" "AERL"
 wait_for_health "${COACHING_URL}" "Coaching API"
 
@@ -91,13 +91,13 @@ export ORCHESTRATOR_TRANSPORT=module
 export AGENTEVALS_BASE_URL="${AGENTEVALS_URL}"
 export MOCK_AGENTEVALS_URL="${AGENTEVALS_URL}"
 export MOCK_SELF_LEARNING_URL="${LEARNING_URL}"
-export MOCK_SELF_PLAY_URL="${SELF_PLAY_URL}"
+export MOCK_SELF_QUESTIONING_URL="${SQ_URL}"
 export MOCK_AERL_URL="${AERL_URL}"
 export TRAINER_BASE_URL="${AERL_URL}"
 export AGENTEVALS_SUITE_ID=tool-use-canary
 export AGENTEVALS_SUITE_ID_HOLDOUT=tool-use-holdout
 export ORCHESTRATOR_MIN_CASES_FOR_MODEL=2
-export ORCHESTRATOR_SELF_PLAY_N=4
+export ORCHESTRATOR_SELF_QUESTIONING_N=4
 
 run_agent_demo() {
   local agent_id="$1"

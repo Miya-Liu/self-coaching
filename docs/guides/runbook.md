@@ -34,11 +34,11 @@ Optional env: copy [scenarios/demo.env.example](../../scenarios/demo.env.example
 
 Expected: `completeness: PASS` (C01–C18). Env knobs: [self-coaching-demo-pipeline-plan.md §10](../project/self-coaching-demo-pipeline-plan.md#10-configuration-environment).
 
-## Pipeline self-play (live)
+## Pipeline self-questioning (live)
 
-Integrates the **Self-Questioning Pipeline Service** as the real self-play backend. The loop only needs a **proceed signal** (`proceed: true`) — generated data stays in the remote store (Supabase); nothing is exported to local `staging.jsonl`.
+Integrates the **Self-Questioning Pipeline Service** as the real self-questioning backend. The loop only needs a **proceed signal** (`proceed: true`) — generated data stays in the remote store (Supabase); nothing is exported to local `staging.jsonl`.
 
-**Docs:** [self-play-pipeline-implementation.md](../project/self-play-pipeline-implementation.md) · API: `services/SELF_QUESTIONING_SERVICE_API.md`
+**Docs:** [self-questioning-pipeline-implementation.md](../project/self-questioning-pipeline-implementation.md) · API: `services/SELF_QUESTIONING_SERVICE_API.md`
 
 ### Env profile
 
@@ -53,7 +53,7 @@ Key variables:
 
 | Variable | Purpose |
 |----------|---------|
-| `ORCHESTRATOR_SELFPLAY_BACKEND=pipeline` | Use pipeline instead of mock self-play |
+| `ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline` | Use pipeline instead of mock self-questioning |
 | `PIPELINE_SERVICE_URL` | Base URL (e.g. `http://10.110.158.146:8001`) |
 | `PIPELINE_POLL_INTERVAL_S` / `PIPELINE_POLL_TIMEOUT_S` | Job poll budget |
 | `PIPELINE_DRY_RUN=1` | Safe smoke — no real GPU/LLM work |
@@ -61,10 +61,10 @@ Key variables:
 ### Connectivity smoke (dry_run)
 
 ```bash
-PIPELINE_DRY_RUN=1 python scripts/pipeline_self_play_smoke.py
+PIPELINE_DRY_RUN=1 python scripts/pipeline_self_questioning_smoke.py
 ```
 
-Expected: `pipeline_self_play_smoke: PASS` with `proceed: true` for batch and suite.
+Expected: `pipeline_self_questioning_smoke: PASS` with `proceed: true` for batch and suite.
 
 ### Opt-in integration tests
 
@@ -79,16 +79,16 @@ PIPELINE_INTEGRATION_TESTS=1 pytest tests/integration/test_pipeline_service_avai
 python modes/coach/clock.py run --root mock-services/ci-clock-pipeline --json
 ```
 
-Check summary: `batch_self_play_proceed: true`. Mock clock smoke (`scripts/clock_loop_smoke.py`) remains the default CI gate and uses in-process mocks.
+Check summary: `batch_self_questioning_proceed: true`. Mock clock smoke (`scripts/clock_loop_smoke.py`) remains the default CI gate and uses in-process mocks.
 
 ### Proceed gating
 
-- **E-path (C06):** if sparse self-play returns `proceed: false`, learn is skipped (`status: held`).
-- **T-path (C07):** if batch self-play returns `proceed: false`, training is skipped (`held: true`).
+- **E-path (C06):** if sparse self-questioning returns `proceed: false`, learn is skipped (`status: held`).
+- **T-path (C07):** if batch self-questioning returns `proceed: false`, training is skipped (`held: true`).
 
 ### C06 prerequisite (pipeline backend)
 
-Mock sparse self-play seeds from a local failure trajectory. The pipeline reads **eval messages from Supabase** on the pipeline host (stage 1). Ensure eval failures are ingested there before expecting meaningful non-dry runs.
+Mock sparse self-questioning seeds from a local failure trajectory. The pipeline reads **eval messages from Supabase** on the pipeline host (stage 1). Ensure eval failures are ingested there before expecting meaningful non-dry runs.
 
 ## CLI training (live, db_bridge)
 
@@ -98,7 +98,7 @@ Triggers **real training CLI** on the AReaL GPU host via Supabase command queue 
 
 ### Env profile
 
-Copy [scenarios/demo.cli-train.env.example](../../scenarios/demo.cli-train.env.example) → `scenarios/demo.cli-train.env` and merge Supabase credentials from `services/LoRA/db_bridge/.env`:
+Copy [scenarios/demo.cli-train.env.example](../../scenarios/demo.cli-train.env.example) → `scenarios/demo.cli-train.env` and merge Supabase credentials from `services/lora/db_bridge/.env`:
 
 | Variable | Purpose |
 |----------|---------|

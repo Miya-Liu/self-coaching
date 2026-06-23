@@ -7,7 +7,7 @@
 | Repository | self-coaching | this repo |
 | Deploy mode | **self-coaching** | `modes/self-coaching/` |
 | Deploy mode | **coach** | `modes/coach/` |
-| Submodule | self-learning / self-play / self-evaluation / self-tuning | under `modes/self-coaching/` |
+| Submodule | self-learning / self-questioning / self-evaluation / self-tuning | under `modes/self-coaching/` |
 
 ## Glossary
 
@@ -20,7 +20,24 @@
 | **Service mode** | `LOOP_SERVICE_MODE` — mock-module vs mock-http vs live backends |
 | **Worktree autonomy** | iterate inside worktree without merge approval |
 
-**Milestone families** (do not conflate): [roadmap](../project/roadmap.md) M0–M5 (deploy) · [migration](../project/mock-to-real-migration.md) M0–M6 (loop adapters) · [integration plan](../project/integration-plan.md) Phase 0–5 (adapter work).
+**Milestone families** (do not conflate):
+
+| Family | Prefix | Range | Document |
+|--------|--------|-------|----------|
+| Deploy roadmap | **R0–R5** | deploy targets | [roadmap.md](../project/roadmap.md) |
+| Mock→live migration | **Mig0–Mig6** | loop adapters | [mock-to-real-migration.md](../project/mock-to-real-migration.md) |
+| Adapter integration | **Int0–Int5** | adapter work | [integration-plan.md](../project/integration-plan.md) |
+
+> Legacy docs may still use bare "M0–M5" (roadmap), "M0–M6" (migration), or "Phase 0–5" (integration). When ambiguous, check which document you are reading.
+
+**Service terminology:**
+
+| Term | Canonical name | Notes |
+|------|----------------|-------|
+| Self-Questioning | `self-questioning` | Challenge-data generation from failures (upstream pipeline: "Self-Questioning Pipeline Service") |
+| AERL | on-hold | Training platform — not yet deployed; code kept for future integration |
+| Trainer | `trainer` / `self-tuning` | Functional concept for model training (env: `TRAINER_BASE_URL`) |
+| `LOOP_SERVICE_MODE` | transport selector | Selects mock-module / mock-http / live — not a "mode" in the deploy-mode sense |
 
 ## Index
 

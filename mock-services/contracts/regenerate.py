@@ -120,14 +120,14 @@ def build_compact_contract(spec: dict) -> dict:
             "eval_cases": ".self-coaching/cases/eval_cases.jsonl",
             "eval_reports": ".self-coaching/reports/eval_runs/<run_id>/report.json",
             "learning_events": ".self-coaching/events/learning_events.jsonl",
-            "self_play_candidates": ".self-coaching/cases/self_play_candidates.jsonl",
+            "self_questioning_candidates": ".self-coaching/cases/self_questioning_candidates.jsonl",
             "summary": ".self-coaching/manifests/mock_pipeline_summary.json",
             "train_split": ".self-coaching/curated/train.jsonl",
             "training_manifest": ".self-coaching/manifests/training_run_manifest.json",
         },
         "interfaces": {
             "cli": {
-                "commands": ["init", "learn", "self-play", "evaluate", "train", "run-all", "serve"]
+                "commands": ["init", "learn", "self-questioning", "evaluate", "train", "run-all", "serve"]
             },
             "http": {
                 "base_url": "http://127.0.0.1:8765",
@@ -136,11 +136,11 @@ def build_compact_contract(spec: dict) -> dict:
             },
             "python_module": {
                 "module": "mock_self_coaching",
-                "functions": ["init", "learn", "self_play", "evaluate", "train", "run_all"],
+                "functions": ["init", "learn", "self_questioning", "evaluate", "train", "run_all"],
             },
         },
         "openapi_version": version,
-        "purpose": "Local deterministic mock interfaces for testing the self-coaching learning -> self-play -> evaluation -> training pipeline without real external services.",
+        "purpose": "Local deterministic mock interfaces for testing the self-coaching learning -> self-questioning -> evaluation -> training pipeline without real external services.",
         "service": "mock-self-coaching",
         "version": major,
     }

@@ -5,5 +5,5 @@
 - category: process
 - context: http-test
 - observation: HTTP mock learning event
-- reusable_lesson: require verification and route weak behavior into self-play/eval.
-- next_artifact: self_play_task
+- reusable_lesson: require verification and route weak behavior into self-questioning/eval.
+- next_artifact: self_questioning_task

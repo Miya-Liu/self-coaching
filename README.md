@@ -7,7 +7,7 @@ Portable, agent-agnostic evolution platform: a **skill pack** (`modes/self-coach
 | **self-coaching** | Host agent | **T1** skill pack |
 | **coach** | Coach service supervises external agents | **T2** API + **T3** engine |
 
-Submodules: **self-learning**, **self-play**, **self-evaluation**, **self-tuning**. Full docs: [`docs/README.md`](docs/README.md).
+Submodules: **self-learning**, **self-questioning**, **self-evaluation**, **self-tuning**. Full docs: [`docs/README.md`](docs/README.md).
 
 ## Quick install
 

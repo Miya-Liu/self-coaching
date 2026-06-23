@@ -158,7 +158,7 @@ async def poll_command_status(cmd_id: str) -> dict:
 
 ## Environment Variables
 
-Set in `services/LoRA/db_bridge/.env`:
+Set in `services/lora/db_bridge/.env`:
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
@@ -168,7 +168,7 @@ Set in `services/LoRA/db_bridge/.env`:
 
 The runner on the AReaL host reads its own `.env.areal` with additional config
 (poll interval, lease, timeouts, concurrency). See
-`services/LoRA/db_bridge/README.md` for the full variable table.
+`services/lora/db_bridge/README.md` for the full variable table.
 
 ## Verified Connectivity (2026-06-16)
 
@@ -198,7 +198,7 @@ The runner on the AReaL host reads its own `.env.areal` with additional config
 
 ## Related Docs
 
-- [db_bridge README](../../../services/LoRA/db_bridge/README.md) — full module documentation
+- [db_bridge README](../../../services/lora/db_bridge/README.md) — full module documentation
 - [AERL integration](aerl.md) — HTTP-based training client (alternative path)
 - [AReaL CLI training request](areal_cli_training_request.md) — `TRAINING_COMPLETE` marker for coaching host
 - [architecture.md](../architecture.md) — overall system design

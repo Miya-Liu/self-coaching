@@ -2,7 +2,7 @@
 """Live integration test for the self-coaching evolution loop (real backends).
 
 Covers the integrated real services for the clock loop (E → P → T):
-  - Self-play via Pipeline Service (ORCHESTRATOR_SELFPLAY_BACKEND=pipeline)
+  - Self-questioning via Pipeline Service (ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline)
   - Self-tuning via CLI train / db_bridge (ORCHESTRATOR_TRAIN_BACKEND=cli)
   - Eval + learn remain mock (see scenarios/evolution_loop.json)
 
@@ -120,7 +120,7 @@ class TestEvolutionLoopPreflight:
 
 
 class TestEvolutionLoopPipelineTick:
-    """End-to-end clock tick with real pipeline self-play (dry_run) and mock train/eval."""
+    """End-to-end clock tick with real pipeline self-questioning (dry_run) and mock train/eval."""
 
     def test_clock_tick_c06_c07_with_pipeline_backend(self, monkeypatch: pytest.MonkeyPatch):
         import os
@@ -129,15 +129,15 @@ class TestEvolutionLoopPipelineTick:
         from loop_env import build_loop_client
         from evolution_loop_clock_smoke import run_audit_phase
         from services.adapters.pipeline_service_client import PipelineServiceClient
-        from services.adapters.selfplay_pipeline_adapter import SelfPlayPipelineEngine
+        from services.adapters.self_questioning_pipeline_adapter import SelfQuestioningPipelineEngine
 
         monkeypatch.setenv("PIPELINE_DRY_RUN", "1")
-        monkeypatch.setenv("ORCHESTRATOR_SELFPLAY_BACKEND", "pipeline")
+        monkeypatch.setenv("ORCHESTRATOR_SELF_QUESTIONING_BACKEND", "pipeline")
         monkeypatch.setenv("ORCHESTRATOR_TRAIN_BACKEND", "mock")
         monkeypatch.setenv("ORCHESTRATOR_EVAL_BACKEND", "mock")
 
         pipeline_url = os.environ.get("PIPELINE_SERVICE_URL", "http://10.110.158.146:8001")
-        fast_engine = SelfPlayPipelineEngine(
+        fast_engine = SelfQuestioningPipelineEngine(
             PipelineServiceClient(
                 pipeline_url,
                 poll_interval_s=2.0,
@@ -145,7 +145,7 @@ class TestEvolutionLoopPipelineTick:
             ),
             use_sync=True,
         )
-        monkeypatch.setattr("clock.build_self_play_engine", lambda root, config=None: fast_engine)
+        monkeypatch.setattr("clock.build_self_questioning_engine", lambda root, config=None: fast_engine)
 
         if _TICK_ROOT.exists():
             shutil.rmtree(_TICK_ROOT)
@@ -156,9 +156,9 @@ class TestEvolutionLoopPipelineTick:
 
         summary = run_tick(_TICK_ROOT, scenario, client=build_loop_client(_TICK_ROOT))
 
-        assert summary.get("sparse_self_play_suite_id"), "C06 sparse self-play suite missing"
-        assert summary.get("batch_self_play_suite_id"), "C07 batch self-play suite missing"
-        assert summary.get("batch_self_play_proceed") is True, "batch self-play proceed=false"
+        assert summary.get("sparse_self_questioning_suite_id"), "C06 sparse self-questioning suite missing"
+        assert summary.get("batch_self_questioning_suite_id"), "C07 batch self-questioning suite missing"
+        assert summary.get("batch_self_questioning_proceed") is True, "batch self-questioning proceed=false"
         assert summary.get("t_path_promoted") is True, "T-path did not promote"
 
         report = run_audit_phase(REPO_ROOT / "scenarios" / "evolution_loop.json")
@@ -223,7 +223,7 @@ class TestEvolutionLoopCLITrainProbe:
     reason="set EVOLUTION_LOOP_INTEGRATION_TICK=1 to run full live clock tick with real training",
 )
 class TestEvolutionLoopFullTick:
-    """Full evolution tick — real pipeline self-play and real CLI train dispatch."""
+    """Full evolution tick — real pipeline self-questioning and real CLI train dispatch."""
 
     def test_clock_tick_all_real_backends(self, monkeypatch: pytest.MonkeyPatch):
         from clock import load_scenario, run_tick
@@ -234,7 +234,7 @@ class TestEvolutionLoopFullTick:
         from evolution_loop_clock_smoke import run_audit_phase
 
         monkeypatch.delenv("PIPELINE_DRY_RUN", raising=False)
-        monkeypatch.setenv("ORCHESTRATOR_SELFPLAY_BACKEND", "pipeline")
+        monkeypatch.setenv("ORCHESTRATOR_SELF_QUESTIONING_BACKEND", "pipeline")
         monkeypatch.setenv("ORCHESTRATOR_TRAIN_BACKEND", "cli")
 
         spec = TrainCommandSpec(
@@ -269,9 +269,9 @@ class TestEvolutionLoopFullTick:
 
         summary = run_tick(_TICK_ROOT, scenario, client=build_loop_client(_TICK_ROOT))
 
-        assert summary.get("sparse_self_play_suite_id"), "C06 sparse self-play suite missing"
-        assert summary.get("batch_self_play_suite_id"), "C07 batch self-play suite missing"
-        assert summary.get("batch_self_play_proceed") is True, "batch self-play proceed=false"
+        assert summary.get("sparse_self_questioning_suite_id"), "C06 sparse self-questioning suite missing"
+        assert summary.get("batch_self_questioning_suite_id"), "C07 batch self-questioning suite missing"
+        assert summary.get("batch_self_questioning_proceed") is True, "batch self-questioning proceed=false"
         assert summary.get("t_path_promoted") is True, "T-path did not promote"
 
         train_path = _TICK_ROOT / ".self-coaching" / "loop" / "runs" / "t_path" / "training.json"

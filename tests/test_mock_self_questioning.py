@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Unit tests for mock self-play service."""
+"""Unit tests for mock self-questioning service."""
 
 from __future__ import annotations
 
@@ -11,15 +11,15 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "mock-services"))
 
-from mock_self_play import MockSelfPlayEngine
+from mock_self_questioning import MockSelfQuestioningEngine
 
 
 @pytest.fixture
-def engine(tmp_path: Path) -> MockSelfPlayEngine:
-    return MockSelfPlayEngine(tmp_path / "coach")
+def engine(tmp_path: Path) -> MockSelfQuestioningEngine:
+    return MockSelfQuestioningEngine(tmp_path / "coach")
 
 
-def test_registered_suite_runs_in_agentevals(engine: MockSelfPlayEngine):
+def test_registered_suite_runs_in_agentevals(engine: MockSelfQuestioningEngine):
     result = engine.generate_suite(
         user_query="Verify config.yaml exists after write",
         trajectory={
@@ -51,7 +51,7 @@ def test_registered_suite_runs_in_agentevals(engine: MockSelfPlayEngine):
     raise AssertionError(f"run {run_id} did not succeed")
 
 
-def test_generate_suite_registers_suite_and_curates(engine: MockSelfPlayEngine):
+def test_generate_suite_registers_suite_and_curates(engine: MockSelfQuestioningEngine):
     result = engine.generate_suite(
         user_query="Create config.yaml and verify it exists",
         trajectory={
@@ -69,7 +69,7 @@ def test_generate_suite_registers_suite_and_curates(engine: MockSelfPlayEngine):
     assert result["suite_id"]
     assert result["curation"]["counts"]["train"] >= 0
     root = engine.data_dir
-    assert (root / ".self-coaching" / "cases" / "self_play_candidates.jsonl").is_file()
+    assert (root / ".self-coaching" / "cases" / "self_questioning_candidates.jsonl").is_file()
     assert (root / ".self-coaching" / "curated" / "train.jsonl").is_file()
     assert (root / ".self-coaching" / "curated" / "validation.jsonl").is_file()
     assert (root / ".self-coaching" / "curated" / "holdout.jsonl").is_file()
@@ -77,7 +77,7 @@ def test_generate_suite_registers_suite_and_curates(engine: MockSelfPlayEngine):
     assert any(s["id"] == result["suite_id"] for s in suites)
 
 
-def test_generate_batch_legacy(engine: MockSelfPlayEngine):
+def test_generate_batch_legacy(engine: MockSelfQuestioningEngine):
     events = engine.data_dir / ".self-coaching" / "events"
     events.mkdir(parents=True, exist_ok=True)
     events.joinpath("learning_events.jsonl").write_text(
@@ -90,13 +90,13 @@ def test_generate_batch_legacy(engine: MockSelfPlayEngine):
     assert result["curation"]["status"] == "ok"
 
 
-def test_self_play_facade(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.delenv("MOCK_SELF_PLAY_URL", raising=False)
+def test_self_questioning_facade(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("MOCK_SELF_QUESTIONING_URL", raising=False)
     sys.path.insert(0, str(REPO_ROOT / "mock-services"))
     import mock_self_coaching as msc
 
     root = tmp_path / "facade"
-    result = msc.self_play(root, capability="tool_use", n=2)
+    result = msc.self_questioning(root, capability="tool_use", n=2)
     assert result["count"] == 2
     assert (root / ".self-coaching" / "curated" / "validation.jsonl").is_file()
 

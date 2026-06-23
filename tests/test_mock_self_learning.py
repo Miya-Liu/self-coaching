@@ -69,7 +69,7 @@ def test_eval_case_candidate_no_version_bump(engine: MockSelfLearningEngine):
     )
     after = len(engine.registry.list_versions("agent-4"))
     assert after == before
-    assert result["routing"]["self_play_seed"] is True
+    assert result["routing"]["self_questioning_seed"] is True
 
 
 def test_learn_facade_uses_engine(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

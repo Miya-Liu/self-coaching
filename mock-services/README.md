@@ -4,11 +4,11 @@ Local mocks for the evolution loop without real LLM, trainer, evaluator, or exte
 
 | Service | Port (default) | Module |
 |---------|----------------|--------|
-| **Coaching API** (learn / self-play / train) | 8765 | `mock_self_coaching.py` |
+| **Coaching API** (learn / self-questioning / train) | 8765 | `mock_self_coaching.py` |
 | **AgentEvals** (suites + async runs) | 8080 | `mock_agentevals.py` |
 | **Agent registry** (version lineage) | 8768 (optional) | `mock_agent_registry.py` |
 | **Self-learning** (classify + version drafts) | 8766 | `mock_self_learning.py` |
-| **Self-play** (suite registration + curation) | 8767 | `mock_self_play.py` |
+| **Self-questioning** (suite registration + curation) | 8767 | `mock_self_questioning.py` |
 
 Design: [`docs/project/mock-platform-design.md`](../docs/project/mock-platform-design.md) · [`coaching_api.md`](../docs/design/integrations/coaching_api.md).
 
@@ -23,7 +23,7 @@ When `MOCK_AGENTEVALS_URL` or `AGENTEVALS_BASE_URL` is set, `mock_self_coaching.
 
 `learn()` uses `MockSelfLearningEngine` in-process by default (classification + registry drafts). Set `MOCK_SELF_LEARNING_URL` to call the HTTP service on `:8766`.
 
-`self_play()` uses `MockSelfPlayEngine` in-process (registers AgentEvals suites + runs `curate_data.py`). Set `MOCK_SELF_PLAY_URL` for HTTP on `:8767`. Phase 2 endpoint: `POST /self-play/generate-suite`.
+`self_questioning()` uses `MockSelfQuestioningEngine` in-process (registers AgentEvals suites + runs `curate_data.py`). Set `MOCK_SELF_QUESTIONING_URL` for HTTP on `:8767`. Phase 2 endpoint: `POST /self-questioning/generate-suite`.
 
 ```bash
 export AGENTEVALS_BASE_URL=http://127.0.0.1:8080
@@ -74,7 +74,7 @@ demo-run/
     LEARNINGS.md
   .self-coaching/
     events/learning_events.jsonl
-    cases/self_play_candidates.jsonl
+    cases/self_questioning_candidates.jsonl
     cases/eval_cases.jsonl
     curated/train.jsonl
     reports/eval_runs/<run_id>/report.json
@@ -89,7 +89,7 @@ demo-run/
 ```bash
 python mock_self_coaching.py init --root <root>
 python mock_self_coaching.py learn --root <root> --event "Agent forgot verification"
-python mock_self_coaching.py self-play --root <root> --capability tool_use --n 4
+python mock_self_coaching.py self-questioning --root <root> --capability tool_use --n 4
 python mock_self_coaching.py evaluate --root <root> --candidate mock-candidate-v1 --baseline mock-baseline-v0
 python mock_self_coaching.py train --root <root> --pipeline sft
 python mock_self_coaching.py run-all --root <root>
@@ -107,7 +107,7 @@ Endpoints:
 
 - `GET /health`
 - `POST /learning/events` with `{"event":"...","source":"http","capability":"tool_use"}`
-- `POST /self-play/generate` with `{"capability":"tool_use","n":4}`
+- `POST /self-questioning/generate` with `{"capability":"tool_use","n":4}`
 - `POST /eval/runs` with `{"candidate":"mock-candidate-v1","baseline":"mock-baseline-v0"}`
 - `GET /eval/runs/{run_id}/report`
 - `POST /training/runs` with `{"pipeline":"sft"}` (delegates to mock AERL when `MOCK_AERL_URL` / `TRAINER_BASE_URL` set)

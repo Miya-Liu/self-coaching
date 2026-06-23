@@ -108,7 +108,7 @@ def _execute_partial(
 
     from self_coaching.loop_config import LoopConfig
     from self_coaching.loop_driver import run_tasks
-    from self_coaching.loop_env import build_loop_client, build_self_play_engine
+    from self_coaching.loop_env import build_loop_client, build_self_questioning_engine
     from self_coaching.loop_store import LoopStore
     from self_coaching.state import LoopStateStore
     from self_coaching.t_path import run_t_path
@@ -139,12 +139,12 @@ def _execute_partial(
     os.environ["LOOP_AGENT_ID"] = agent_id
     try:
         loop_client = client or build_loop_client(root, config=config)
-        self_play_engine = build_self_play_engine(root, config=config)
+        self_questioning_engine = build_self_questioning_engine(root, config=config)
         registry = AgentRegistry(root)
         registry.ensure_agent(agent_id)
 
         if action == "learn":
-            # E-path only: score tasks → accumulate Σ → sparse self-play → learn
+            # E-path only: score tasks → accumulate Σ → sparse self-questioning → learn
             run_tasks(
                 root,
                 config=config,
@@ -153,7 +153,7 @@ def _execute_partial(
                 enable_t_path=False,
                 client=loop_client,
                 agent_id=agent_id,
-                self_play_engine=self_play_engine,
+                self_questioning_engine=self_questioning_engine,
                 trajectory_fn=trajectory_fn,
             )
             state = LoopStateStore(root).load()
@@ -164,7 +164,7 @@ def _execute_partial(
             }
 
         if action == "play":
-            # Self-play only: batch fill (C07) without training
+            # Self-questioning only: batch fill (C07) without training
             from self_coaching.t_path import fill_buffer_batch
 
             state = LoopStateStore(root).load()
@@ -184,7 +184,7 @@ def _execute_partial(
                 agent_id=agent_id,
                 generation=state.generation,
                 n=n,
-                self_play_engine=self_play_engine,
+                self_questioning_engine=self_questioning_engine,
                 config=config,
             )
             return {
@@ -213,7 +213,7 @@ def _execute_partial(
                 coaching_root=root,
                 agent_id=agent_id,
                 beta=config.batch_size,
-                self_play_engine=self_play_engine,
+                self_questioning_engine=self_questioning_engine,
                 config=config,
             )
             if t_result is not None:

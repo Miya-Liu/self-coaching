@@ -97,14 +97,14 @@ class LoopConfig:
     eval_backend: str = "mock"       # mock | agentevals
     train_backend: str = "mock"      # mock | aerl | cli
     learn_backend: str = "mock"      # mock | self-learning
-    selfplay_backend: str = "mock"   # mock | pipeline
+    self_questioning_backend: str = "mock"   # mock | pipeline
     transport: str = "module"        # module | http
 
     # ── Service URLs (None = in-process mock) ──
     orchestrator_base_url: str | None = None
     agentevals_url: str | None = None
     self_learning_url: str | None = None
-    self_play_url: str | None = None
+    self_questioning_url: str | None = None
     pipeline_service_url: str | None = None
     aerl_url: str | None = None
 
@@ -124,8 +124,8 @@ class LoopConfig:
     # ── Factories (injectable for production) ──
     # Callable[[Path], AgentRegistry-like] — default uses mock_agent_registry
     registry_factory: Any = None
-    # Callable[[Path], SelfPlayEngine-like] — default uses MockSelfPlayEngine
-    self_play_factory: Any = None
+    # Callable[[Path], SelfQuestioningEngine-like] — default uses MockSelfQuestioningEngine
+    self_questioning_factory: Any = None
 
     @classmethod
     def from_env(cls) -> "LoopConfig":
@@ -135,7 +135,7 @@ class LoopConfig:
         # Resolve URLs
         ae_url = os.environ.get("AGENTEVALS_BASE_URL") or os.environ.get("MOCK_AGENTEVALS_URL")
         sl_url = os.environ.get("SELF_LEARNING_BASE_URL") or os.environ.get("MOCK_SELF_LEARNING_URL")
-        sp_url = os.environ.get("SELF_PLAY_BASE_URL") or os.environ.get("MOCK_SELF_PLAY_URL")
+        sp_url = os.environ.get("SELF_QUESTIONING_BASE_URL") or os.environ.get("MOCK_SELF_QUESTIONING_URL")
         pipeline_url = os.environ.get("PIPELINE_SERVICE_URL") or os.environ.get("SELF_QUESTIONING_URL")
         aerl_url = os.environ.get("TRAINER_BASE_URL") or os.environ.get("MOCK_AERL_URL") or os.environ.get("AERL_BASE_URL")
 
@@ -143,7 +143,7 @@ class LoopConfig:
         eval_be = os.environ.get("ORCHESTRATOR_EVAL_BACKEND", "mock").lower()
         train_be = os.environ.get("ORCHESTRATOR_TRAIN_BACKEND", "mock").lower()
         learn_be = os.environ.get("ORCHESTRATOR_LEARN_BACKEND", "mock").lower()
-        selfplay_be = os.environ.get("ORCHESTRATOR_SELFPLAY_BACKEND", "mock").lower()
+        sq_be = os.environ.get("ORCHESTRATOR_SELF_QUESTIONING_BACKEND", "mock").lower()
         if mode == "live":
             if eval_be == "mock" and ae_url:
                 eval_be = "agentevals"
@@ -154,8 +154,8 @@ class LoopConfig:
                     train_be = "cli"
             if learn_be == "mock" and sl_url:
                 learn_be = "self-learning"
-            if selfplay_be == "mock" and pipeline_url:
-                selfplay_be = "pipeline"
+            if sq_be == "mock" and pipeline_url:
+                sq_be = "pipeline"
 
         return cls(
             tau_fail=float(os.environ.get("LOOP_TAU_FAIL", str(DEFAULT_TAU_FAIL))),
@@ -170,12 +170,12 @@ class LoopConfig:
             eval_backend=eval_be,
             train_backend=train_be,
             learn_backend=learn_be,
-            selfplay_backend=selfplay_be,
+            self_questioning_backend=sq_be,
             transport=os.environ.get("ORCHESTRATOR_TRANSPORT", "module").lower(),
             orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL"),
             agentevals_url=ae_url or None,
             self_learning_url=sl_url or None,
-            self_play_url=sp_url or None,
+            self_questioning_url=sp_url or None,
             pipeline_service_url=pipeline_url or None,
             aerl_url=aerl_url or None,
             agentevals_suite_id=os.environ.get("AGENTEVALS_SUITE_ID", "tool-use-canary"),
@@ -239,6 +239,6 @@ def holdout_suite_id() -> str:
     return os.environ.get("AGENTEVALS_SUITE_ID_HOLDOUT", HOLDOUT_SUITE_ID)
 
 
-def _self_play_base_url() -> str | None:
-    value = os.environ.get("MOCK_SELF_PLAY_URL", "").strip()
+def _self_questioning_base_url() -> str | None:
+    value = os.environ.get("MOCK_SELF_QUESTIONING_URL", "").strip()
     return value.rstrip("/") if value else None

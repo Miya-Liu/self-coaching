@@ -2,7 +2,7 @@
 
 > **Implementation reference** — adapter migration M0–M6. Status: [progress.md](progress.md). User docs: [docs/README.md](../README.md).
 
-**Status:** **M1 AgentEvals PASS** (2026-06-10) — live holdout E2E (`full_loop_live.json`, C12+C18)  
+**Status:** **M1–M4 adapter work complete** (2026-06-16) — M1 AgentEvals live holdout, M2 self-learning adapters, M3 pipeline self-questioning (proceed signal), M4 CLI train (trigger + status). Live Track 1: C06 ✓, C07 pending (timeout config), C12/C18 pending.  
 **Ground truth:** tag **`v0.3.1-hermes-installable`** — mocks-only “it works” pin (Hermes pack + loop demo)  
 **Related:** [self-coaching-demo-pipeline-plan.md](self-coaching-demo-pipeline-plan.md), [integration-plan.md](integration-plan.md), [integration/mapping.md](../integration/mapping.md), [mock-platform-design.md](mock-platform-design.md), [deploy-skill-pack.md](../guides/deploy-skill-pack.md), [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md), [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md)
 
@@ -36,7 +36,7 @@ These rules apply to **every** phase. Violating them blocks merge.
 
 ```bash
 git checkout v0.3.1-hermes-installable   # bisect anchor only; on feature branches use HEAD with mock-module
-unset MOCK_SELF_LEARNING_URL MOCK_SELF_PLAY_URL MOCK_AERL_URL MOCK_AGENTEVALS_URL
+unset MOCK_SELF_LEARNING_URL MOCK_SELF_QUESTIONING_URL MOCK_AERL_URL MOCK_AGENTEVALS_URL
 export LOOP_SERVICE_MODE=mock-module
 python scripts/mock_self_coaching_demo.py
 # Linux CI equivalent:
@@ -54,7 +54,7 @@ On **`main` / feature branches**, run the same commands at **`LOOP_SERVICE_MODE=
 | **M0** | Snapshot + contract freeze | ~3d | OpenAPI snapshots, fixture capture, mapping walk |
 | **M1** | AgentEvals real adapter (read-only) | ~3d | **Start here** — holdout factory + `LOOP_HOLDOUT_TIMEOUT_S` |
 | **M2** | Self-learning real adapter | ~3d | E-path with real learn + M1 eval |
-| **M3** | Self-play real adapter | ~3d | C06/C07 endpoints + `staging.jsonl` writeback |
+| **M3** | Self-questioning real adapter | ~3d | C06/C07 endpoints + `staging.jsonl` writeback |
 | **M4** | AERL training real adapter | ~5d | Full E+T loop on real train |
 | **M5** | Agent registry real | ~2d | **Conditional** — only if a separate registry service exists |
 | **M6** | Harden + cut to staging-default | ~3d | `demo.live.env`, opt-in CI matrix, runbook, release tag |
@@ -112,7 +112,7 @@ Reuse **existing** repo names — no parallel `SELF_*_BASE_URL` tree.
 | Agent / loop | `LOOP_AGENT_ID`, `LOOP_TAU_FAIL`, `LOOP_SIGMA_MIN`, `LOOP_SIGMA_PLAY`, `LOOP_BATCH_SIZE`, `LOOP_IDLE_AFTER` | see [demo.env.example](../../scenarios/demo.env.example) | same |
 | Holdout timeout | `LOOP_HOLDOUT_TIMEOUT_S` | `5` (mock) | `300`–`600` (real) |
 | Self-learning | `MOCK_SELF_LEARNING_URL`, `SELF_LEARNING_BASE_URL`, `LOOP_LEARN_MODE` | unset (in-process); `sync` | learner URL; `evolve` / `evolve_recent` for production API — see [self-learning-review-agent-plan.md](self-learning-review-agent-plan.md) |
-| Self-play | `MOCK_SELF_PLAY_URL` | unset | `https://…` |
+| Self-questioning | `MOCK_SELF_QUESTIONING_URL` | unset | `https://…` |
 | Training (AERL) | `MOCK_AERL_URL`, `TRAINER_BASE_URL` | unset / local mock | staging trainer URL |
 | AgentEvals | `AGENTEVALS_BASE_URL`, `MOCK_AGENTEVALS_URL` | unset / local mock | staging AgentEvals |
 | Eval/train backends | `ORCHESTRATOR_EVAL_BACKEND`, `ORCHESTRATOR_TRAIN_BACKEND` | `mock` | `agentevals` / `aerl` |
@@ -140,9 +140,9 @@ Reuse **existing** repo names — no parallel `SELF_*_BASE_URL` tree.
 1. ~~Holdout ignores `AGENTEVALS_BASE_URL`~~ — fixed: `services/adapters/holdout_engine.py` + `LOOP_HOLDOUT_TIMEOUT_S`.
 2. ~~`default_client` / `build_loop_client()` not wired~~ — fixed in `loop_env.py` + `self_coaching_loop.py`.
 3. ~~**`full_loop_live.json`**~~ — shipped; opt-in smoke `scripts/full_loop_live_smoke.py` (C12+C18 golden).
-4. **Self-play** read path uses `curated/staging.jsonl` — real adapters must **write back** the same file (writeback contract §4.5; **M3**).
+4. **Self-questioning** read path uses `curated/staging.jsonl` — real adapters must **write back** the same file (writeback contract §4.5; **M3**).
 
-### 4.5 Self-play proceed contract (M3)
+### 4.5 Self-questioning proceed contract (M3)
 
 Pipeline backend returns **`proceed: true/false`** after a remote job completes. The loop uses this to decide whether to advance; it does **not** mirror Supabase rows into `staging.jsonl` at this stage.
 
@@ -181,7 +181,7 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 - [x] [mapping.md](../integration/mapping.md) — AgentEvals `RunDetail` → `EvalMetrics` (active)
 - [x] `docs/integration/api-snapshots/self-learning-openapi.json` — migration M2.0
 - [x] `docs/integration/api-snapshots/pipeline-service-openapi.json` — migration M3.0 (2026-06-16)
-- [ ] `docs/integration/api-snapshots/self-play-openapi.json`
+- [ ] `docs/integration/api-snapshots/self-questioning-openapi.json`
 - [x] `docs/integration/api-snapshots/aerl-openapi.json` — migration M4.0 (2026-06-16)
 - [ ] Document auth per service in one place (Bearer, API keys) — partial via env templates
 
@@ -223,7 +223,7 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 - Mapper: review job terminal response → `draft_version_id` + `components` for `registry.activate`
 - Mock extension: production learner routes on `mock_self_learning.py` (§8 of spec)
 
-**Tests:** E-path against staging self-learning + M1 AgentEvals; mock self-play + mock AERL.
+**Tests:** E-path against staging self-learning + M1 AgentEvals; mock self-questioning + mock AERL.
 
 **Exit:** E-path end-to-end with real learn + real eval. Local `support.jsonl` / loop store unchanged.
 
@@ -231,21 +231,21 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 
 ---
 
-### M3 — Self-play real adapter (~3 days)
+### M3 — Self-questioning real adapter (~3 days)
 
-**Tracker:** [self-play-pipeline-implementation.md](self-play-pipeline-implementation.md) (sprint tasks SP-T01–SP-T24).  
-**Service:** Self-Questioning Pipeline API (`PIPELINE_SERVICE_URL`) — not the mock `/self-play/generate` shape.
+**Tracker:** [self-questioning-pipeline-implementation.md](self-questioning-pipeline-implementation.md) (sprint tasks SP-T01–SP-T24).  
+**Service:** Self-Questioning Pipeline API (`PIPELINE_SERVICE_URL`) — not the mock `/self-questioning/generate` shape.
 
 **Build:**
 
-- `PipelineServiceClient` + `SelfPlayPipelineEngine` (maps C06/C07 → `/api/pipeline/submit`)
+- `PipelineServiceClient` + `SelfQuestioningPipelineEngine` (maps C06/C07 → `/api/pipeline/submit`)
 - Writeback to `staging.jsonl` (§4.5) — Supabase export or pipeline-team option
-- Factory keyed off `ORCHESTRATOR_SELFPLAY_BACKEND` + `PIPELINE_SERVICE_URL`
+- Factory keyed off `ORCHESTRATOR_SELF_QUESTIONING_BACKEND` + `PIPELINE_SERVICE_URL`
 
 **Tests:**
 
 - `tests/integration/test_pipeline_service_availability.py` (dry_run, opt-in live)
-- `test_loop_self_play_sparse` / `test_loop_t_path` against staging (C06/C07)
+- `test_loop_self_questioning_sparse` / `test_loop_t_path` against staging (C06/C07)
 - R5 mock-module unchanged
 
 **Exit:** C07 then C06 pass on staging; mock path unchanged when backend=mock.
@@ -254,22 +254,23 @@ Extend `tests/test_mock_self_coaching_demo.sh`; do not replace it.
 
 ### M4 — AERL training real adapter (~5 days) — **partial** (M4.0–M4.3 + M4.5 done; production CLI pending)
 
-**HTTP mock spec:** [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) — frozen M4.0; mock trainer + `TrainingClient`/`RestClient` + loop wiring shipped.  
+**HTTP mock spec:** [self-tuning-trainer-api-plan.md](self-tuning-trainer-api-plan.md) — frozen M4.0; mock trainer + `TrainerClient`/`RestClient` + loop wiring shipped.  
 **Production path:** [cli-training-integration-plan.md](cli-training-integration-plan.md) — db_bridge remote shell (supersedes HTTP for GPU host).  
 **Tracker:** [cli-training-implementation.md](cli-training-implementation.md) — sprint tasks CT-T01+; v1 scope = trigger + status only.
 
 **Done (2026-06-16):**
 
 - [x] Production-shaped mock (`mock_aerl.py` M4.1)
-- [x] `training_client.py`, `trainer_rest_client.py`, `train_mapping.py`, `AERLTrainAdapter` (M4.2)
+- [x] `trainer_client.py`, `trainer_rest_client.py`, `train_mapping.py`, `AERLTrainAdapter` (M4.2)
 - [x] `build_loop_client` + mock-http aerl backend (M4.3)
 - [x] `aerl-openapi.json` placeholder + Coaching OpenAPI `TrainingRequest` extensions (M4.0)
 - [x] R5 mock-module regression green (M4.5)
 
 **Remaining:**
 
-- [ ] CLI train adapter + transport — [cli-training-implementation.md](cli-training-implementation.md) Sprint 0–2
-- [ ] `scripts/cli_train_smoke.py` + live smoke (replaces HTTP `aerl_live_smoke.py` for production)
+- [x] CLI train adapter + transport — Sprints 0–3 done (2026-06-16); see [cli-training-implementation.md](cli-training-implementation.md)
+- [ ] Dataset handoff: loop buffer `train.jsonl` → remote path (CT-D01)
+- [ ] Full T-path live E2E: train + holdout + promote (CT-D04/D05)
 - [ ] `tests/test_aerl_train_timeout.py` (long GRPO poll budget) — reuse for CLI timeout tests
 
 **Build:**
@@ -317,7 +318,7 @@ M0 (contracts)
 M1 (AgentEvals read)
  │
  ▼
-M2 (self-learning) ──► M3 (self-play)   # M3 may parallelize with M2
+M2 (self-learning) ──► M3 (self-questioning)   # M3 may parallelize with M2
  │                        │
  └──────────┬─────────────┘
             ▼
@@ -356,4 +357,4 @@ Shipped before / during migration M1; retained for reference.
 
 ---
 
-*Last updated: 2026-06-12. Track progress in [progress.md](progress.md). Next: migration **M2** ([self-learning-review-agent-plan.md](self-learning-review-agent-plan.md) §11).*
+*Last updated: 2026-06-23. Track progress in [progress.md](progress.md). Next: live Track 1 green (C07 timeout fix) + CT-D01 dataset handoff.*

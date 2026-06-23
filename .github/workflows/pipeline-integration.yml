@@ -48,4 +48,4 @@ jobs:
         env:
           PIPELINE_SERVICE_URL: ${{ inputs.pipeline_url }}
           PIPELINE_DRY_RUN: "1"
-        run: python scripts/pipeline_self_play_smoke.py
+        run: python scripts/pipeline_self_questioning_smoke.py

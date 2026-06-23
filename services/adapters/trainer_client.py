@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""TrainingClient — trainer job lifecycle (runs, pipelines, rollout, rewards)."""
+"""TrainerClient — trainer job lifecycle (runs, pipelines, rollout, rewards)."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ from typing import Any
 from .trainer_http import TrainerHTTPBase, TrainerHTTPError
 
 
-class TrainingClient(TrainerHTTPBase):
-    """HTTP client for TrainingClient routes (self-tuning-trainer-api-plan §4.0–§4.12)."""
+class TrainerClient(TrainerHTTPBase):
+    """HTTP client for TrainerClient routes (self-tuning-trainer-api-plan §4.0–§4.12)."""
 
     def __init__(
         self,
@@ -174,4 +174,4 @@ class TrainingClient(TrainerHTTPBase):
         return self.wait_for_run(run_id)
 
 
-__all__ = ["TrainingClient", "TrainerHTTPError"]
+__all__ = ["TrainerClient", "TrainerHTTPError"]

@@ -8,11 +8,11 @@ swaps in via the same Python interface.
 Return-shape reference (read from the implementation):
   init      -> {"status": "initialized", "root": str, "manifest": str}
   learn     -> full record dict: {"id", "timestamp", "source", "capability", "event", ...}
-  self_play -> {"status": "generated", "count": int, "case_ids": [str, ...]}
+  self_questioning -> {"status": "generated", "count": int, "case_ids": [str, ...]}
   evaluate  -> {"status": "passed"|"failed", "run_id": str, "report": str, "recommendation": str}
   train     -> {"status": "trained", "run_id": str, "candidate": str, "manifest": str, "log_file": str}
               (raises ValueError for unsupported pipelines)
-  run_all   -> {"status": "ok", "root", "init", "learning_event_id", "self_play",
+  run_all   -> {"status": "ok", "root", "init", "learning_event_id", "self_questioning",
                 "baseline_eval", "training", "candidate_eval", "promotion_allowed"}
 """
 
@@ -34,7 +34,7 @@ def root(tmp_path: Path) -> Path:
 
 def test_module_exposes_documented_functions():
     """Contract JSON lists exactly these public functions."""
-    expected = {"init", "learn", "self_play", "evaluate", "train", "run_all"}
+    expected = {"init", "learn", "self_questioning", "evaluate", "train", "run_all"}
     for name in expected:
         assert hasattr(msc, name), f"module is missing documented function: {name}"
         assert callable(getattr(msc, name))
@@ -97,17 +97,17 @@ def test_learn_multiple_events_accumulate(root):
     assert len(lines) == 2
 
 
-# -------- self_play --------
+# -------- self_questioning --------
 
-def test_self_play_generates_requested_count(root):
+def test_self_questioning_generates_requested_count(root):
     msc.init(root)
-    msc.learn(root, event="seed event for self-play")
-    result = msc.self_play(root, capability="tool_use", n=5)
+    msc.learn(root, event="seed event for self-questioning")
+    result = msc.self_questioning(root, capability="tool_use", n=5)
     assert result["status"] == "generated"
     assert result["count"] == 5
     assert len(result["case_ids"]) == 5
 
-    cases_path = root / ".self-coaching" / "cases" / "self_play_candidates.jsonl"
+    cases_path = root / ".self-coaching" / "cases" / "self_questioning_candidates.jsonl"
     lines = [ln for ln in cases_path.read_text(encoding="utf-8").splitlines() if ln.strip()]
     assert len(lines) == 5
     for ln in lines:
@@ -116,10 +116,10 @@ def test_self_play_generates_requested_count(root):
         assert "id" in case
 
 
-def test_self_play_seeds_event_if_none_exists(root):
-    """If no learning events exist yet, self_play must auto-seed one."""
+def test_self_questioning_seeds_event_if_none_exists(root):
+    """If no learning events exist yet, self_questioning must auto-seed one."""
     msc.init(root)
-    result = msc.self_play(root, capability="tool_use", n=2)
+    result = msc.self_questioning(root, capability="tool_use", n=2)
     assert result["count"] == 2
     events_path = root / ".self-coaching" / "events" / "learning_events.jsonl"
     assert events_path.is_file()
@@ -131,7 +131,7 @@ def test_self_play_seeds_event_if_none_exists(root):
 def test_evaluate_produces_report(root):
     msc.init(root)
     msc.learn(root, event="seed")
-    msc.self_play(root, capability="tool_use", n=3)
+    msc.self_questioning(root, capability="tool_use", n=3)
     result = msc.evaluate(root, candidate="cand-A", baseline="base-A")
     assert result["status"] in ("passed", "failed")
     run_id = result["run_id"]
@@ -149,7 +149,7 @@ def test_evaluate_produces_report(root):
 def test_evaluate_marks_known_bad_candidate_as_failing(root):
     """Implementation: candidates with 'bad' or 'regress' in the name fail scoring."""
     msc.init(root)
-    msc.self_play(root, capability="tool_use", n=4)
+    msc.self_questioning(root, capability="tool_use", n=4)
     result = msc.evaluate(root, candidate="bad-candidate-v1", baseline="mock-baseline-v0")
     assert result["status"] == "failed"
     assert result["recommendation"] == "do_not_promote"
@@ -160,7 +160,7 @@ def test_evaluate_marks_known_bad_candidate_as_failing(root):
 def test_train_writes_manifest(root):
     msc.init(root)
     msc.learn(root, event="seed")
-    msc.self_play(root, capability="tool_use", n=3)
+    msc.self_questioning(root, capability="tool_use", n=3)
     msc.evaluate(root)
     result = msc.train(root, pipeline="sft")
     assert result["status"] == "trained"
@@ -178,7 +178,7 @@ def test_train_supports_both_documented_pipelines(root):
     for pipeline in ("sft", "grpo"):
         root_p = root.with_name(f"demo-{pipeline}")
         msc.init(root_p)
-        msc.self_play(root_p, capability="tool_use", n=2)
+        msc.self_questioning(root_p, capability="tool_use", n=2)
         result = msc.train(root_p, pipeline=pipeline)
         assert result["status"] == "trained"
         manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
@@ -187,7 +187,7 @@ def test_train_supports_both_documented_pipelines(root):
 
 def test_train_unknown_pipeline_is_rejected(root):
     msc.init(root)
-    msc.self_play(root, capability="tool_use", n=2)
+    msc.self_questioning(root, capability="tool_use", n=2)
     with pytest.raises(ValueError):
         msc.train(root, pipeline="not-a-real-pipeline-id")
 
@@ -206,7 +206,7 @@ def test_run_all_produces_full_artifact_set(root):
         "experience/ERROR.md",
         "experience/LEARNINGS.md",
         ".self-coaching/events/learning_events.jsonl",
-        ".self-coaching/cases/self_play_candidates.jsonl",
+        ".self-coaching/cases/self_questioning_candidates.jsonl",
         ".self-coaching/cases/eval_cases.jsonl",
         ".self-coaching/curated/train.jsonl",
         ".self-coaching/curated/validation.jsonl",
@@ -247,7 +247,7 @@ def test_run_all_shape_is_stable_across_invocations(tmp_path: Path):
         return {
             "keys": sorted(s.keys()),
             "promotion_allowed": s["promotion_allowed"],
-            "self_play_count": s["self_play"]["count"],
+            "self_questioning_count": s["self_questioning"]["count"],
             "training_pipeline": s["training"]["status"],
         }
     assert _shape(summary_a) == _shape(summary_b)

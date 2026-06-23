@@ -44,7 +44,7 @@ CLASSIFICATIONS = frozenset({
 NEXT_ARTIFACT = {
     "memory": "memory",
     "skill_patch": "skill_patch",
-    "eval_case_candidate": "self_play_task",
+    "eval_case_candidate": "self_questioning_task",
     "training_candidate": "training_manifest",
     "error_log": "none",
 }
@@ -241,7 +241,7 @@ class MockSelfLearningEngine:
                 fh.write(f"- symptom: {event}\n")
                 fh.write(f"- command/log: source={source}\n")
                 fh.write("- root_cause: (mock) undiagnosed\n")
-                fh.write("- fix_or_workaround: route to self-play/eval\n")
+                fh.write("- fix_or_workaround: route to self-questioning/eval\n")
                 fh.write("- verification: pending\n")
                 fh.write("- durable_artifact: eval_case\n")
 
@@ -256,8 +256,8 @@ class MockSelfLearningEngine:
             routed["training_candidate"] = True
 
         else:
-            record["durable_artifact"] = "self_play_seed"
-            routed["self_play_seed"] = True
+            record["durable_artifact"] = "self_questioning_seed"
+            routed["self_questioning_seed"] = True
 
         if new_version is not None:
             routed["draft_version_id"] = new_version["version_id"]

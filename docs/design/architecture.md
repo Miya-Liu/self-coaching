@@ -29,7 +29,7 @@ scripts/  experience/  docs/
 | # | Component | Location |
 |---|-----------|----------|
 | 1 | Policy | `modes/self-coaching/SKILL.md` |
-| 2 | Submodules | self-learning, self-play, self-evaluation, self-tuning |
+| 2 | Submodules | self-learning, self-questioning, self-evaluation, self-tuning |
 | 3 | Evolution engine | `services/orchestrator/` (`record-eval`, `check-drop`, `run`) |
 | 4 | Coaching root | `{root}/experience/` + `{root}/.self-coaching/` |
 | 5 | Experiment isolation | `worktrees/<id>/`, branch `experiment/<id>` |
@@ -41,7 +41,7 @@ scripts/  experience/  docs/
 | Submodule | T2 HTTP |
 |-----------|---------|
 | self-learning | `POST /learning/events`, `/learning/evolve*` |
-| self-play | `POST /self-play/generate` |
+| self-questioning | `POST /self-questioning/generate` |
 | self-evaluation | `POST /eval/runs` |
 | self-tuning | `POST /training/runs` |
 
@@ -51,7 +51,7 @@ scripts/  experience/  docs/
 |---------|----------------|
 | Loading Gate | deps, `prepare.py`, checkpoint paths |
 | Performance | metric from `logs/<id>.log` vs best |
-| Data Pool | cache + curated / self-play data |
+| Data Pool | cache + curated / self-questioning data |
 | Local Model | admin-chosen checkpoint; unchanged on `main` until approval |
 | Deploy Gate | worktree isolation + human merge decision |
 | Trainer | AERL pipelines or mock `train()` |

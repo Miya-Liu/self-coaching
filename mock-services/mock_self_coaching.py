@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Mock self-coaching service/CLI for testing the full learning -> self-play -> evaluation -> training loop.
+Mock self-coaching service/CLI for testing the full learning -> self-questioning -> evaluation -> training loop.
 
 This is intentionally deterministic, local-only, and stdlib-only. It simulates service boundaries
 without calling real model providers or trainers.
@@ -8,7 +8,7 @@ without calling real model providers or trainers.
 CLI examples:
   python mock_self_coaching.py run-all --root ./demo
   python mock_self_coaching.py learn --root ./demo --event "Agent claimed success without verification"
-  python mock_self_coaching.py self-play --root ./demo --capability tool_use --n 3
+  python mock_self_coaching.py self-questioning --root ./demo --capability tool_use --n 3
   python mock_self_coaching.py evaluate --root ./demo --candidate candidate-v1 --baseline baseline-v0
   python mock_self_coaching.py train --root ./demo --pipeline sft
   python mock_self_coaching.py serve --root ./demo --port 8765
@@ -36,7 +36,7 @@ IDEMPOTENCY_TTL_S = 86400
 IDEMPOTENCY_MAX_ENTRIES = 1000
 _IDEMPOTENT_POST_PATHS = frozenset({
     "/learning/events",
-    "/self-play/generate",
+    "/self-questioning/generate",
     "/eval/runs",
     "/training/runs",
     "/pipeline/run-all",
@@ -84,7 +84,7 @@ def paths(root: Path) -> dict[str, Path]:
     return {
         "base": base,
         "events": base / "events" / "learning_events.jsonl",
-        "self_play_candidates": base / "cases" / "self_play_candidates.jsonl",
+        "self_questioning_candidates": base / "cases" / "self_questioning_candidates.jsonl",
         "eval_cases": base / "cases" / "eval_cases.jsonl",
         "train": base / "curated" / "train.jsonl",
         "validation": base / "curated" / "validation.jsonl",
@@ -171,25 +171,25 @@ def learn(root: Path, event: str, source: str = "manual", capability: str = "too
     )
 
 
-def _self_play_base_url() -> str | None:
-    value = os.environ.get("MOCK_SELF_PLAY_URL", "").strip()
+def _self_questioning_base_url() -> str | None:
+    value = os.environ.get("MOCK_SELF_QUESTIONING_URL", "").strip()
     return value.rstrip("/") if value else None
 
 
-def self_play(root: Path, capability: str = "tool_use", n: int = 3) -> dict:
+def self_questioning(root: Path, capability: str = "tool_use", n: int = 3) -> dict:
     init(root)
-    sp_url = _self_play_base_url()
+    sp_url = _self_questioning_base_url()
     if sp_url:
         try:
-            from mock_self_play import self_play_via_http
+            from mock_self_questioning import self_questioning_via_http
         except ImportError:
-            from .mock_self_play import self_play_via_http
-        return self_play_via_http(sp_url, coaching_root=root, capability=capability, n=n)
+            from .mock_self_questioning import self_questioning_via_http
+        return self_questioning_via_http(sp_url, coaching_root=root, capability=capability, n=n)
     try:
-        from mock_self_play import MockSelfPlayEngine
+        from mock_self_questioning import MockSelfQuestioningEngine
     except ImportError:
-        from .mock_self_play import MockSelfPlayEngine
-    return MockSelfPlayEngine(root).generate_batch(coaching_root=root, capability=capability, n=n)
+        from .mock_self_questioning import MockSelfQuestioningEngine
+    return MockSelfQuestioningEngine(root).generate_batch(coaching_root=root, capability=capability, n=n)
 
 
 def negative_eval_marker(text: str) -> bool:
@@ -251,7 +251,7 @@ def evaluate(root: Path, candidate: str = "mock-candidate-v1", baseline: str = "
     p = paths(root)
     cases = read_jsonl(p["eval_cases"])
     if not cases:
-        self_play(root, n=3)
+        self_questioning(root, n=3)
         cases = read_jsonl(p["eval_cases"])
     results = [_score_case(c, candidate) for c in cases]
     passed_count = sum(1 for r in results if r["passed"])
@@ -316,7 +316,7 @@ def train(root: Path, pipeline: str = "sft", dataset: str | None = None, base_mo
     if dataset is None:
         dataset = str(p["train"])
     if not Path(dataset).exists():
-        self_play(root, n=4)
+        self_questioning(root, n=4)
     records = read_jsonl(Path(dataset))
     run_id = stable_id("train", {"pipeline": pipeline, "dataset": dataset, "base_model": base_model, "t": now()})
     log_file = p["logs"] / f"{run_id}.log"
@@ -351,7 +351,7 @@ def train(root: Path, pipeline: str = "sft", dataset: str | None = None, base_mo
 def run_all(root: Path, capability: str = "tool_use", pipeline: str = "sft") -> dict:
     init_result = init(root)
     learning = learn(root, "Mock seed: agent forgot to verify a file write", "run_all", capability)
-    play = self_play(root, capability, n=5)
+    play = self_questioning(root, capability, n=5)
     baseline_eval = evaluate(root, "mock-baseline-v0", "mock-baseline-v0")
     training = train(root, pipeline=pipeline)
     candidate_eval = evaluate(root, training["candidate"], "mock-baseline-v0")
@@ -365,7 +365,7 @@ def run_all(root: Path, capability: str = "tool_use", pipeline: str = "sft") -> 
         "root": str(root),
         "init": init_result,
         "learning_event_id": learning["id"],
-        "self_play": play,
+        "self_questioning": play,
         "baseline_eval": baseline_eval,
         "training": training,
         "candidate_eval": candidate_eval,
@@ -490,8 +490,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path == "/learning/events":
             return 200, learn(self.root, data.get("event", "mock event"),
                               data.get("source", "http"), data.get("capability", "tool_use"))
-        if path == "/self-play/generate":
-            return 200, self_play(self.root, data.get("capability", "tool_use"), int(data.get("n", 3)))
+        if path == "/self-questioning/generate":
+            return 200, self_questioning(self.root, data.get("capability", "tool_use"), int(data.get("n", 3)))
         if path == "/eval/runs":
             return 200, evaluate(self.root, data.get("candidate", "mock-candidate-v1"),
                                 data.get("baseline", "mock-baseline-v0"))
@@ -572,7 +572,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("init"); add_root(p)
     p = sub.add_parser("learn"); add_root(p); p.add_argument("--event", required=True); p.add_argument("--source", default="cli"); p.add_argument("--capability", default="tool_use")
-    p = sub.add_parser("self-play"); add_root(p); p.add_argument("--capability", default="tool_use"); p.add_argument("--n", type=int, default=3)
+    p = sub.add_parser("self-questioning"); add_root(p); p.add_argument("--capability", default="tool_use"); p.add_argument("--n", type=int, default=3)
     p = sub.add_parser("evaluate"); add_root(p); p.add_argument("--candidate", default="mock-candidate-v1"); p.add_argument("--baseline", default="mock-baseline-v0")
     p = sub.add_parser("train"); add_root(p); p.add_argument("--pipeline", choices=["sft", "grpo"], default="sft"); p.add_argument("--dataset"); p.add_argument("--base-model", default="mock-base")
     p = sub.add_parser("run-all"); add_root(p); p.add_argument("--capability", default="tool_use"); p.add_argument("--pipeline", choices=["sft", "grpo"], default="sft")
@@ -582,7 +582,7 @@ def main(argv: list[str] | None = None) -> int:
     root = Path(args.root).resolve()
     if args.cmd == "init": result = init(root)
     elif args.cmd == "learn": result = learn(root, args.event, args.source, args.capability)
-    elif args.cmd == "self-play": result = self_play(root, args.capability, args.n)
+    elif args.cmd == "self-questioning": result = self_questioning(root, args.capability, args.n)
     elif args.cmd == "evaluate": result = evaluate(root, args.candidate, args.baseline)
     elif args.cmd == "train": result = train(root, args.pipeline, args.dataset, args.base_model)
     elif args.cmd == "run-all": result = run_all(root, args.capability, args.pipeline)

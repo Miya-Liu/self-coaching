@@ -21,7 +21,7 @@ Usage:
 
     client = build_client("http", base_url="http://127.0.0.1:8765")
     client.learn(event="agent forgot verification", capability="tool_use")
-    play = client.self_play(capability="tool_use", n=4)
+    play = client.self_questioning(capability="tool_use", n=4)
     eval_summary = client.evaluate(candidate="cand-v2", baseline="cand-v1")
     report = client.eval_report(eval_summary["run_id"])
 
@@ -54,7 +54,7 @@ class SelfCoachingClient(Protocol):
     def health(self) -> dict[str, Any]: ...
     def learn(self, *, event: str, source: str = "client",
               capability: str = "tool_use") -> dict[str, Any]: ...
-    def self_play(self, *, capability: str = "tool_use",
+    def self_questioning(self, *, capability: str = "tool_use",
                   n: int = 3) -> dict[str, Any]: ...
     def evaluate(self, *, candidate: str = "mock-candidate-v1",
                  baseline: str = "mock-baseline-v0") -> dict[str, Any]: ...
@@ -118,8 +118,8 @@ class ModuleClient:
               capability: str = "tool_use") -> dict[str, Any]:
         return self._mod.learn(self._root, event, source, capability)
 
-    def self_play(self, *, capability: str = "tool_use", n: int = 3) -> dict[str, Any]:
-        return self._mod.self_play(self._root, capability, n)
+    def self_questioning(self, *, capability: str = "tool_use", n: int = 3) -> dict[str, Any]:
+        return self._mod.self_questioning(self._root, capability, n)
 
     def evaluate(self, *, candidate: str = "mock-candidate-v1",
                  baseline: str = "mock-baseline-v0") -> dict[str, Any]:
@@ -201,8 +201,8 @@ class CLIClient:
                          "--event", event, "--source", source,
                          "--capability", capability)
 
-    def self_play(self, *, capability: str = "tool_use", n: int = 3) -> dict[str, Any]:
-        return self._run("self-play", "--root", str(self._root),
+    def self_questioning(self, *, capability: str = "tool_use", n: int = 3) -> dict[str, Any]:
+        return self._run("self-questioning", "--root", str(self._root),
                          "--capability", capability, "--n", str(n))
 
     def evaluate(self, *, candidate: str = "mock-candidate-v1",
@@ -343,8 +343,8 @@ class HTTPClient:
         return self._request("POST", "/learning/events",
                              {"event": event, "source": source, "capability": capability})
 
-    def self_play(self, *, capability: str = "tool_use", n: int = 3) -> dict[str, Any]:
-        return self._request("POST", "/self-play/generate",
+    def self_questioning(self, *, capability: str = "tool_use", n: int = 3) -> dict[str, Any]:
+        return self._request("POST", "/self-questioning/generate",
                              {"capability": capability, "n": n})
 
     def evaluate(self, *, candidate: str = "mock-candidate-v1",

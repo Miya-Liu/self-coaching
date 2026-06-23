@@ -1,5 +1,5 @@
 ---
-name: self-play
+name: self-questioning
 description: "Use when generating, replaying, mutating, critiquing, and curating challenging agent tasks or trajectories for evals, SFT data, or preference/RL data."
 version: 0.3.1
 author: Hermes Agent
@@ -7,56 +7,56 @@ license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [self-coaching, self-play, data-curation, synthetic-data, trajectories, evaluation, pipeline-service]
+    tags: [self-coaching, self-questioning, data-curation, synthetic-data, trajectories, evaluation, pipeline-service]
     related_skills: [self-coaching, self-learning, self-evaluation, self-tuning, subagent-driven-development]
 required_environment_variables:
-  - name: ORCHESTRATOR_SELFPLAY_BACKEND
-    required_for: pipeline-self-play
+  - name: ORCHESTRATOR_SELF_QUESTIONING_BACKEND
+    required_for: pipeline-self-questioning
     optional: true
     rationale: "mock (default) | pipeline. Selects in-process mock vs Self-Questioning Pipeline Service."
   - name: PIPELINE_SERVICE_URL
-    required_for: pipeline-self-play
+    required_for: pipeline-self-questioning
     optional: true
     rationale: "Pipeline service base URL (e.g. http://host:8001). Alias: SELF_QUESTIONING_URL."
-  - name: MOCK_SELF_PLAY_URL
-    required_for: mock-http-self-play
+  - name: MOCK_SELF_QUESTIONING_URL
+    required_for: mock-http-self-questioning
     optional: true
-    rationale: "HTTP mock on :8767 — generate-suite (sparse) vs generate (batch). Unset → in-process MockSelfPlayEngine."
+    rationale: "HTTP mock on :8767 — generate-suite (sparse) vs generate (batch). Unset → in-process MockSelfQuestioningEngine."
   - name: PIPELINE_DRY_RUN
-    required_for: pipeline-self-play
+    required_for: pipeline-self-questioning
     optional: true
     rationale: "Set 1 for safe connectivity smoke — no GPU/LLM work."
   - name: PIPELINE_POLL_INTERVAL_S
-    required_for: pipeline-self-play
+    required_for: pipeline-self-questioning
     optional: true
     rationale: "Job status poll interval. Default 5."
   - name: PIPELINE_POLL_TIMEOUT_S
-    required_for: pipeline-self-play
+    required_for: pipeline-self-questioning
     optional: true
     rationale: "Max wait for pipeline job completion. Default 3600."
 ---
 
-# Self-Coaching: Self-Play and Data Curation
+# Self-Coaching: Self-Questioning and Data Curation
 
 ## Overview
 
-Self-play creates challenging tasks and trajectories from observed weaknesses. It should generate evaluation and training candidates, not automatically train on them.
+Self-questioning creates challenging tasks and trajectories from observed weaknesses. It should generate evaluation and training candidates, not automatically train on them.
 
-In this repository the self-play **module** is wired into the coaching loop in two places (sparse E-path and batch T-path). It can run against:
+In this repository the self-questioning **module** is wired into the coaching loop in two places (sparse E-path and batch T-path). It can run against:
 
 | Backend | When | What you get locally |
 |---------|------|----------------------|
 | **mock** (default) | Local dev, CI | Cases/trajectories in `.self-coaching/` + `proceed` via `status` |
-| **mock-http** | Split-stack smoke | Same as mock via `MOCK_SELF_PLAY_URL` |
+| **mock-http** | Split-stack smoke | Same as mock via `MOCK_SELF_QUESTIONING_URL` |
 | **pipeline** | Staging/production | Remote job on Self-Questioning Pipeline Service; **`proceed: true/false` only** — data stays in remote Supabase |
 
-A real self-play loop has five separable jobs: generate tasks, solve them, critique outputs, refine ideal trajectories, and curate/split records. Keep these roles separate when possible so the same model is not inventing, solving, judging, and approving its own data without checks.
+A real self-questioning loop has five separable jobs: generate tasks, solve them, critique outputs, refine ideal trajectories, and curate/split records. Keep these roles separate when possible so the same model is not inventing, solving, judging, and approving its own data without checks.
 
-**Implementation reference:** `docs/project/self-play-pipeline-implementation.md` · API: `services/SELF_QUESTIONING_SERVICE_API.md`
+**Implementation reference:** `docs/project/self-questioning-pipeline-implementation.md` · API: `services/SELF_QUESTIONING_SERVICE_API.md`
 
-## Runtime module — how the coaching loop uses self-play
+## Runtime module — how the coaching loop uses self-questioning
 
-The evolution loop does **not** call self-play on every tick. It triggers self-play only when thresholds are met:
+The evolution loop does **not** call self-questioning on every tick. It triggers self-questioning only when thresholds are met:
 
 | ID | Path | Trigger | Module call | Purpose |
 |----|------|---------|-------------|---------|
@@ -65,20 +65,20 @@ The evolution loop does **not** call self-play on every tick. It triggers self-p
 
 Code paths:
 
-- C06 → `modes/self-coaching/e_path.py` → `self_play_factory.run_suite_self_play()`
-- C07 → `modes/self-coaching/t_path.py` → `self_play_factory.run_batch_self_play()`
-- Orchestrator collect → `client.self_play(n=…)` → pipeline adapter when `ORCHESTRATOR_SELFPLAY_BACKEND=pipeline`
+- C06 → `modes/self-coaching/e_path.py` → `self_questioning_factory.run_suite_self_questioning()`
+- C07 → `modes/self-coaching/t_path.py` → `self_questioning_factory.run_batch_self_questioning()`
+- Orchestrator collect → `client.self_questioning(n=…)` → pipeline adapter when `ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline`
 
-Factory resolution (`modes/self-coaching/self_play_factory.py`):
+Factory resolution (`modes/self-coaching/self_questioning_factory.py`):
 
-1. Explicit `self_play_engine` injection (tests/coach clock)
-2. `ORCHESTRATOR_SELFPLAY_BACKEND=pipeline` → `SelfPlayPipelineEngine`
-3. `MOCK_SELF_PLAY_URL` / `SELF_PLAY_BASE_URL` → HTTP mock
-4. Else → in-process `MockSelfPlayEngine`
+1. Explicit `self_questioning_engine` injection (tests/coach clock)
+2. `ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline` → `SelfQuestioningPipelineEngine`
+3. `MOCK_SELF_QUESTIONING_URL` / `SELF_QUESTIONING_BASE_URL` → HTTP mock
+4. Else → in-process `MockSelfQuestioningEngine`
 
 ### Proceed signal (what the agent should check)
 
-After self-play completes, the loop needs to know whether to **advance** to the next step (`learn`, `train`, etc.). Check:
+After self-questioning completes, the loop needs to know whether to **advance** to the next step (`learn`, `train`, etc.). Check:
 
 ```python
 result.get("proceed") is True
@@ -122,19 +122,19 @@ Pipeline jobs do **not** mirror rows into local `staging.jsonl`. Generated data 
 ```bash
 # Minimal live profile — copy scenarios/demo.pipeline.env.example
 export LOOP_SERVICE_MODE=live
-export ORCHESTRATOR_SELFPLAY_BACKEND=pipeline
+export ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline
 export PIPELINE_SERVICE_URL=http://10.110.158.146:8001
 export PIPELINE_POLL_INTERVAL_S=5
 export PIPELINE_POLL_TIMEOUT_S=3600
 
 # Safe smoke (no real GPU/LLM):
 export PIPELINE_DRY_RUN=1
-python scripts/pipeline_self_play_smoke.py
+python scripts/pipeline_self_questioning_smoke.py
 ```
 
 | Variable | Role |
 |----------|------|
-| `ORCHESTRATOR_SELFPLAY_BACKEND` | `mock` (default) or `pipeline` |
+| `ORCHESTRATOR_SELF_QUESTIONING_BACKEND` | `mock` (default) or `pipeline` |
 | `PIPELINE_SERVICE_URL` | Pipeline API base (`/api/pipeline/submit`, `/status/{job_id}`) |
 | `PIPELINE_BATCH_TRAIN_EVAL_FLAG` | C07 data source: default `train` |
 | `PIPELINE_TRAIN_EVAL_FLAG` | C06 data source: default `eval` |
@@ -144,20 +144,20 @@ In `LOOP_SERVICE_MODE=live`, if `PIPELINE_SERVICE_URL` is set and backend is uns
 
 ### C06 prerequisite (pipeline only)
 
-Mock sparse self-play seeds from a **local failure trajectory** (`user_query`, `trajectory`, `eval_score`). The pipeline reads **eval messages from Supabase** on the pipeline host (stage 1). Before non-dry production runs, ensure eval failures are ingested into that store.
+Mock sparse self-questioning seeds from a **local failure trajectory** (`user_query`, `trajectory`, `eval_score`). The pipeline reads **eval messages from Supabase** on the pipeline host (stage 1). Before non-dry production runs, ensure eval failures are ingested into that store.
 
 ### Smoke and health
 
 ```bash
 # Adapter + batch + suite (dry_run)
-PIPELINE_DRY_RUN=1 python scripts/pipeline_self_play_smoke.py
+PIPELINE_DRY_RUN=1 python scripts/pipeline_self_questioning_smoke.py
 
 # HTTP contract probes (opt-in)
 PIPELINE_INTEGRATION_TESTS=1 pytest tests/integration/test_pipeline_service_availability.py -v
 
 # Coach clock with pipeline env loaded
 python modes/coach/clock.py run --root <coaching-root> --json
-# Expect: batch_self_play_proceed: true
+# Expect: batch_self_questioning_proceed: true
 ```
 
 ## When to Use
@@ -170,7 +170,7 @@ Use this skill when:
 - you need hard negative examples or adversarial variants;
 - you need solver/critic/refiner trajectories for SFT or preference data.
 
-Do not use self-play to fabricate evidence of improvement. Self-play creates candidates; evaluation and curation decide whether candidates are useful.
+Do not use self-questioning to fabricate evidence of improvement. Self-questioning creates candidates; evaluation and curation decide whether candidates are useful.
 
 ## Inputs and Outputs
 
@@ -184,7 +184,7 @@ Inputs can come from:
 Outputs should be JSONL records assigned to one of three destinations:
 
 ```text
-.self-coaching/cases/self_play_candidates.jsonl  # generated, not trusted yet
+.self-coaching/cases/self_questioning_candidates.jsonl  # generated, not trusted yet
 .self-coaching/cases/eval_cases.jsonl           # held-out fixed eval cases
 .self-coaching/curated/train.jsonl              # training split
 .self-coaching/curated/validation.jsonl         # validation split
@@ -240,13 +240,13 @@ Return JSONL records only.
 Each case should include at least:
 
 ```json
-{"id":"case-001","source":"self_play","capability":["tool_use"],"user_request":"...","context":"...","constraints":[],"hidden_pitfall":"...","expected_artifacts":[],"rubric":{"must":[],"fail":[]},"deterministic_checks":[],"ideal_response":"...","labels":{"difficulty":"medium","privacy_checked":true,"provenance":"generated_from_eval_failure","use_for":["eval"]}}
+{"id":"case-001","source":"self_questioning","capability":["tool_use"],"user_request":"...","context":"...","constraints":[],"hidden_pitfall":"...","expected_artifacts":[],"rubric":{"must":[],"fail":[]},"deterministic_checks":[],"ideal_response":"...","labels":{"difficulty":"medium","privacy_checked":true,"provenance":"generated_from_eval_failure","use_for":["eval"]}}
 ```
 
 Trajectory records for training should add observable messages/tool summaries:
 
 ```json
-{"id":"traj-001","case_id":"case-001","source":"self_play_solver","messages":[],"tool_trace_summary":[],"critique":{"score":0.0,"failures":[]},"ideal_response":"...","labels":{"privacy_checked":true,"use_for":["train"]}}
+{"id":"traj-001","case_id":"case-001","source":"self_questioning_solver","messages":[],"tool_trace_summary":[],"critique":{"score":0.0,"failures":[]},"ideal_response":"...","labels":{"privacy_checked":true,"use_for":["train"]}}
 ```
 
 ## Curation Gates
@@ -264,7 +264,7 @@ Reject a case or trajectory if:
 
 - To evaluation: append fixed, privacy-checked cases to `.self-coaching/cases/eval_cases.jsonl` and load **self-evaluation**.
 - To training: append curated demonstrations to `.self-coaching/curated/train.jsonl` or preference records to the training pool, then load `self-tuning/SKILL.md`. *(Mock backend only for pipeline-sourced data — pipeline rows stay remote until a future export path exists.)*
-- To self-learning: if self-play reveals a missing procedure, patch the relevant skill instead of making only training data.
+- To self-learning: if self-questioning reveals a missing procedure, patch the relevant skill instead of making only training data.
 - **After C06 with `proceed: true`:** hand off to **self-learning** on the support set Σ.
 - **After C07 with `proceed: true` (mock):** buffer B may be ready for **self-tuning** when size ≥ β.
 - **After any `proceed: false`:** do not advance the gated next step; record `job_id` / `error` in the loop audit (`e_path_last.json` or `t_path_last.json`).

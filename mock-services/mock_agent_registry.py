@@ -3,7 +3,7 @@
 """Mock agent registry — version lineage for skills, tools, memory, and model_id.
 
 Persists JSON under {data_dir}/agents/{agent_id}/. Used by mock AgentEvals (Phase 0)
-and planned self-learning / self-play / AERL mocks.
+and planned self-learning / self-questioning / AERL mocks.
 
 CLI:
   python mock_agent_registry.py init --data-dir ./demo-stack --agent-id example-agent

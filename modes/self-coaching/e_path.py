@@ -66,12 +66,25 @@ def augment_sigma_sparse(
         "version_id": version_id,
     }
 
+    from services.adapters.step_log import step_log
+
+    step_log(
+        "e-path",
+        f"C06 sparse self-questioning: submitting to pipeline (n_variants={n_variants}, sigma={sigma_size})",
+    )
     result = run_suite_self_questioning(
         coaching_root=coaching_root,
         body=body,
         config=config,
         engine=self_questioning_engine,
     )
+    if result:
+        step_log(
+            "e-path",
+            "C06 complete:"
+            f" proceed={result.get('proceed')}"
+            f" job_id={result.get('job_id') or result.get('suite_id') or 'n/a'}",
+        )
 
     staging = coaching_root / ".self-coaching" / "curated" / "staging.jsonl"
     # Pipeline backend: remote data stays in Supabase; only proceed signal matters.
@@ -155,6 +168,9 @@ def run_e_path(
         )
         return held
 
+    from services.adapters.step_log import step_log
+
+    step_log("e-path", f"E.learn(): skill patch from {len(sigma)} support entries")
     sigma_size_before_learn = len(sigma)
     result = learn_from_sigma(client, sigma)
     routing = result.get("routing") or {}

@@ -9,6 +9,7 @@ import urllib.parse
 from typing import Any
 
 from .pipeline_http import PipelineHTTPBase, PipelineHTTPError
+from .step_log import step_log
 
 _TERMINAL_STATUSES = frozenset({"success", "failed"})
 
@@ -48,15 +49,38 @@ class PipelineServiceClient(PipelineHTTPBase):
     def wait_for_job(self, job_id: str) -> dict[str, Any]:
         deadline = time.time() + self.poll_timeout_s
         last: dict[str, Any] | None = None
+        started = time.time()
+        last_status: str | None = None
+        last_heartbeat = started
         while time.time() < deadline:
             last = self.status(job_id)
             job_status = str(last.get("status", "")).lower()
+            stage_results = last.get("stage_results")
+            stage_hint = ""
+            if isinstance(stage_results, dict) and stage_results:
+                done = sum(1 for v in stage_results.values() if v)
+                stage_hint = f", stages={done}/{len(stage_results)}"
+            elapsed = time.time() - started
+            if job_status != last_status:
+                step_log(
+                    "pipeline",
+                    f"job {job_id}: status={job_status or 'unknown'}{stage_hint} ({elapsed:.0f}s elapsed)",
+                )
+                last_status = job_status
+                last_heartbeat = time.time()
+            elif time.time() - last_heartbeat >= 60:
+                step_log(
+                    "pipeline",
+                    f"job {job_id}: still {job_status or 'unknown'}{stage_hint} ({elapsed:.0f}s elapsed)",
+                )
+                last_heartbeat = time.time()
             if job_status in _TERMINAL_STATUSES:
                 if job_status != "success":
                     raise PipelineHTTPError(
                         f"pipeline job {job_id} ended with status={job_status!r}",
                         body=last,
                     )
+                step_log("pipeline", f"job {job_id}: finished success ({elapsed:.0f}s)")
                 return last
             time.sleep(self.poll_interval_s)
         raise PipelineHTTPError(

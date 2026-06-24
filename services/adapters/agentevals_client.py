@@ -11,6 +11,8 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from .step_log import step_log
+
 
 class AgentEvalsError(RuntimeError):
     """AgentEvals API or poll failure."""
@@ -75,15 +77,27 @@ class AgentEvalsClient:
         deadline = time.time() + self.poll_timeout_s
         terminal = {"succeeded", "failed", "cancelled", "canceled"}
         last: dict[str, Any] | None = None
+        started = time.time()
+        last_status: str | None = None
+        last_heartbeat = started
         while time.time() < deadline:
             last = self.get_run(run_id)
             status = str(last.get("status", "")).lower()
+            elapsed = time.time() - started
+            if status != last_status:
+                step_log("agentevals", f"run {run_id}: status={status or 'unknown'} ({elapsed:.0f}s elapsed)")
+                last_status = status
+                last_heartbeat = time.time()
+            elif time.time() - last_heartbeat >= 60:
+                step_log("agentevals", f"run {run_id}: still {status or 'unknown'} ({elapsed:.0f}s elapsed)")
+                last_heartbeat = time.time()
             if status in terminal:
                 if status != "succeeded":
                     raise AgentEvalsError(
                         f"eval run {run_id} ended with status={status!r}",
                         body=last,
                     )
+                step_log("agentevals", f"run {run_id}: finished succeeded ({elapsed:.0f}s)")
                 return last
             time.sleep(self.poll_interval_s)
         raise AgentEvalsError(

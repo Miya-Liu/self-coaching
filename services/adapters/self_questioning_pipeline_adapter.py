@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-LOG = logging.getLogger("selfplay.pipeline")
+LOG = logging.getLogger("self_questioning.pipeline")
 
 from .pipeline_http import PipelineHTTPError
 from .pipeline_mapping import (
@@ -20,6 +20,7 @@ from .pipeline_mapping import (
     pipeline_job_succeeded,
 )
 from .pipeline_service_client import PipelineServiceClient
+from .step_log import step_log
 
 
 class SelfQuestioningPipelineEngine:
@@ -87,6 +88,7 @@ class SelfQuestioningPipelineEngine:
                 job_id = str(submitted.get("job_id") or "") or None
                 if not job_id:
                     raise PipelineHTTPError("pipeline submit returned no job_id", body=submitted)
+                step_log("pipeline", f"C07 batch submitted job_id={job_id} (n={n}) — waiting")
                 finished = self._client.wait_for_job(job_id)
             return map_batch_result(finished, requested_n=n)
         except PipelineHTTPError as exc:
@@ -117,6 +119,7 @@ class SelfQuestioningPipelineEngine:
                 job_id = str(submitted.get("job_id") or "") or None
                 if not job_id:
                     raise PipelineHTTPError("pipeline submit returned no job_id", body=submitted)
+                step_log("pipeline", f"C06 suite submitted job_id={job_id} (n_variants={n_variants}) — waiting")
                 finished = self._client.wait_for_job(job_id)
             return map_suite_result(finished, requested_n=n_variants)
         except PipelineHTTPError as exc:

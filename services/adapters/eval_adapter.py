@@ -84,6 +84,9 @@ class AgentEvalsEvalAdapter:
         run_id = str(created.get("id") or created.get("run_id") or "")
         if not run_id:
             raise AgentEvalsError("create_run response missing id", body=created)
+        from .step_log import step_log
+
+        step_log("agentevals", f"holdout eval started run_id={run_id} suite={suite_id}")
         detail = self._client.wait_for_run(run_id)
         report = run_detail_to_mock_report(detail, candidate=candidate, baseline=baseline)
         self._cache[run_id] = report

@@ -72,7 +72,7 @@ def test_generate_batch_poll_timeout_logs_warning(caplog: pytest.LogCaptureFixtu
     )
 
     engine = SelfQuestioningPipelineEngine(client)
-    with caplog.at_level("WARNING", logger="selfplay.pipeline"):
+    with caplog.at_level("WARNING", logger="self_questioning.pipeline"):
         result = engine.generate_batch(n=2)
 
     assert result["proceed"] is False

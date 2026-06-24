@@ -103,10 +103,15 @@ def run_t_path(
     from services.adapters.holdout_engine import build_holdout_engine
     from services.orchestrator.drop_detector import check_promotion, load_thresholds
 
+    from services.adapters.step_log import step_log
+
     batch_size = beta if beta is not None else batch_size_threshold()
     active_rows = loop_store.active_buffer_rows()
+    step_log("t-path", f"buffer B: {len(active_rows)} active row(s), beta={batch_size}")
     batch_fill: dict[str, Any] | None = None
     if len(active_rows) < batch_size:
+        need = batch_size - len(active_rows)
+        step_log("t-path", f"C07 batch self-questioning: requesting n={need} from pipeline")
         batch_fill = fill_buffer_batch(
             coaching_root=coaching_root,
             loop_store=loop_store,
@@ -117,6 +122,13 @@ def run_t_path(
             self_questioning_engine=self_questioning_engine,
             config=config,
         )
+        if batch_fill:
+            step_log(
+                "t-path",
+                "C07 complete:"
+                f" proceed={batch_fill.get('proceed')}"
+                f" job_id={batch_fill.get('job_id') or batch_fill.get('suite_id') or 'n/a'}",
+            )
         if batch_fill.get("pipeline_service") and not batch_fill.get("proceed"):
             run_dir = coaching_root / ".self-coaching" / "loop" / "runs" / "t_path"
             run_dir.mkdir(parents=True, exist_ok=True)
@@ -146,7 +158,17 @@ def run_t_path(
     base_model = str((production_version_doc.get("components") or {}).get("model_id", "mock-base"))
 
     dataset_path = loop_store.export_train_dataset(active_rows)
+    step_log(
+        "t-path",
+        f"CLI train: dispatching remote job (pipeline={pipeline!r}, dataset_rows={len(active_rows)})",
+    )
     train_result = client.train(pipeline=pipeline, dataset=str(dataset_path), base_model=base_model)
+    step_log(
+        "t-path",
+        "CLI train complete:"
+        f" status={train_result.get('terminal_status') or train_result.get('status')}"
+        f" candidate={train_result.get('candidate') or train_result.get('candidate_model_id')}",
+    )
     trained_model = candidate_model_id or str(train_result.get("candidate") or "mock-sft-candidate")
 
     draft = registry.create_version(
@@ -159,12 +181,14 @@ def run_t_path(
     candidate_version_id = str(draft["version_id"])
 
     eval_engine = agentevals_engine or build_holdout_engine(coaching_root)
+    step_log("t-path", "AgentEvals holdout: evaluating production baseline")
     current_metrics = _holdout_metrics(
         eval_engine,
         agent_id=agent_id,
         version_id=production_version,
         coaching_root=coaching_root,
     )
+    step_log("t-path", f"AgentEvals holdout: evaluating candidate version {candidate_version_id}")
     candidate_metrics = _holdout_metrics(
         eval_engine,
         agent_id=agent_id,
@@ -174,6 +198,10 @@ def run_t_path(
 
     thresholds = load_thresholds(THRESHOLDS_PATH)
     ok, gate_reasons = check_promotion(current_metrics, candidate_metrics, thresholds)
+    step_log(
+        "t-path",
+        f"holdout gate: {'promote' if ok else 'reject'} — reasons={gate_reasons or []}",
+    )
 
     consumed = 0
     if ok:

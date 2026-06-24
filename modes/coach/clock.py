@@ -135,6 +135,9 @@ def _run_tick_inner(
     registry.ensure_agent(agent_id)
     generation_before = LoopStateStore(root).load().generation
 
+    from services.adapters.step_log import step_log
+
+    step_log("clock", "phase 1/4: E-path — score failures, C06 sparse self-questioning, learn")
     # Phase 1 — observe failures → self-evolution (sparse self-questioning + learn)
     run_tasks(
         root,
@@ -148,6 +151,7 @@ def _run_tick_inner(
         trajectory_fn=trajectory_fn,
     )
 
+    step_log("clock", "phase 2/4: buffer fill — score tasks into tuning buffer B")
     # Phase 2 — partial buffer fill (forces C07 batch self-questioning on T-path)
     run_tasks(
         root,
@@ -164,6 +168,7 @@ def _run_tick_inner(
     # Phase 3 — optionally regress production model so holdout gate can promote candidate.
     # Demo scenarios set force_regression: true; production defaults to false.
     if scenario.get("force_regression", False):
+        step_log("clock", "phase 3/4: force regression — activate bad baseline for holdout gate")
         bad = registry.create_version(
             agent_id,
             components={"model_id": "bad-regress-v1"},
@@ -171,6 +176,7 @@ def _run_tick_inner(
         )
         registry.activate(agent_id, bad["version_id"])
 
+    step_log("clock", "phase 4/4: T-path — C07 batch, CLI train, AgentEvals holdout, promote/reject")
     # Phase 4 — idle window → batch self-questioning fill + self-tuning
     loop_store = LoopStore(root)
     state = LoopStateStore(root).load()

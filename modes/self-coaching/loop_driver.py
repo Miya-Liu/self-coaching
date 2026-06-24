@@ -214,6 +214,12 @@ def run_tasks(
             state.buffer_count = len(loop_store.active_buffer_rows())
 
         if enable_e_path and len(sigma) >= sigma_threshold:
+            from services.adapters.step_log import step_log
+
+            step_log(
+                "clock",
+                f"sigma threshold reached ({len(sigma)}/{sigma_threshold}) — running E-path",
+            )
             run_e_path(
                 sigma,
                 client=loop_client,

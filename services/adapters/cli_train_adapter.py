@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from .cli_train_commands import TrainCommandSpec, build_train_command_spec
 from .cli_train_errors import TrainerCLIError, TrainerTimeoutError
 from .cli_train_output import parse_training_marker, resolve_candidate
 from .cli_train_transport import CLITrainTransport
+from .step_log import step_log
 
 
 def map_cli_train_result(
@@ -94,12 +96,30 @@ class CLITrainAdapter:
 
         spec = build_train_command_spec(pipeline=pipeline, base_model=base_model)
         transport = self._transport_or_env()
+        started = time.time()
+        last_status: str | None = None
+        last_heartbeat = started
+
+        def _on_poll(row: dict[str, Any]) -> None:
+            nonlocal last_status, last_heartbeat
+            status = str(row.get("status") or "unknown")
+            elapsed = time.time() - started
+            if status != last_status:
+                step_log("cli-train", f"cmd {row.get('id')}: status={status} ({elapsed:.0f}s elapsed)")
+                last_status = status
+                last_heartbeat = time.time()
+            elif time.time() - last_heartbeat >= 60:
+                step_log("cli-train", f"cmd {row.get('id')}: still {status} ({elapsed:.0f}s elapsed)")
+                last_heartbeat = time.time()
+
+        step_log("cli-train", f"submitted remote train tmux_id={spec.tmux_id}")
         try:
             row = transport.send_and_wait(
                 spec.command,
                 cwd=spec.cwd,
                 tmux_id=spec.tmux_id,
                 timeout_seconds=spec.timeout_seconds,
+                on_poll=_on_poll,
             )
         except TrainerTimeoutError as exc:
             if exc.cmd_id:

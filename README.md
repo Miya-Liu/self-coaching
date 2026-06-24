@@ -81,21 +81,60 @@ The loop routes each capability through **`ORCHESTRATOR_*_BACKEND`** env flags. 
 
 Legacy alias: `ORCHESTRATOR_SELFPLAY_BACKEND` → `ORCHESTRATOR_SELF_QUESTIONING_BACKEND` (still accepted in `.env` files).
 
-Set `LOOP_SERVICE_MODE=live` and copy the matching profile from `scenarios/*.env.example` → `scenarios/*.env` (gitignored; do not commit secrets). Full runbook: [`docs/guides/runbook.md`](docs/guides/runbook.md#live-integration-validation-track-1).
+Set `LOOP_SERVICE_MODE=live` and use the [team share](#team-environment-setup-real-env-files) for the full live profile (`demo.live.env`). Full runbook: [`docs/guides/runbook.md`](docs/guides/runbook.md#live-integration-validation-track-1).
 
 ### Team environment setup (real `.env` files)
 
-Committed `scenarios/*.env.example` files hold **non-secret** defaults (service URLs, suite IDs, timeouts). Each teammate copies locally:
+Filled env files are **not in git**. How you get each file depends on the profile:
+
+#### Evolution loop profiles — from team share
+
+These files hold secrets and live service values for the coach evolution loop. They live on the IT share (not in git):
+
+**Share directory:** `10.110.158.146:/opt/coach/envs/`
+
+| Share file | Local path | Use |
+|------------|------------|-----|
+| `demo.live.env` | `scenarios/demo.live.env` | **Track 1** — AgentEvals + Pipeline + CLI train (`evolution_loop_clock_smoke.py`) |
+| `demo.evolution-loop.env` | `scenarios/demo.evolution-loop.env` | **Coach clock** — Pipeline + CLI train, mock eval (`modes/coach/agents.live.yaml`) |
+
+Copy into the repo (from repo root; replace `<user>` with your SSH login):
 
 ```bash
-cp scenarios/demo.live.env.example scenarios/demo.live.env
-# or per-backend profiles:
+scp <user>@10.110.158.146:/opt/coach/envs/demo.live.env scenarios/demo.live.env
+scp <user>@10.110.158.146:/opt/coach/envs/demo.evolution-loop.env scenarios/demo.evolution-loop.env
+```
+
+If you are already on `10.110.158.146`, use `cp` instead:
+
+```bash
+cp /opt/coach/envs/demo.live.env scenarios/demo.live.env
+cp /opt/coach/envs/demo.evolution-loop.env scenarios/demo.evolution-loop.env
+```
+
+When infra or secrets change, whoever maintains the share updates those files and notifies the team to re-copy.
+
+#### Layer 1 profiles — create locally from examples
+
+These files are **not on the share**. Only the committed `*.env.example` templates exist in git. Create the gitignored copies locally when you need isolated backend smoke tests:
+
+```bash
 cp scenarios/demo.agentevals.env.example scenarios/demo.env
 cp scenarios/demo.pipeline.env.example scenarios/demo.pipeline.env
 cp scenarios/demo.cli-train.env.example scenarios/demo.cli-train.env
 ```
 
-Then fill **secret** placeholders (`<your-service-role-key>`, `<your-bridge-user-id>`, API keys) from your team secret store — never commit the filled `.env` files. Share secrets out-of-band (1Password, Vault, encrypted channel); keep only `*.env.example` in git.
+Edit as needed (e.g. Supabase keys in `demo.cli-train.env`). URLs and non-secret defaults are already set in the examples.
+
+| Local file (gitignored) | Source |
+|-------------------------|--------|
+| `scenarios/demo.live.env` | Team share |
+| `scenarios/demo.evolution-loop.env` | Team share |
+| `scenarios/demo.env` | `scenarios/demo.agentevals.env.example` |
+| `scenarios/demo.pipeline.env` | `scenarios/demo.pipeline.env.example` |
+| `scenarios/demo.cli-train.env` | `scenarios/demo.cli-train.env.example` |
+
+Never commit filled `.env` files.
 
 Verify connectivity before a long run:
 
@@ -104,7 +143,7 @@ python scripts/agentevals_live_smoke.py
 python scripts/evolution_loop_clock_smoke.py --env-file scenarios/demo.live.env --phase preflight
 ```
 
-Mock-only work needs no `.env` copy: `python scripts/clock_loop_smoke.py` and `pytest -q` use in-process mocks by default.
+Mock-only work needs no env files: `python scripts/clock_loop_smoke.py` and `pytest -q` use in-process mocks by default.
 
 ### Layer 0 — all mock (CI baseline)
 
@@ -148,7 +187,7 @@ Requires `run_shell_runner` active on the AReaL GPU host.
 
 ### Layer 2 — full live integration (Track 1)
 
-All three real backends + mock learn. Copy `scenarios/demo.live.env.example` → `scenarios/demo.live.env`.
+All three real backends + mock learn. Fetch `scenarios/demo.live.env` from the [team share](#team-environment-setup-real-env-files) (not from git).
 
 Run in order (do not skip CLI probe before a full tick when `ORCHESTRATOR_TRAIN_BACKEND=cli`):
 

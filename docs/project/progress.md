@@ -15,7 +15,7 @@
 | Self-play | **M3 complete** | `mock_self_questioning.py` + pipeline adapter | Opt-in `pipeline-integration` workflow |
 | Skill learning | **M2 complete** | adapters + mock routes + evolve API | Production staging (M2 deferred) |
 | Model training | **CLI v1 done** | `CLITrainAdapter`, db_bridge transport | CT-D01 dataset handoff · live T-path |
-| Coach mode shell | **Scheduler shipped** | registry, clock, scheduler, service | Production agent bridge |
+| Coach mode shell | **Scheduler shipped** | registry, clock, scheduler, service, live bridge opt-in | Cron/systemd examples, coaching-root validation |
 | Deployment | Dry-run | `deploy_manifest.json` | Canary + rollback (M4) |
 | LLM proxy | Not started | — | M5 optional |
 
@@ -32,7 +32,7 @@
 | Track | Exit criterion | Status |
 |-------|---------------|--------|
 | Mock-complete (R5) | `completeness PASS` on mock golden (`tests/fixtures/golden/completeness_report_full_loop.json`) | ✅ CI green |
-| Live Track 1 | `evolution_loop_clock_smoke.py` exits 0 (C06 ✓, C07 ✓, C12 ✓, C18 ✓) | ❌ C07 timeout config (fix applied, pending retest) |
+| Live Track 1 | `evolution_loop_clock_smoke.py` exits 0 (C06 ✓, C07 ✓, C12 ✓, C18 ✓) | ⚠️ dry-run pass observed; **CLI probe fails** (runner); **full non-dry-run pending** |
 | Live meaningful train | CT-D01 dataset handoff + CT-D05 holdout with real training data | ❌ deferred |
 | Production deploy | T2 Dockerfile + sqlite + canary + rollback (roadmap M2–M4) | ❌ not started |
 

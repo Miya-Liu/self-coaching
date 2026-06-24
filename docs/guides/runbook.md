@@ -162,3 +162,116 @@ print(c.health())
 ```
 
 T-path with real train + holdout remains deferred until dataset handoff (CT-D01).
+
+## Live integration validation (Track 1)
+
+End-to-end coach clock tick with **live** pipeline self-questioning, CLI train (db_bridge), and AgentEvals holdout. Entry point: `scripts/evolution_loop_clock_smoke.py`.
+
+**Env profile:** copy [scenarios/demo.live.env.example](../../scenarios/demo.live.env.example) → `scenarios/demo.live.env` (gitignored). Use `ORCHESTRATOR_SELF_QUESTIONING_BACKEND=pipeline` (legacy `ORCHESTRATOR_SELFPLAY_BACKEND` is still accepted).
+
+### Prerequisites
+
+| Service | Typical URL | Verify |
+|---------|-------------|--------|
+| Pipeline | `http://10.110.158.146:8001` | `curl …/health` → `{"status":"ok"}` |
+| Supabase | your `SUPABASE_URL` | REST root → HTTP 200 with service role key |
+| AgentEvals | `http://localhost:8080` | `curl …/health` → ok |
+| AReaL runner | GPU host | `run_shell_runner` active — required for CLI train |
+
+Key timeouts in `demo.live.env`:
+
+| Variable | Recommended | Purpose |
+|----------|-------------|---------|
+| `PIPELINE_POLL_TIMEOUT_S` | `3600` | Real C07 batch (10–60+ min) |
+| `PIPELINE_PREFLIGHT_TIMEOUT_S` | `30` | Health + dry_run preflight only |
+| `CLI_TRAIN_TIMEOUT` | `3600` | Remote training |
+| `AGENTEVALS_TIMEOUT_S` | `600` | Holdout suite |
+| `LOOP_HOLDOUT_TIMEOUT_S` | `300` | Holdout gate in loop |
+
+### Step 1 — Preflight (~30s)
+
+```bash
+python scripts/evolution_loop_clock_smoke.py --env-file scenarios/demo.live.env --phase preflight
+```
+
+All three services must report ok before a long run.
+
+### Step 2 — CLI probe (before full live)
+
+Validates db_bridge insert → runner claim → stdout capture. **Do not skip** if `ORCHESTRATOR_TRAIN_BACKEND=cli`:
+
+```bash
+python scripts/evolution_loop_clock_smoke.py --env-file scenarios/demo.live.env --phase preflight --probe-cli
+```
+
+Alternative:
+
+```bash
+python scripts/remote_shell.py --env-file scenarios/demo.live.env -- echo hello
+python scripts/cli_train_smoke.py --env-file scenarios/demo.live.env --probe
+```
+
+If probe fails: start `run_shell_runner` on the AReaL host (`AREAL_REMOTE_SHELL_ENABLED=true`).
+
+### Step 3 — Dry run (optional, ~1–5 min)
+
+Integrated tick with `PIPELINE_DRY_RUN=1` and **mock train** (train backend temporarily mock). Can pass C06/C07 golden subset when pipeline cooperates:
+
+```bash
+python scripts/evolution_loop_clock_smoke.py --env-file scenarios/demo.live.env --dry-run
+```
+
+`promoted=false` on holdout ties (0.0 vs 0.0) is normal — not required for dry-run PASS.
+
+### Step 4 — Full live tick (30–90+ min)
+
+```bash
+python scripts/evolution_loop_clock_smoke.py --env-file scenarios/demo.live.env
+```
+
+Flow: E-path (fixtures + C06 pipeline) → buffer → T-path (C07 pipeline → CLI train → AgentEvals holdout → promote/reject).
+
+Success criteria for Track 1: script exits 0; golden rows **C06, C07, C12, C18** pass. `promoted=true` is **not** required (holdout gate may reject).
+
+### Step 5 — Write golden (on full live PASS only)
+
+```bash
+python scripts/evolution_loop_clock_smoke.py --env-file scenarios/demo.live.env --write-golden
+```
+
+Updates `tests/fixtures/golden/completeness_report_evolution_loop_live.json`.
+
+### Triage
+
+| Symptom | Likely cause | Action |
+|---------|--------------|--------|
+| C07 `proceed=false` / timeout | Poll budget or pipeline failure | Read `t_path_last.json` → `batch_fill.error`; increase `PIPELINE_POLL_TIMEOUT_S`; check pipeline logs |
+| CLI probe timeout | Runner down / row stuck PENDING | Start runner; `scripts/remote_shell.py -- echo hello` |
+| CLI `TIMED_OUT` | Exceeded `CLI_TRAIN_TIMEOUT` | Increase timeout; cancel-on-timeout should have requested remote cancel |
+| CLI `FAILED` | Bad remote config/script | Read `stdout_tail` / `stderr_tail` in row or `t_path_last.json` |
+| Missing holdout `run_id` | AgentEvals down or suite mismatch | Check `AGENTEVALS_*` and local service |
+| `promoted=false`, no errors | Holdout gate | Expected when candidate ≤ baseline; see `gate_reasons` |
+
+**Note:** Pipeline poll timeout logs a warning but does **not** cancel the remote job (no cancel API yet). CLI train uses `request_cancel` on client poll timeout.
+
+### Artifacts
+
+Under `mock-services/ci-evolution-loop/.self-coaching/loop/`:
+
+| File | Contents |
+|------|----------|
+| `e_path_last.json` | C06, learn, sigma |
+| `t_path_last.json` | C07, train, holdout, promote |
+| `completeness_report.json` | C01–C18 audit |
+| `clock_summary.md` | Human summary |
+| `state.json` | generation, tasks processed |
+
+### Opt-in pytest
+
+```bash
+EVOLUTION_LOOP_INTEGRATION_TESTS=1 EVOLUTION_LOOP_ENV_FILE=scenarios/demo.live.env \
+  pytest tests/integration/test_evolution_loop_live.py -k preflight -v
+
+EVOLUTION_LOOP_INTEGRATION_TESTS=1 EVOLUTION_LOOP_INTEGRATION_TICK=1 \
+  pytest tests/integration/test_evolution_loop_live.py -k full_tick -v
+```

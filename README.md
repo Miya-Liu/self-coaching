@@ -45,10 +45,10 @@ sequenceDiagram
     G->>C: Load training data
     C->>M: Load model checkpoint
     G->>A: Experiment Ready
-    A->>D: Create experiment + worktree
+    A->>D: Create experiment and worktree
     loop Experiment iterations
-        A->>T: Edit in worktree; run train
-        T->>A: Results / errors
+        A->>T: Edit in worktree, run train
+        T->>A: Results or errors
     end
     A->>U: Request authorization
     alt Approve

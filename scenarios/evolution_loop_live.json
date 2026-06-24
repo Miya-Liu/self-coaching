@@ -5,8 +5,8 @@
   "execution_mode": "autonomous",
   "force_regression": true,
   "task_streams": {
-    "e_path": "mock-services/fixtures/task_stream/clock_loop_e_v1.jsonl",
-    "buffer": "mock-services/fixtures/task_stream/clock_loop_buffer_v1.jsonl"
+    "e_path": "mock-services/fixtures/task_stream/evolution_loop_e_fast_v1.jsonl",
+    "buffer": "mock-services/fixtures/task_stream/evolution_loop_buffer_fast_v1.jsonl"
   },
   "e_path": {
     "expect_sparse_self_questioning": true,
@@ -17,9 +17,9 @@
     "semantic_checks": ["C18"]
   },
   "loop": {
-    "sigma_min": 3,
-    "sigma_play": 3,
-    "beta": 4,
+    "sigma_min": 1,
+    "sigma_play": 1,
+    "beta": 1,
     "tau_fail": 0.75,
     "idle_after": 0,
     "enable_e_path": true,

@@ -1,0 +1,1 @@
+{"task_id": "cl-tp-001", "capability": ["tool_use"], "user_request": "Fetch deployment status and summarize it.", "expected_tool_calls": ["fetch status", "summarize"], "answer_checks": [{"type": "contains", "value": "deployment status"}], "agent_profile": {"outcome": "perfect"}}

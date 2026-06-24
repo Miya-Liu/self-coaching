@@ -1,0 +1,1 @@
+{"task_id": "cl-ep-001", "capability": ["tool_use"], "user_request": "Create config.yaml and verify it exists.", "expected_tool_calls": ["write config.yaml", "validate yaml"], "answer_checks": [{"type": "contains", "value": "config.yaml"}, {"type": "contains", "value": "validated"}], "agent_profile": {"outcome": "missing_tool"}}

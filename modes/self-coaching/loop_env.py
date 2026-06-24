@@ -19,6 +19,11 @@ MOCK_URL_KEYS = (
     "AGENTEVALS_BASE_URL",
 )
 
+# Deprecated env names still accepted in .env files (see normalize_legacy_env).
+LEGACY_ENV_ALIASES: dict[str, str] = {
+    "ORCHESTRATOR_SELFPLAY_BACKEND": "ORCHESTRATOR_SELF_QUESTIONING_BACKEND",
+}
+
 LOOP_DEFAULTS: dict[str, str] = {
     "LOOP_SERVICE_MODE": "mock-module",
     "LOOP_AGENT_ID": "demo-agent",
@@ -61,6 +66,14 @@ def _strip_optional_quotes(value: str) -> str:
     return value
 
 
+def normalize_legacy_env() -> None:
+    """Map deprecated env var names to current ones when the new name is unset."""
+    for old_key, new_key in LEGACY_ENV_ALIASES.items():
+        legacy = os.environ.get(old_key)
+        if legacy and not os.environ.get(new_key):
+            os.environ[new_key] = legacy
+
+
 def load_env_file(path: str | Path, *, overwrite: bool = True) -> dict[str, str]:
     """Parse a dotenv-style file into key/value pairs and apply to os.environ."""
     env_path = Path(path).resolve()
@@ -84,6 +97,7 @@ def load_env_file(path: str | Path, *, overwrite: bool = True) -> dict[str, str]
         loaded[key] = value
         if overwrite or key not in os.environ:
             os.environ[key] = value
+    normalize_legacy_env()
     return loaded
 
 
@@ -104,6 +118,7 @@ def resolve_service_mode(*, with_http: bool = False) -> str:
 
 def apply_service_mode(mode: str) -> None:
     """Normalize env for the selected service mode."""
+    normalize_legacy_env()
     agent_id = os.environ.get("LOOP_AGENT_ID", "demo-agent")
     os.environ["AGENT_ID"] = agent_id
     os.environ["LOOP_AGENT_ID"] = agent_id

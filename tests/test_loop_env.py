@@ -154,3 +154,12 @@ def test_build_loop_client_cli_backend(tmp_path: Path, monkeypatch: pytest.Monke
     client = build_loop_client(tmp_path)
     assert isinstance(client, CompositeClient)
     assert isinstance(client._train, CLITrainAdapter)
+
+
+def test_normalize_legacy_selfplay_backend_alias():
+    from loop_env import normalize_legacy_env
+
+    os.environ.pop("ORCHESTRATOR_SELF_QUESTIONING_BACKEND", None)
+    os.environ["ORCHESTRATOR_SELFPLAY_BACKEND"] = "pipeline"
+    normalize_legacy_env()
+    assert os.environ["ORCHESTRATOR_SELF_QUESTIONING_BACKEND"] == "pipeline"

@@ -34,7 +34,7 @@ class AgentEvalsClient:
         poll_interval_s: float | None = None,
         poll_timeout_s: float | None = None,
     ):
-        self.base_url = (base_url or os.environ.get("AGENTEVALS_BASE_URL", "http://localhost:8080")).rstrip("/")
+        self.base_url = (base_url or os.environ.get("AGENTEVALS_BASE_URL", "http://10.110.158.144:8080")).rstrip("/")
         self.timeout_s = timeout_s
         self._opener = self._build_opener(self.base_url)
         self.poll_interval_s = float(

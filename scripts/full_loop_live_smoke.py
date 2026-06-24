@@ -6,7 +6,7 @@ Usage:
   python scripts/full_loop_live_smoke.py
   python scripts/full_loop_live_smoke.py --env-file scenarios/demo.agentevals.env.example
 
-Requires AgentEvals at AGENTEVALS_BASE_URL (default http://localhost:8080).
+Requires AgentEvals at AGENTEVALS_BASE_URL (default http://10.110.158.144:8080).
 """
 from __future__ import annotations
 

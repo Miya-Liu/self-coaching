@@ -61,7 +61,7 @@ Full priority order: [integration/mapping.md](../../integration/mapping.md).
 | Variable | Purpose |
 |----------|---------|
 | `ORCHESTRATOR_EVAL_BACKEND` | Set `agentevals` |
-| `AGENTEVALS_BASE_URL` | e.g. `http://localhost:8080` |
+| `AGENTEVALS_BASE_URL` | e.g. `http://10.110.158.144:8080` (team service); `http://127.0.0.1:8080` for local mock |
 | `AGENTEVALS_SUITE_ID` | Canary suite |
 | `AGENTEVALS_SUITE_ID_HOLDOUT` | Holdout suite for `run` |
 | `AGENTEVALS_POLL_INTERVAL_S` | Poll loop |
@@ -78,8 +78,8 @@ Full priority order: [integration/mapping.md](../../integration/mapping.md).
 ## Smoke
 
 ```bash
-curl -s http://localhost:8080/health
-curl -s http://localhost:8080/api/suites
+curl -s http://10.110.158.144:8080/health
+curl -s http://10.110.158.144:8080/api/suites
 bash scripts/export-integration-snapshots.sh
 ```
 

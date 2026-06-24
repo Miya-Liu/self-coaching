@@ -175,7 +175,7 @@ End-to-end coach clock tick with **live** pipeline self-questioning, CLI train (
 |---------|-------------|--------|
 | Pipeline | `http://10.110.158.146:8001` | `curl …/health` → `{"status":"ok"}` |
 | Supabase | your `SUPABASE_URL` | REST root → HTTP 200 with service role key |
-| AgentEvals | `http://localhost:8080` | `curl …/health` → ok |
+| AgentEvals | `http://10.110.158.144:8080` | `curl …/health` → ok |
 | AReaL runner | GPU host | `run_shell_runner` active — required for CLI train |
 
 Key timeouts in `demo.live.env`:

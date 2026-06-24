@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${ROOT}/docs/integration/api-snapshots"
 AGENT_URL="${AGENT_API_BASE_URL:-http://10.110.158.146:8000}"
-AGENTEVALS_URL="${AGENTEVALS_BASE_URL:-http://localhost:8080}"
+AGENTEVALS_URL="${AGENTEVALS_BASE_URL:-http://10.110.158.144:8080}"
 
 mkdir -p "${OUT}"
 

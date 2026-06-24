@@ -83,6 +83,29 @@ Legacy alias: `ORCHESTRATOR_SELFPLAY_BACKEND` → `ORCHESTRATOR_SELF_QUESTIONING
 
 Set `LOOP_SERVICE_MODE=live` and copy the matching profile from `scenarios/*.env.example` → `scenarios/*.env` (gitignored; do not commit secrets). Full runbook: [`docs/guides/runbook.md`](docs/guides/runbook.md#live-integration-validation-track-1).
 
+### Team environment setup (real `.env` files)
+
+Committed `scenarios/*.env.example` files hold **non-secret** defaults (service URLs, suite IDs, timeouts). Each teammate copies locally:
+
+```bash
+cp scenarios/demo.live.env.example scenarios/demo.live.env
+# or per-backend profiles:
+cp scenarios/demo.agentevals.env.example scenarios/demo.env
+cp scenarios/demo.pipeline.env.example scenarios/demo.pipeline.env
+cp scenarios/demo.cli-train.env.example scenarios/demo.cli-train.env
+```
+
+Then fill **secret** placeholders (`<your-service-role-key>`, `<your-bridge-user-id>`, API keys) from your team secret store — never commit the filled `.env` files. Share secrets out-of-band (1Password, Vault, encrypted channel); keep only `*.env.example` in git.
+
+Verify connectivity before a long run:
+
+```bash
+python scripts/agentevals_live_smoke.py
+python scripts/evolution_loop_clock_smoke.py --env-file scenarios/demo.live.env --phase preflight
+```
+
+Mock-only work needs no `.env` copy: `python scripts/clock_loop_smoke.py` and `pytest -q` use in-process mocks by default.
+
 ### Layer 0 — all mock (CI baseline)
 
 Verifies the evolution engine + clock wiring with every backend on mock (~seconds):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Opt-in smoke test against a live AgentEvals service (default http://localhost:8080).
+"""Opt-in smoke test against a live AgentEvals service (default http://10.110.158.144:8080).
 
 Usage:
   python scripts/agentevals_live_smoke.py
-  AGENTEVALS_BASE_URL=http://localhost:8080 AGENTEVALS_MODEL_NAME=gpt-4o python scripts/agentevals_live_smoke.py
+  AGENTEVALS_BASE_URL=http://10.110.158.144:8080 AGENTEVALS_MODEL_NAME=gpt-4o python scripts/agentevals_live_smoke.py
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from services.orchestrator.eval_metrics import normalize_from_agentevals
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Live AgentEvals connectivity + mapping smoke")
-    parser.add_argument("--base-url", default=os.environ.get("AGENTEVALS_BASE_URL", "http://localhost:8080"))
+    parser.add_argument("--base-url", default=os.environ.get("AGENTEVALS_BASE_URL", "http://10.110.158.144:8080"))
     parser.add_argument("--suite-id", default=os.environ.get("AGENTEVALS_SUITE_ID", "MemoryArena_Preview"))
     parser.add_argument("--model-name", default=os.environ.get("AGENTEVALS_MODEL_NAME", "gpt-4o"))
     parser.add_argument(

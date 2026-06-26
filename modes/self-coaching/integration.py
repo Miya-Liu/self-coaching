@@ -39,6 +39,7 @@ def score_run(
     *,
     trajectory_fn: Callable[[dict], dict] | None = None,
     tau_fail: float | None = None,
+    override_score: float | None = None,
 ) -> tuple[TaskScore, str]:
     """Score a single task and route to Σ or B.
 
@@ -47,6 +48,8 @@ def score_run(
         tau: Task fixture dict (from build_tau).
         trajectory_fn: Function that returns ξ given τ.
         tau_fail: Score threshold below which task routes to Σ.
+        override_score: When provided (e.g. from AgentEvals trace eval),
+            use this score directly instead of the heuristic scorer.
 
     Returns:
         (TaskScore, routed_to) where routed_to is "support" or "buffer".
@@ -65,6 +68,7 @@ def score_run(
         version_id=version_id,
         tau_fail=tau_fail,
         trajectory_fn=trajectory_fn,
+        override_score=override_score,
     )
 
     # Update counters

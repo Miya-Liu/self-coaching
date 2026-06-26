@@ -40,13 +40,19 @@ def process_task(
     version_id: str,
     tau_fail: float | None = None,
     trajectory_fn: Any | None = None,
+    override_score: float | None = None,
 ) -> tuple[TaskScore, dict[str, Any], SupportEntry | None]:
     producer = trajectory_fn if trajectory_fn is not None else simulate_trajectory
     xi = producer(tau)
     rubric = score_trajectory(xi, tau)
+
+    # Use override_score from external evaluator (e.g. AgentEvals trace eval) if provided
+    final_score = override_score if override_score is not None else rubric["score"]
+    rubric["score"] = final_score
+
     task_id = str(tau.get("task_id") or "")
     trajectory_id, trajectory_ref = loop_store.save_trajectory(task_id, xi, rubric_result=rubric)
-    routed_to = route_score(rubric["score"], tau_fail=tau_fail)
+    routed_to = route_score(final_score, tau_fail=tau_fail)
 
     support_entry: SupportEntry | None = None
     if routed_to == "support":

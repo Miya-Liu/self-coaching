@@ -46,6 +46,105 @@ class AgentEvalsClient:
             else os.environ.get("AGENTEVALS_TIMEOUT_S", "3600")
         )
 
+    # -----------------------------------------------------------------------
+    # Trace Evals API
+    # -----------------------------------------------------------------------
+
+    def create_trace_eval(
+        self,
+        *,
+        agent_id: str,
+        start_time: str,
+        end_time: str,
+        sample_count: int,
+        agent_config: dict[str, Any],
+        seed: int | None = None,
+        status_filter: list[str] | None = None,
+        parallel: bool = True,
+        max_concurrent: int = 4,
+    ) -> dict[str, Any]:
+        """POST /api/trace-evals — create a trace evaluation run."""
+        body: dict[str, Any] = {
+            "agent_id": agent_id,
+            "start_time": start_time,
+            "end_time": end_time,
+            "sample_count": sample_count,
+            "agent_config": agent_config,
+            "parallel": parallel,
+            "max_concurrent": max_concurrent,
+        }
+        if seed is not None:
+            body["seed"] = seed
+        if status_filter is not None:
+            body["status_filter"] = status_filter
+        return self._request("POST", "/api/trace-evals", body)
+
+    def get_trace_eval(self, run_id: str) -> dict[str, Any]:
+        """GET /api/trace-evals/{run_id} — get trace eval detail."""
+        return self._request("GET", f"/api/trace-evals/{run_id}")
+
+    def list_trace_evals(self, *, status: str | None = None) -> list[dict[str, Any]]:
+        """GET /api/trace-evals — list trace eval runs."""
+        path = "/api/trace-evals"
+        if status:
+            path += f"?status={urllib.parse.quote(status)}"
+        data = self._request("GET", path)
+        return data if isinstance(data, list) else []
+
+    def wait_for_trace_eval(self, run_id: str) -> dict[str, Any]:
+        """Poll GET /api/trace-evals/{run_id} until terminal status."""
+        deadline = time.time() + self.poll_timeout_s
+        terminal = {"succeeded", "failed", "cancelled", "canceled"}
+        last: dict[str, Any] | None = None
+        started = time.time()
+        last_status: str | None = None
+        last_heartbeat = started
+        while time.time() < deadline:
+            last = self.get_trace_eval(run_id)
+            status = str(last.get("status", "")).lower()
+            elapsed = time.time() - started
+            if status != last_status:
+                step_log("trace-eval", f"run {run_id}: status={status or 'unknown'} ({elapsed:.0f}s elapsed)")
+                last_status = status
+                last_heartbeat = time.time()
+            elif time.time() - last_heartbeat >= 60:
+                step_log("trace-eval", f"run {run_id}: still {status or 'unknown'} ({elapsed:.0f}s elapsed)")
+                last_heartbeat = time.time()
+            if status in terminal:
+                if status != "succeeded":
+                    raise AgentEvalsError(
+                        f"trace eval run {run_id} ended with status={status!r}",
+                        body=last,
+                    )
+                step_log("trace-eval", f"run {run_id}: finished succeeded ({elapsed:.0f}s)")
+                return last
+            time.sleep(self.poll_interval_s)
+        raise AgentEvalsError(
+            f"trace eval run {run_id} did not complete within {self.poll_timeout_s}s",
+            body=last,
+        )
+
+    # -----------------------------------------------------------------------
+    # Evolution / Scorecards API
+    # -----------------------------------------------------------------------
+
+    def create_protocol_run(self, body: dict[str, Any]) -> dict[str, Any]:
+        """POST /api/evals/protocols/run — create an evolution protocol run."""
+        return self._request("POST", "/api/evals/protocols/run", body)
+
+    def get_protocol_run(self, run_id: str) -> dict[str, Any]:
+        """GET /api/evals/protocols/run/{run_id}."""
+        return self._request("GET", f"/api/evals/protocols/run/{run_id}")
+
+    def get_scorecard(self, run_id: str) -> dict[str, Any]:
+        """GET /api/evals/scorecards/{run_id}."""
+        return self._request("GET", f"/api/evals/scorecards/{run_id}")
+
+    def get_evolution_timeline(self, agent_id: str) -> list[dict[str, Any]]:
+        """GET /api/evals/evolution/{agent_id}/timeline."""
+        data = self._request("GET", f"/api/evals/evolution/{urllib.parse.quote(agent_id)}/timeline")
+        return data if isinstance(data, list) else []
+
     def health(self) -> dict[str, Any]:
         return self._request("GET", "/health")
 

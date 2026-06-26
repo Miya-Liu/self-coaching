@@ -24,11 +24,16 @@ LOG = logging.getLogger("coach.service")
 def build_coach_bridge() -> Any:
     """Select the coach bridge from env.
 
-    COACH_BRIDGE=mock   (default) → MockCoachAgentBridge (deterministic, CI-safe)
-    COACH_BRIDGE=agent            → AgentCoachBridge over an HTTP coach agent
+    COACH_BRIDGE=mock       (default) → MockCoachAgentBridge (deterministic, CI-safe)
+    COACH_BRIDGE=agent                → AgentCoachBridge over an HTTP coach agent
+    COACH_BRIDGE=trace_eval           → TraceEvalCoachBridge (AgentEvals trace evaluation)
 
     For COACH_BRIDGE=agent, COACH_AGENT_URL is required. Optional:
       COACH_AGENT_API_KEY, COACH_AGENT_MODEL, COACH_AGENT_TIMEOUT_S.
+
+    For COACH_BRIDGE=trace_eval, AGENTEVALS_BASE_URL is used (default: http://10.110.158.144:8080).
+    Optional: TRACE_EVAL_SCORE_HIGH, TRACE_EVAL_SCORE_LOW, TRACE_EVAL_WINDOW_HOURS,
+    TRACE_EVAL_SAMPLE_COUNT, AGENTEVALS_TIMEOUT_S.
     """
     import os
 
@@ -50,7 +55,14 @@ def build_coach_bridge() -> Any:
         )
         tools_enabled = os.environ.get("COACH_TOOLS_ENABLED", "").strip().lower() in ("1", "true", "yes")
         return AgentCoachBridge(transport, tools_enabled=tools_enabled)
-    raise SystemExit(f"unknown COACH_BRIDGE={kind!r} (expected 'mock' or 'agent')")
+    if kind == "trace_eval":
+        from coach.trace_eval_bridge import TraceEvalCoachBridge
+
+        return TraceEvalCoachBridge(
+            base_url=os.environ.get("AGENTEVALS_BASE_URL"),
+            poll_timeout_s=float(os.environ.get("AGENTEVALS_TIMEOUT_S", "300")),
+        )
+    raise SystemExit(f"unknown COACH_BRIDGE={kind!r} (expected 'mock', 'agent', or 'trace_eval')")
 
 
 class CoachServiceState:
